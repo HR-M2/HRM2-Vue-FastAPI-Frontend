@@ -175,7 +175,7 @@ import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Upload, Document, MagicStick, SuccessFilled } from '@element-plus/icons-vue'
 import type { UploadFile, UploadInstance } from 'element-plus'
-import { aiGeneratePositionApiV1AiPositionGeneratePost } from '@/api/sdk.gen'
+import { aiGeneratePosition } from '@/api/sdk.gen'
 import type { PositionFormData } from '@/composables/usePositionEditor'
 
 const props = defineProps<{
@@ -259,7 +259,7 @@ const handleGenerate = async () => {
   generatedResult.value = null
   
   try {
-    const response = await aiGeneratePositionApiV1AiPositionGeneratePost({
+    const response = await aiGeneratePosition({
       body: {
         description: description.value,
         documents: parsedDocuments.value.length > 0 

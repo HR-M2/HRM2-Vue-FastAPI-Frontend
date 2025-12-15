@@ -4,13 +4,13 @@
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  getResumesApiV1ResumesGet,
-  getResumeApiV1ResumesResumeIdGet,
-  createResumeApiV1ResumesPost,
-  updateResumeApiV1ResumesResumeIdPatch,
-  deleteResumeApiV1ResumesResumeIdDelete,
-  batchDeleteResumesApiV1ResumesBatchDeletePost,
-  checkHashesApiV1ResumesCheckHashesPost,
+  getResumes,
+  getResume,
+  createResume,
+  updateResume as updateResumeApi,
+  deleteResume as deleteResumeApi,
+  batchDeleteResumes,
+  checkHashes,
 } from '@/api/sdk.gen'
 import type { ResumeListResponse, ResumeResponse, ResumeCreate } from '@/api/types.gen'
 
@@ -29,7 +29,7 @@ export function useResumeLibrary() {
   const loadResumes = async () => {
     loading.value = true
     try {
-      const { data, error } = await getResumesApiV1ResumesGet({
+      const { data, error } = await getResumes({
         query: {
           page: currentPage.value,
           page_size: pageSize.value,
@@ -56,7 +56,7 @@ export function useResumeLibrary() {
   // 获取简历详情
   const getResumeDetail = async (resumeId: string): Promise<ResumeResponse | null> => {
     try {
-      const { data, error } = await getResumeApiV1ResumesResumeIdGet({
+      const { data, error } = await getResume({
         path: { resume_id: resumeId }
       })
       
@@ -98,7 +98,7 @@ export function useResumeLibrary() {
       }
       
       // 批量检查哈希是否存在
-      const { data: checkResult, error: checkError } = await checkHashesApiV1ResumesCheckHashesPost({
+      const { data: checkResult, error: checkError } = await checkHashes({
         body: { hashes: fileHashes }
       })
       
@@ -129,7 +129,7 @@ export function useResumeLibrary() {
           file_size: file.metadata?.size || file.content.length,
         }
         
-        const { error: createError } = await createResumeApiV1ResumesPost({
+        const { error: createError } = await createResume({
           body: resumeData
         })
         
@@ -179,7 +179,7 @@ export function useResumeLibrary() {
         type: 'warning'
       })
       
-      const { error } = await deleteResumeApiV1ResumesResumeIdDelete({
+      const { error } = await deleteResumeApi({
         path: { resume_id: resumeId }
       })
       
@@ -211,7 +211,7 @@ export function useResumeLibrary() {
         { type: 'warning' }
       )
       
-      const { error } = await batchDeleteResumesApiV1ResumesBatchDeletePost({
+      const { error } = await batchDeleteResumes({
         body: { resume_ids: selectedIds.value }
       })
       
@@ -233,7 +233,7 @@ export function useResumeLibrary() {
   // 更新简历信息
   const updateResume = async (resumeId: string, data: { candidate_name?: string; notes?: string }) => {
     try {
-      const { error } = await updateResumeApiV1ResumesResumeIdPatch({
+      const { error } = await updateResumeApi({
         path: { resume_id: resumeId },
         body: data
       })

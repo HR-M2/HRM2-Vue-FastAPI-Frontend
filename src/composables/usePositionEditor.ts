@@ -4,11 +4,11 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  getPositionsApiV1PositionsGet,
-  getPositionApiV1PositionsPositionIdGet,
-  createPositionApiV1PositionsPost,
-  updatePositionApiV1PositionsPositionIdPatch,
-  deletePositionApiV1PositionsPositionIdDelete
+  getPositions,
+  getPosition,
+  createPosition as createPositionApi,
+  updatePosition as updatePositionApi,
+  deletePosition as deletePositionApi
 } from '@/api/sdk.gen'
 import type { PositionResponse, PositionListResponse } from '@/api/types.gen'
 
@@ -63,7 +63,7 @@ export function usePositionEditor() {
   const loadPositions = async () => {
     loading.value = true
     try {
-      const response = await getPositionsApiV1PositionsGet({
+      const response = await getPositions({
         query: { page: 1, page_size: 100 }
       })
       const data = (response.data as any)?.data || response.data
@@ -95,7 +95,7 @@ export function usePositionEditor() {
     // 加载岗位详情
     if (pos.id) {
       try {
-        const response = await getPositionApiV1PositionsPositionIdGet({
+        const response = await getPosition({
           path: { position_id: pos.id }
         })
         const detail = (response.data as any)?.data || response.data
@@ -134,7 +134,7 @@ export function usePositionEditor() {
     }
 
     try {
-      const response = await createPositionApiV1PositionsPost({
+      const response = await createPositionApi({
         body: {
           title,
           description,
@@ -174,7 +174,7 @@ export function usePositionEditor() {
         type: 'warning'
       })
 
-      await deletePositionApiV1PositionsPositionIdDelete({
+      await deletePositionApi({
         path: { position_id: pos.id }
       })
       ElMessage.success('岗位已删除')
@@ -203,7 +203,7 @@ export function usePositionEditor() {
 
     saving.value = true
     try {
-      await updatePositionApiV1PositionsPositionIdPatch({
+      await updatePositionApi({
         path: { position_id: selectedPositionId.value },
         body: {
           title: formData.title,

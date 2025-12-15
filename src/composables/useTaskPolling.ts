@@ -4,7 +4,7 @@
  */
 import { ref, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getScreeningStatusApiV1ScreeningTaskIdStatusGet } from '@/api/sdk.gen'
+import { getScreeningStatus } from '@/api/sdk.gen'
 import type { ProcessingTask } from '@/types'
 
 export function useTaskPolling(onTaskCompleted?: () => void) {
@@ -39,7 +39,7 @@ export function useTaskPolling(onTaskCompleted?: () => void) {
     for (const task of pendingTasks) {
       if (!task.task_id) continue
       try {
-        const response = await getScreeningStatusApiV1ScreeningTaskIdStatusGet({
+        const response = await getScreeningStatus({
           path: { task_id: task.task_id }
         })
         

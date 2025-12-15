@@ -5,10 +5,10 @@
 import { ref, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  createResumeApiV1ResumesPost,
-  createApplicationApiV1ApplicationsPost,
-  startAiScreeningApiV1AiScreeningStartPost,
-  getResumesApiV1ResumesGet
+  createResume,
+  createApplication,
+  startAiScreening,
+  getResumes
 } from '@/api/sdk.gen'
 import type { ResumeListResponse } from '@/api/types.gen'
 import type { PositionData, ResumeFile, ProcessingTask } from '@/types'
@@ -65,7 +65,7 @@ export function useResumeUpload(
           const fileHash = await calculateHash(file.content)
           
           // 创建简历
-          const resumeResponse = await createResumeApiV1ResumesPost({
+          const resumeResponse = await createResume({
             body: {
               candidate_name: file.name.replace(/\.[^/.]+$/, ''),
               content: file.content,
@@ -80,7 +80,7 @@ export function useResumeUpload(
           const resumeId = resumeResponse.data.data.id
           
           // 创建应聘申请
-          const appResponse = await createApplicationApiV1ApplicationsPost({
+          const appResponse = await createApplication({
             body: {
               position_id: positionData.value.id,
               resume_id: resumeId
@@ -94,7 +94,7 @@ export function useResumeUpload(
           const applicationId = appResponse.data.data.id
           
           // 直接启动 AI 筛选（会自动创建筛选任务）
-          const aiResponse = await startAiScreeningApiV1AiScreeningStartPost({
+          const aiResponse = await startAiScreening({
             body: {
               application_id: applicationId
             }
@@ -127,7 +127,7 @@ export function useResumeUpload(
       for (const libFile of selectedLibraryFiles) {
         try {
           // 创建应聘申请
-          const appResponse = await createApplicationApiV1ApplicationsPost({
+          const appResponse = await createApplication({
             body: {
               position_id: positionData.value.id,
               resume_id: libFile.id
@@ -141,7 +141,7 @@ export function useResumeUpload(
           const applicationId = appResponse.data.data.id
           
           // 直接启动 AI 筛选（会自动创建筛选任务）
-          const aiResponse = await startAiScreeningApiV1AiScreeningStartPost({
+          const aiResponse = await startAiScreening({
             body: {
               application_id: applicationId
             }
@@ -185,7 +185,7 @@ export function useResumeUpload(
   // 加载简历库列表
   const loadLibraryList = async () => {
     try {
-      const response = await getResumesApiV1ResumesGet({
+      const response = await getResumes({
         query: { page_size: 100 }
       })
       return response.data?.data?.items || []

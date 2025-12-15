@@ -129,9 +129,9 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { MagicStick } from '@element-plus/icons-vue'
 import {
-  getPositionsApiV1PositionsGet,
-  getPositionApiV1PositionsPositionIdGet,
-  generateRandomResumeApiV1AiDevRandomResumePost
+  getPositions,
+  getPosition,
+  generateRandomResume
 } from '@/api/sdk.gen'
 import type { PositionListResponse, PositionResponse } from '@/api/types.gen'
 
@@ -160,7 +160,7 @@ const router = useRouter()
 // 加载岗位列表
 const loadPositions = async () => {
   try {
-    const result = await getPositionsApiV1PositionsGet({
+    const result = await getPositions({
       query: { page: 1, page_size: 100, is_active: true }
     })
     const data = (result.data as any)?.data || result.data
@@ -178,7 +178,7 @@ const handlePositionChange = async (posId: string) => {
     return
   }
   try {
-    const result = await getPositionApiV1PositionsPositionIdGet({
+    const result = await getPosition({
       path: { position_id: posId }
     })
     const data = (result.data as any)?.data || result.data
@@ -200,7 +200,7 @@ const handleGenerate = async () => {
   lastResult.value = null
 
   try {
-    const result = await generateRandomResumeApiV1AiDevRandomResumePost({
+    const result = await generateRandomResume({
       body: {
         position_id: selectedPositionId.value,
         count: formData.count

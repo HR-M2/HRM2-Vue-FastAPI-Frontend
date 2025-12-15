@@ -121,7 +121,7 @@ import { useResumeAssignment } from '@/composables/useResumeAssignment'
 import { useResumeDetail } from '@/composables/useResumeDetail'
 
 // API 导入
-import { createScreeningTaskApiV1ScreeningPost } from '@/api/sdk.gen'
+import { createScreeningTask } from '@/api/sdk.gen'
 import { ElMessage } from 'element-plus'
 
 // 类型导入
@@ -213,7 +213,7 @@ const handleRetryTask = async (task: HistoryTask) => {
     }
     
     // 创建新的筛选任务
-    const response = await createScreeningTaskApiV1ScreeningPost({
+    const response = await createScreeningTask({
       body: {
         application_id: task.application_id
       }

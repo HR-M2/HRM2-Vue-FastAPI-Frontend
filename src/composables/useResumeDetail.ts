@@ -5,8 +5,8 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  getScreeningTaskApiV1ScreeningTaskIdGet,
-  downloadScreeningReportApiV1ScreeningTaskIdDownloadGet
+  getScreeningTask,
+  downloadScreeningReport
 } from '@/api/sdk.gen'
 import type { ResumeData, ResumeFile, ProcessingTask, HistoryTask } from '@/types'
 import { useScreeningUtils } from './useScreeningUtils'
@@ -53,7 +53,7 @@ export function useResumeDetail() {
     // 如果已完成，尝试获取更多详情
     if (item.task_id && item.status === 'completed') {
       try {
-        const response = await getScreeningTaskApiV1ScreeningTaskIdGet({
+        const response = await getScreeningTask({
           path: { task_id: item.task_id }
         })
         
@@ -101,7 +101,7 @@ export function useResumeDetail() {
   // 下载报告
   const downloadReport = async (taskId: string) => {
     try {
-      const response = await downloadScreeningReportApiV1ScreeningTaskIdDownloadGet({
+      const response = await downloadScreeningReport({
         path: { task_id: taskId }
       })
       

@@ -5,8 +5,8 @@
 import { ref, computed, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  getResumesApiV1ResumesGet,
-  createApplicationApiV1ApplicationsPost
+  getResumes,
+  createApplication
 } from '@/api/sdk.gen'
 import type { ResumeListResponse } from '@/api/types.gen'
 import type { PositionData, ProcessingTask, HistoryTask } from '@/types'
@@ -48,7 +48,7 @@ export function useResumeAssignment(
   const loadAvailableResumes = async () => {
     resumesLoading.value = true
     try {
-      const response = await getResumesApiV1ResumesGet({
+      const response = await getResumes({
         query: { page_size: 100 }
       })
       availableResumes.value = response.data?.data?.items || []
@@ -81,7 +81,7 @@ export function useResumeAssignment(
     try {
       for (const resumeId of resumeIds) {
         try {
-          await createApplicationApiV1ApplicationsPost({
+          await createApplication({
             body: {
               position_id: selectedPositionId.value,
               resume_id: resumeId

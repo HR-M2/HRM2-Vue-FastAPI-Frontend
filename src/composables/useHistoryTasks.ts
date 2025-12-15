@@ -5,8 +5,8 @@
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  getScreeningTasksApiV1ScreeningGet,
-  deleteScreeningTaskApiV1ScreeningTaskIdDelete
+  getScreeningTasks,
+  deleteScreeningTask
 } from '@/api/sdk.gen'
 import type { HistoryTask } from '@/types'
 
@@ -20,7 +20,7 @@ export function useHistoryTasks() {
   const loadHistoryTasks = async () => {
     historyLoading.value = true
     try {
-      const response = await getScreeningTasksApiV1ScreeningGet({
+      const response = await getScreeningTasks({
         query: {
           status: historyParams.status || undefined,
           page: historyParams.page,
@@ -72,7 +72,7 @@ export function useHistoryTasks() {
         type: 'warning'
       })
       
-      await deleteScreeningTaskApiV1ScreeningTaskIdDelete({
+      await deleteScreeningTask({
         path: { task_id: taskId }
       })
       ElMessage.success('删除成功')

@@ -179,7 +179,7 @@ import { ref, computed, reactive, watch } from 'vue'
 import { Upload, Document, FolderOpened, Plus } from '@element-plus/icons-vue'
 import { useFileParser } from '@/composables/useFileParser'
 import { useScreeningUtils } from '@/composables/useScreeningUtils'
-import { getResumesApiV1ResumesGet } from '@/api/sdk.gen'
+import { getResumes } from '@/api/sdk.gen'
 import type { ResumeListResponse } from '@/api/types.gen'
 import type { ResumeFile } from '@/types'
 import { ElMessage } from 'element-plus'
@@ -213,7 +213,7 @@ const showLibraryDialog = async () => {
   libraryDialogVisible.value = true
   libraryLoading.value = true
   try {
-    const response = await getResumesApiV1ResumesGet({
+    const response = await getResumes({
       query: { page_size: 100 }
     })
     libraryList.value = response.data?.data?.items || []

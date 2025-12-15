@@ -5,9 +5,9 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  getPositionsApiV1PositionsGet,
-  getApplicationsApiV1ApplicationsGet,
-  deleteApplicationApiV1ApplicationsApplicationIdDelete
+  getPositions,
+  getApplications,
+  deleteApplication
 } from '@/api/sdk.gen'
 import type { PositionData, ResumeData } from '@/types'
 
@@ -27,7 +27,7 @@ export function usePositionManagement() {
   // 加载岗位列表（包含关联的简历）
   const loadPositionsList = async () => {
     try {
-      const response = await getPositionsApiV1PositionsGet({
+      const response = await getPositions({
         query: { page_size: 100 }
       })
       
@@ -39,7 +39,7 @@ export function usePositionManagement() {
         
         for (const pos of positions) {
           // 获取该岗位的申请
-          const appsResponse = await getApplicationsApiV1ApplicationsGet({
+          const appsResponse = await getApplications({
             query: { position_id: pos.id, page_size: 100 }
           })
           
@@ -95,7 +95,7 @@ export function usePositionManagement() {
     }
     
     try {
-      await deleteApplicationApiV1ApplicationsApplicationIdDelete({
+      await deleteApplication({
         path: { application_id: applicationId }
       })
       ElMessage.success('移除成功')

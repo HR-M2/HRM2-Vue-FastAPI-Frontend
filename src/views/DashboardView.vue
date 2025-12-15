@@ -173,11 +173,11 @@ import {
   ChatDotRound
 } from '@element-plus/icons-vue'
 import {
-  getPositionsApiV1PositionsGet,
-  getScreeningTasksApiV1ScreeningGet,
-  getVideoAnalysesApiV1VideoGet,
-  getStatsOverviewApiV1ApplicationsStatsOverviewGet,
-  getRecommendationStatsApiV1AnalysisStatsRecommendationGet
+  getPositions,
+  getScreeningTasks,
+  getVideoAnalyses,
+  getStatsOverview,
+  getRecommendationStats
 } from '@/api/sdk.gen'
 import type {
   PositionListResponse,
@@ -310,11 +310,11 @@ const fetchData = async () => {
   try {
     // 并行获取各项数据
     const [positionsRes, screeningRes, videosRes, statsRes, recommendRes] = await Promise.all([
-      getPositionsApiV1PositionsGet({ query: { page: 1, page_size: 5 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
-      getScreeningTasksApiV1ScreeningGet({ query: { status: 'completed', page: 1, page_size: 5 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
-      getVideoAnalysesApiV1VideoGet({ query: { page: 1, page_size: 6 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
-      getStatsOverviewApiV1ApplicationsStatsOverviewGet().catch(() => ({ data: null })),
-      getRecommendationStatsApiV1AnalysisStatsRecommendationGet().catch(() => ({ data: null }))
+      getPositions({ query: { page: 1, page_size: 5 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
+      getScreeningTasks({ query: { status: 'completed', page: 1, page_size: 5 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
+      getVideoAnalyses({ query: { page: 1, page_size: 6 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
+      getStatsOverview().catch(() => ({ data: null })),
+      getRecommendationStats().catch(() => ({ data: null }))
     ])
 
     // 处理岗位数据

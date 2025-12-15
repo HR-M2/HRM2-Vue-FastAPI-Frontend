@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AiComprehensiveAnalysisApiV1AiAnalysisComprehensivePostData, AiComprehensiveAnalysisApiV1AiAnalysisComprehensivePostErrors, AiComprehensiveAnalysisApiV1AiAnalysisComprehensivePostResponses, AiEvaluateAnswerApiV1AiInterviewEvaluatePostData, AiEvaluateAnswerApiV1AiInterviewEvaluatePostErrors, AiEvaluateAnswerApiV1AiInterviewEvaluatePostResponses, AiGenerateCandidateQuestionsApiV1AiInterviewCandidateQuestionsPostData, AiGenerateCandidateQuestionsApiV1AiInterviewCandidateQuestionsPostErrors, AiGenerateCandidateQuestionsApiV1AiInterviewCandidateQuestionsPostResponses, AiGeneratePositionApiV1AiPositionGeneratePostData, AiGeneratePositionApiV1AiPositionGeneratePostErrors, AiGeneratePositionApiV1AiPositionGeneratePostResponses, AiGenerateQuestionsApiV1AiInterviewQuestionsPostData, AiGenerateQuestionsApiV1AiInterviewQuestionsPostErrors, AiGenerateQuestionsApiV1AiInterviewQuestionsPostResponses, AiGenerateReportApiV1AiInterviewReportPostData, AiGenerateReportApiV1AiInterviewReportPostErrors, AiGenerateReportApiV1AiInterviewReportPostResponses, BatchDeleteResumesApiV1ResumesBatchDeletePostData, BatchDeleteResumesApiV1ResumesBatchDeletePostErrors, BatchDeleteResumesApiV1ResumesBatchDeletePostResponses, CheckHashApiV1ResumesCheckHashGetData, CheckHashApiV1ResumesCheckHashGetErrors, CheckHashApiV1ResumesCheckHashGetResponses, CheckHashesApiV1ResumesCheckHashesPostData, CheckHashesApiV1ResumesCheckHashesPostErrors, CheckHashesApiV1ResumesCheckHashesPostResponses, CompleteSessionApiV1InterviewSessionIdCompletePostData, CompleteSessionApiV1InterviewSessionIdCompletePostErrors, CompleteSessionApiV1InterviewSessionIdCompletePostResponses, CreateAnalysisApiV1AnalysisPostData, CreateAnalysisApiV1AnalysisPostErrors, CreateAnalysisApiV1AnalysisPostResponses, CreateApplicationApiV1ApplicationsPostData, CreateApplicationApiV1ApplicationsPostErrors, CreateApplicationApiV1ApplicationsPostResponses, CreateInterviewSessionApiV1InterviewPostData, CreateInterviewSessionApiV1InterviewPostErrors, CreateInterviewSessionApiV1InterviewPostResponses, CreatePositionApiV1PositionsPostData, CreatePositionApiV1PositionsPostErrors, CreatePositionApiV1PositionsPostResponses, CreateResumeApiV1ResumesPostData, CreateResumeApiV1ResumesPostErrors, CreateResumeApiV1ResumesPostResponses, CreateScreeningTaskApiV1ScreeningPostData, CreateScreeningTaskApiV1ScreeningPostErrors, CreateScreeningTaskApiV1ScreeningPostResponses, CreateVideoAnalysisApiV1VideoPostData, CreateVideoAnalysisApiV1VideoPostErrors, CreateVideoAnalysisApiV1VideoPostResponses, DeleteAnalysisApiV1AnalysisAnalysisIdDeleteData, DeleteAnalysisApiV1AnalysisAnalysisIdDeleteErrors, DeleteAnalysisApiV1AnalysisAnalysisIdDeleteResponses, DeleteApplicationApiV1ApplicationsApplicationIdDeleteData, DeleteApplicationApiV1ApplicationsApplicationIdDeleteErrors, DeleteApplicationApiV1ApplicationsApplicationIdDeleteResponses, DeleteInterviewSessionApiV1InterviewSessionIdDeleteData, DeleteInterviewSessionApiV1InterviewSessionIdDeleteErrors, DeleteInterviewSessionApiV1InterviewSessionIdDeleteResponses, DeletePositionApiV1PositionsPositionIdDeleteData, DeletePositionApiV1PositionsPositionIdDeleteErrors, DeletePositionApiV1PositionsPositionIdDeleteResponses, DeleteResumeApiV1ResumesResumeIdDeleteData, DeleteResumeApiV1ResumesResumeIdDeleteErrors, DeleteResumeApiV1ResumesResumeIdDeleteResponses, DeleteScreeningTaskApiV1ScreeningTaskIdDeleteData, DeleteScreeningTaskApiV1ScreeningTaskIdDeleteErrors, DeleteScreeningTaskApiV1ScreeningTaskIdDeleteResponses, DeleteVideoAnalysisApiV1VideoVideoIdDeleteData, DeleteVideoAnalysisApiV1VideoVideoIdDeleteErrors, DeleteVideoAnalysisApiV1VideoVideoIdDeleteResponses, DownloadScreeningReportApiV1ScreeningTaskIdDownloadGetData, DownloadScreeningReportApiV1ScreeningTaskIdDownloadGetErrors, DownloadScreeningReportApiV1ScreeningTaskIdDownloadGetResponses, GenerateQuestionsApiV1InterviewSessionIdQuestionsPostData, GenerateQuestionsApiV1InterviewSessionIdQuestionsPostErrors, GenerateQuestionsApiV1InterviewSessionIdQuestionsPostResponses, GenerateRandomResumeApiV1AiDevRandomResumePostData, GenerateRandomResumeApiV1AiDevRandomResumePostErrors, GenerateRandomResumeApiV1AiDevRandomResumePostResponses, GetAiStatusApiV1AiStatusGetData, GetAiStatusApiV1AiStatusGetResponses, GetAnalysesApiV1AnalysisGetData, GetAnalysesApiV1AnalysisGetErrors, GetAnalysesApiV1AnalysisGetResponses, GetAnalysisApiV1AnalysisAnalysisIdGetData, GetAnalysisApiV1AnalysisAnalysisIdGetErrors, GetAnalysisApiV1AnalysisAnalysisIdGetResponses, GetApplicationApiV1ApplicationsApplicationIdGetData, GetApplicationApiV1ApplicationsApplicationIdGetErrors, GetApplicationApiV1ApplicationsApplicationIdGetResponses, GetApplicationsApiV1ApplicationsGetData, GetApplicationsApiV1ApplicationsGetErrors, GetApplicationsApiV1ApplicationsGetResponses, GetInterviewSessionApiV1InterviewSessionIdGetData, GetInterviewSessionApiV1InterviewSessionIdGetErrors, GetInterviewSessionApiV1InterviewSessionIdGetResponses, GetInterviewSessionsApiV1InterviewGetData, GetInterviewSessionsApiV1InterviewGetErrors, GetInterviewSessionsApiV1InterviewGetResponses, GetPositionApiV1PositionsPositionIdGetData, GetPositionApiV1PositionsPositionIdGetErrors, GetPositionApiV1PositionsPositionIdGetResponses, GetPositionsApiV1PositionsGetData, GetPositionsApiV1PositionsGetErrors, GetPositionsApiV1PositionsGetResponses, GetRecommendationStatsApiV1AnalysisStatsRecommendationGetData, GetRecommendationStatsApiV1AnalysisStatsRecommendationGetResponses, GetResumeApiV1ResumesResumeIdGetData, GetResumeApiV1ResumesResumeIdGetErrors, GetResumeApiV1ResumesResumeIdGetResponses, GetResumesApiV1ResumesGetData, GetResumesApiV1ResumesGetErrors, GetResumesApiV1ResumesGetResponses, GetScreeningStatusApiV1ScreeningTaskIdStatusGetData, GetScreeningStatusApiV1ScreeningTaskIdStatusGetErrors, GetScreeningStatusApiV1ScreeningTaskIdStatusGetResponses, GetScreeningTaskApiV1ScreeningTaskIdGetData, GetScreeningTaskApiV1ScreeningTaskIdGetErrors, GetScreeningTaskApiV1ScreeningTaskIdGetResponses, GetScreeningTasksApiV1ScreeningGetData, GetScreeningTasksApiV1ScreeningGetErrors, GetScreeningTasksApiV1ScreeningGetResponses, GetStatsOverviewApiV1ApplicationsStatsOverviewGetData, GetStatsOverviewApiV1ApplicationsStatsOverviewGetResponses, GetVideoAnalysesApiV1VideoGetData, GetVideoAnalysesApiV1VideoGetErrors, GetVideoAnalysesApiV1VideoGetResponses, GetVideoAnalysisApiV1VideoVideoIdGetData, GetVideoAnalysisApiV1VideoVideoIdGetErrors, GetVideoAnalysisApiV1VideoVideoIdGetResponses, GetVideoStatusApiV1VideoVideoIdStatusGetData, GetVideoStatusApiV1VideoVideoIdStatusGetErrors, GetVideoStatusApiV1VideoVideoIdStatusGetResponses, HealthCheckHealthGetData, HealthCheckHealthGetResponses, RecordQaApiV1InterviewSessionIdQaPostData, RecordQaApiV1InterviewSessionIdQaPostErrors, RecordQaApiV1InterviewSessionIdQaPostResponses, RootGetData, RootGetResponses, StartAiScreeningApiV1AiScreeningStartPostData, StartAiScreeningApiV1AiScreeningStartPostErrors, StartAiScreeningApiV1AiScreeningStartPostResponses, UpdateApplicationApiV1ApplicationsApplicationIdPatchData, UpdateApplicationApiV1ApplicationsApplicationIdPatchErrors, UpdateApplicationApiV1ApplicationsApplicationIdPatchResponses, UpdatePositionApiV1PositionsPositionIdPatchData, UpdatePositionApiV1PositionsPositionIdPatchErrors, UpdatePositionApiV1PositionsPositionIdPatchResponses, UpdateResumeApiV1ResumesResumeIdPatchData, UpdateResumeApiV1ResumesResumeIdPatchErrors, UpdateResumeApiV1ResumesResumeIdPatchResponses, UpdateScreeningResultApiV1ScreeningTaskIdPatchData, UpdateScreeningResultApiV1ScreeningTaskIdPatchErrors, UpdateScreeningResultApiV1ScreeningTaskIdPatchResponses, UpdateVideoResultApiV1VideoVideoIdPatchData, UpdateVideoResultApiV1VideoVideoIdPatchErrors, UpdateVideoResultApiV1VideoVideoIdPatchResponses } from './types.gen';
+import type { AiComprehensiveAnalysisData, AiComprehensiveAnalysisErrors, AiComprehensiveAnalysisResponses, AiEvaluateAnswerData, AiEvaluateAnswerErrors, AiEvaluateAnswerResponses, AiGenerateCandidateQuestionsData, AiGenerateCandidateQuestionsErrors, AiGenerateCandidateQuestionsResponses, AiGeneratePositionData, AiGeneratePositionErrors, AiGeneratePositionResponses, AiGenerateQuestionsData, AiGenerateQuestionsErrors, AiGenerateQuestionsResponses, AiGenerateReportData, AiGenerateReportErrors, AiGenerateReportResponses, BatchDeleteResumesData, BatchDeleteResumesErrors, BatchDeleteResumesResponses, CheckHashData, CheckHashErrors, CheckHashesData, CheckHashesErrors, CheckHashesResponses, CheckHashResponses, CompleteSessionData, CompleteSessionErrors, CompleteSessionResponses, CreateAnalysisData, CreateAnalysisErrors, CreateAnalysisResponses, CreateApplicationData, CreateApplicationErrors, CreateApplicationResponses, CreateInterviewSessionData, CreateInterviewSessionErrors, CreateInterviewSessionResponses, CreatePositionData, CreatePositionErrors, CreatePositionResponses, CreateResumeData, CreateResumeErrors, CreateResumeResponses, CreateScreeningTaskData, CreateScreeningTaskErrors, CreateScreeningTaskResponses, CreateVideoAnalysisData, CreateVideoAnalysisErrors, CreateVideoAnalysisResponses, DeleteAnalysisData, DeleteAnalysisErrors, DeleteAnalysisResponses, DeleteApplicationData, DeleteApplicationErrors, DeleteApplicationResponses, DeleteInterviewSessionData, DeleteInterviewSessionErrors, DeleteInterviewSessionResponses, DeletePositionData, DeletePositionErrors, DeletePositionResponses, DeleteResumeData, DeleteResumeErrors, DeleteResumeResponses, DeleteScreeningTaskData, DeleteScreeningTaskErrors, DeleteScreeningTaskResponses, DeleteVideoAnalysisData, DeleteVideoAnalysisErrors, DeleteVideoAnalysisResponses, DownloadScreeningReportData, DownloadScreeningReportErrors, DownloadScreeningReportResponses, GenerateQuestionsData, GenerateQuestionsErrors, GenerateQuestionsResponses, GenerateRandomResumeData, GenerateRandomResumeErrors, GenerateRandomResumeResponses, GetAiStatusData, GetAiStatusResponses, GetAnalysesData, GetAnalysesErrors, GetAnalysesResponses, GetAnalysisData, GetAnalysisErrors, GetAnalysisResponses, GetApplicationData, GetApplicationErrors, GetApplicationResponses, GetApplicationsData, GetApplicationsErrors, GetApplicationsResponses, GetInterviewSessionData, GetInterviewSessionErrors, GetInterviewSessionResponses, GetInterviewSessionsData, GetInterviewSessionsErrors, GetInterviewSessionsResponses, GetPositionData, GetPositionErrors, GetPositionResponses, GetPositionsData, GetPositionsErrors, GetPositionsResponses, GetRecommendationStatsData, GetRecommendationStatsResponses, GetResumeData, GetResumeErrors, GetResumeResponses, GetResumesData, GetResumesErrors, GetResumesResponses, GetScreeningStatusData, GetScreeningStatusErrors, GetScreeningStatusResponses, GetScreeningTaskData, GetScreeningTaskErrors, GetScreeningTaskResponses, GetScreeningTasksData, GetScreeningTasksErrors, GetScreeningTasksResponses, GetStatsOverviewData, GetStatsOverviewResponses, GetVideoAnalysesData, GetVideoAnalysesErrors, GetVideoAnalysesResponses, GetVideoAnalysisData, GetVideoAnalysisErrors, GetVideoAnalysisResponses, GetVideoStatusData, GetVideoStatusErrors, GetVideoStatusResponses, HealthCheckData, HealthCheckResponses, RecordQaData, RecordQaErrors, RecordQaResponses, RootData, RootResponses, StartAiScreeningData, StartAiScreeningErrors, StartAiScreeningResponses, UpdateApplicationData, UpdateApplicationErrors, UpdateApplicationResponses, UpdatePositionData, UpdatePositionErrors, UpdatePositionResponses, UpdateResumeData, UpdateResumeErrors, UpdateResumeResponses, UpdateScreeningResultData, UpdateScreeningResultErrors, UpdateScreeningResultResponses, UpdateVideoResultData, UpdateVideoResultErrors, UpdateVideoResultResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -23,14 +23,14 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  *
  * 获取岗位列表，支持分页和状态筛选
  */
-export const getPositionsApiV1PositionsGet = <ThrowOnError extends boolean = false>(options?: Options<GetPositionsApiV1PositionsGetData, ThrowOnError>) => (options?.client ?? client).get<GetPositionsApiV1PositionsGetResponses, GetPositionsApiV1PositionsGetErrors, ThrowOnError>({ url: '/api/v1/positions', ...options });
+export const getPositions = <ThrowOnError extends boolean = false>(options?: Options<GetPositionsData, ThrowOnError>) => (options?.client ?? client).get<GetPositionsResponses, GetPositionsErrors, ThrowOnError>({ url: '/api/v1/positions', ...options });
 
 /**
  * 创建岗位
  *
  * 创建新岗位
  */
-export const createPositionApiV1PositionsPost = <ThrowOnError extends boolean = false>(options: Options<CreatePositionApiV1PositionsPostData, ThrowOnError>) => (options.client ?? client).post<CreatePositionApiV1PositionsPostResponses, CreatePositionApiV1PositionsPostErrors, ThrowOnError>({
+export const createPosition = <ThrowOnError extends boolean = false>(options: Options<CreatePositionData, ThrowOnError>) => (options.client ?? client).post<CreatePositionResponses, CreatePositionErrors, ThrowOnError>({
     url: '/api/v1/positions',
     ...options,
     headers: {
@@ -44,21 +44,21 @@ export const createPositionApiV1PositionsPost = <ThrowOnError extends boolean = 
  *
  * 删除岗位（同时删除关联的申请）
  */
-export const deletePositionApiV1PositionsPositionIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeletePositionApiV1PositionsPositionIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeletePositionApiV1PositionsPositionIdDeleteResponses, DeletePositionApiV1PositionsPositionIdDeleteErrors, ThrowOnError>({ url: '/api/v1/positions/{position_id}', ...options });
+export const deletePosition = <ThrowOnError extends boolean = false>(options: Options<DeletePositionData, ThrowOnError>) => (options.client ?? client).delete<DeletePositionResponses, DeletePositionErrors, ThrowOnError>({ url: '/api/v1/positions/{position_id}', ...options });
 
 /**
  * 获取岗位详情
  *
  * 根据 ID 获取岗位详情
  */
-export const getPositionApiV1PositionsPositionIdGet = <ThrowOnError extends boolean = false>(options: Options<GetPositionApiV1PositionsPositionIdGetData, ThrowOnError>) => (options.client ?? client).get<GetPositionApiV1PositionsPositionIdGetResponses, GetPositionApiV1PositionsPositionIdGetErrors, ThrowOnError>({ url: '/api/v1/positions/{position_id}', ...options });
+export const getPosition = <ThrowOnError extends boolean = false>(options: Options<GetPositionData, ThrowOnError>) => (options.client ?? client).get<GetPositionResponses, GetPositionErrors, ThrowOnError>({ url: '/api/v1/positions/{position_id}', ...options });
 
 /**
  * 更新岗位
  *
  * 更新岗位信息
  */
-export const updatePositionApiV1PositionsPositionIdPatch = <ThrowOnError extends boolean = false>(options: Options<UpdatePositionApiV1PositionsPositionIdPatchData, ThrowOnError>) => (options.client ?? client).patch<UpdatePositionApiV1PositionsPositionIdPatchResponses, UpdatePositionApiV1PositionsPositionIdPatchErrors, ThrowOnError>({
+export const updatePosition = <ThrowOnError extends boolean = false>(options: Options<UpdatePositionData, ThrowOnError>) => (options.client ?? client).patch<UpdatePositionResponses, UpdatePositionErrors, ThrowOnError>({
     url: '/api/v1/positions/{position_id}',
     ...options,
     headers: {
@@ -72,14 +72,14 @@ export const updatePositionApiV1PositionsPositionIdPatch = <ThrowOnError extends
  *
  * 获取简历列表，支持分页和关键词搜索
  */
-export const getResumesApiV1ResumesGet = <ThrowOnError extends boolean = false>(options?: Options<GetResumesApiV1ResumesGetData, ThrowOnError>) => (options?.client ?? client).get<GetResumesApiV1ResumesGetResponses, GetResumesApiV1ResumesGetErrors, ThrowOnError>({ url: '/api/v1/resumes', ...options });
+export const getResumes = <ThrowOnError extends boolean = false>(options?: Options<GetResumesData, ThrowOnError>) => (options?.client ?? client).get<GetResumesResponses, GetResumesErrors, ThrowOnError>({ url: '/api/v1/resumes', ...options });
 
 /**
  * 创建简历
  *
  * 创建新简历
  */
-export const createResumeApiV1ResumesPost = <ThrowOnError extends boolean = false>(options: Options<CreateResumeApiV1ResumesPostData, ThrowOnError>) => (options.client ?? client).post<CreateResumeApiV1ResumesPostResponses, CreateResumeApiV1ResumesPostErrors, ThrowOnError>({
+export const createResume = <ThrowOnError extends boolean = false>(options: Options<CreateResumeData, ThrowOnError>) => (options.client ?? client).post<CreateResumeResponses, CreateResumeErrors, ThrowOnError>({
     url: '/api/v1/resumes',
     ...options,
     headers: {
@@ -93,28 +93,28 @@ export const createResumeApiV1ResumesPost = <ThrowOnError extends boolean = fals
  *
  * 检查文件哈希是否已存在（去重用）
  */
-export const checkHashApiV1ResumesCheckHashGet = <ThrowOnError extends boolean = false>(options: Options<CheckHashApiV1ResumesCheckHashGetData, ThrowOnError>) => (options.client ?? client).get<CheckHashApiV1ResumesCheckHashGetResponses, CheckHashApiV1ResumesCheckHashGetErrors, ThrowOnError>({ url: '/api/v1/resumes/check-hash', ...options });
+export const checkHash = <ThrowOnError extends boolean = false>(options: Options<CheckHashData, ThrowOnError>) => (options.client ?? client).get<CheckHashResponses, CheckHashErrors, ThrowOnError>({ url: '/api/v1/resumes/check-hash', ...options });
 
 /**
  * 删除简历
  *
  * 删除简历（同时删除关联的申请）
  */
-export const deleteResumeApiV1ResumesResumeIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteResumeApiV1ResumesResumeIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteResumeApiV1ResumesResumeIdDeleteResponses, DeleteResumeApiV1ResumesResumeIdDeleteErrors, ThrowOnError>({ url: '/api/v1/resumes/{resume_id}', ...options });
+export const deleteResume = <ThrowOnError extends boolean = false>(options: Options<DeleteResumeData, ThrowOnError>) => (options.client ?? client).delete<DeleteResumeResponses, DeleteResumeErrors, ThrowOnError>({ url: '/api/v1/resumes/{resume_id}', ...options });
 
 /**
  * 获取简历详情
  *
  * 根据 ID 获取简历详情
  */
-export const getResumeApiV1ResumesResumeIdGet = <ThrowOnError extends boolean = false>(options: Options<GetResumeApiV1ResumesResumeIdGetData, ThrowOnError>) => (options.client ?? client).get<GetResumeApiV1ResumesResumeIdGetResponses, GetResumeApiV1ResumesResumeIdGetErrors, ThrowOnError>({ url: '/api/v1/resumes/{resume_id}', ...options });
+export const getResume = <ThrowOnError extends boolean = false>(options: Options<GetResumeData, ThrowOnError>) => (options.client ?? client).get<GetResumeResponses, GetResumeErrors, ThrowOnError>({ url: '/api/v1/resumes/{resume_id}', ...options });
 
 /**
  * 更新简历
  *
  * 更新简历信息
  */
-export const updateResumeApiV1ResumesResumeIdPatch = <ThrowOnError extends boolean = false>(options: Options<UpdateResumeApiV1ResumesResumeIdPatchData, ThrowOnError>) => (options.client ?? client).patch<UpdateResumeApiV1ResumesResumeIdPatchResponses, UpdateResumeApiV1ResumesResumeIdPatchErrors, ThrowOnError>({
+export const updateResume = <ThrowOnError extends boolean = false>(options: Options<UpdateResumeData, ThrowOnError>) => (options.client ?? client).patch<UpdateResumeResponses, UpdateResumeErrors, ThrowOnError>({
     url: '/api/v1/resumes/{resume_id}',
     ...options,
     headers: {
@@ -128,7 +128,7 @@ export const updateResumeApiV1ResumesResumeIdPatch = <ThrowOnError extends boole
  *
  * 批量删除简历
  */
-export const batchDeleteResumesApiV1ResumesBatchDeletePost = <ThrowOnError extends boolean = false>(options: Options<BatchDeleteResumesApiV1ResumesBatchDeletePostData, ThrowOnError>) => (options.client ?? client).post<BatchDeleteResumesApiV1ResumesBatchDeletePostResponses, BatchDeleteResumesApiV1ResumesBatchDeletePostErrors, ThrowOnError>({
+export const batchDeleteResumes = <ThrowOnError extends boolean = false>(options: Options<BatchDeleteResumesData, ThrowOnError>) => (options.client ?? client).post<BatchDeleteResumesResponses, BatchDeleteResumesErrors, ThrowOnError>({
     url: '/api/v1/resumes/batch-delete',
     ...options,
     headers: {
@@ -142,7 +142,7 @@ export const batchDeleteResumesApiV1ResumesBatchDeletePost = <ThrowOnError exten
  *
  * 批量检查文件哈希是否已存在（去重用）
  */
-export const checkHashesApiV1ResumesCheckHashesPost = <ThrowOnError extends boolean = false>(options: Options<CheckHashesApiV1ResumesCheckHashesPostData, ThrowOnError>) => (options.client ?? client).post<CheckHashesApiV1ResumesCheckHashesPostResponses, CheckHashesApiV1ResumesCheckHashesPostErrors, ThrowOnError>({
+export const checkHashes = <ThrowOnError extends boolean = false>(options: Options<CheckHashesData, ThrowOnError>) => (options.client ?? client).post<CheckHashesResponses, CheckHashesErrors, ThrowOnError>({
     url: '/api/v1/resumes/check-hashes',
     ...options,
     headers: {
@@ -156,14 +156,14 @@ export const checkHashesApiV1ResumesCheckHashesPost = <ThrowOnError extends bool
  *
  * 获取应聘申请列表，支持多条件筛选
  */
-export const getApplicationsApiV1ApplicationsGet = <ThrowOnError extends boolean = false>(options?: Options<GetApplicationsApiV1ApplicationsGetData, ThrowOnError>) => (options?.client ?? client).get<GetApplicationsApiV1ApplicationsGetResponses, GetApplicationsApiV1ApplicationsGetErrors, ThrowOnError>({ url: '/api/v1/applications', ...options });
+export const getApplications = <ThrowOnError extends boolean = false>(options?: Options<GetApplicationsData, ThrowOnError>) => (options?.client ?? client).get<GetApplicationsResponses, GetApplicationsErrors, ThrowOnError>({ url: '/api/v1/applications', ...options });
 
 /**
  * 创建应聘申请
  *
  * 创建新的应聘申请（简历投递岗位）
  */
-export const createApplicationApiV1ApplicationsPost = <ThrowOnError extends boolean = false>(options: Options<CreateApplicationApiV1ApplicationsPostData, ThrowOnError>) => (options.client ?? client).post<CreateApplicationApiV1ApplicationsPostResponses, CreateApplicationApiV1ApplicationsPostErrors, ThrowOnError>({
+export const createApplication = <ThrowOnError extends boolean = false>(options: Options<CreateApplicationData, ThrowOnError>) => (options.client ?? client).post<CreateApplicationResponses, CreateApplicationErrors, ThrowOnError>({
     url: '/api/v1/applications',
     ...options,
     headers: {
@@ -177,21 +177,21 @@ export const createApplicationApiV1ApplicationsPost = <ThrowOnError extends bool
  *
  * 删除应聘申请（同时删除关联的筛选/分析数据）
  */
-export const deleteApplicationApiV1ApplicationsApplicationIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteApplicationApiV1ApplicationsApplicationIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteApplicationApiV1ApplicationsApplicationIdDeleteResponses, DeleteApplicationApiV1ApplicationsApplicationIdDeleteErrors, ThrowOnError>({ url: '/api/v1/applications/{application_id}', ...options });
+export const deleteApplication = <ThrowOnError extends boolean = false>(options: Options<DeleteApplicationData, ThrowOnError>) => (options.client ?? client).delete<DeleteApplicationResponses, DeleteApplicationErrors, ThrowOnError>({ url: '/api/v1/applications/{application_id}', ...options });
 
 /**
  * 获取应聘申请详情
  *
  * 获取应聘申请详情（含所有关联数据）
  */
-export const getApplicationApiV1ApplicationsApplicationIdGet = <ThrowOnError extends boolean = false>(options: Options<GetApplicationApiV1ApplicationsApplicationIdGetData, ThrowOnError>) => (options.client ?? client).get<GetApplicationApiV1ApplicationsApplicationIdGetResponses, GetApplicationApiV1ApplicationsApplicationIdGetErrors, ThrowOnError>({ url: '/api/v1/applications/{application_id}', ...options });
+export const getApplication = <ThrowOnError extends boolean = false>(options: Options<GetApplicationData, ThrowOnError>) => (options.client ?? client).get<GetApplicationResponses, GetApplicationErrors, ThrowOnError>({ url: '/api/v1/applications/{application_id}', ...options });
 
 /**
  * 更新应聘申请
  *
  * 更新应聘申请备注
  */
-export const updateApplicationApiV1ApplicationsApplicationIdPatch = <ThrowOnError extends boolean = false>(options: Options<UpdateApplicationApiV1ApplicationsApplicationIdPatchData, ThrowOnError>) => (options.client ?? client).patch<UpdateApplicationApiV1ApplicationsApplicationIdPatchResponses, UpdateApplicationApiV1ApplicationsApplicationIdPatchErrors, ThrowOnError>({
+export const updateApplication = <ThrowOnError extends boolean = false>(options: Options<UpdateApplicationData, ThrowOnError>) => (options.client ?? client).patch<UpdateApplicationResponses, UpdateApplicationErrors, ThrowOnError>({
     url: '/api/v1/applications/{application_id}',
     ...options,
     headers: {
@@ -205,21 +205,21 @@ export const updateApplicationApiV1ApplicationsApplicationIdPatch = <ThrowOnErro
  *
  * 获取申请统计概览
  */
-export const getStatsOverviewApiV1ApplicationsStatsOverviewGet = <ThrowOnError extends boolean = false>(options?: Options<GetStatsOverviewApiV1ApplicationsStatsOverviewGetData, ThrowOnError>) => (options?.client ?? client).get<GetStatsOverviewApiV1ApplicationsStatsOverviewGetResponses, unknown, ThrowOnError>({ url: '/api/v1/applications/stats/overview', ...options });
+export const getStatsOverview = <ThrowOnError extends boolean = false>(options?: Options<GetStatsOverviewData, ThrowOnError>) => (options?.client ?? client).get<GetStatsOverviewResponses, unknown, ThrowOnError>({ url: '/api/v1/applications/stats/overview', ...options });
 
 /**
  * 获取筛选任务列表
  *
  * 获取筛选任务列表
  */
-export const getScreeningTasksApiV1ScreeningGet = <ThrowOnError extends boolean = false>(options?: Options<GetScreeningTasksApiV1ScreeningGetData, ThrowOnError>) => (options?.client ?? client).get<GetScreeningTasksApiV1ScreeningGetResponses, GetScreeningTasksApiV1ScreeningGetErrors, ThrowOnError>({ url: '/api/v1/screening', ...options });
+export const getScreeningTasks = <ThrowOnError extends boolean = false>(options?: Options<GetScreeningTasksData, ThrowOnError>) => (options?.client ?? client).get<GetScreeningTasksResponses, GetScreeningTasksErrors, ThrowOnError>({ url: '/api/v1/screening', ...options });
 
 /**
  * 创建筛选任务
  *
  * 为指定应聘申请创建筛选任务
  */
-export const createScreeningTaskApiV1ScreeningPost = <ThrowOnError extends boolean = false>(options: Options<CreateScreeningTaskApiV1ScreeningPostData, ThrowOnError>) => (options.client ?? client).post<CreateScreeningTaskApiV1ScreeningPostResponses, CreateScreeningTaskApiV1ScreeningPostErrors, ThrowOnError>({
+export const createScreeningTask = <ThrowOnError extends boolean = false>(options: Options<CreateScreeningTaskData, ThrowOnError>) => (options.client ?? client).post<CreateScreeningTaskResponses, CreateScreeningTaskErrors, ThrowOnError>({
     url: '/api/v1/screening',
     ...options,
     headers: {
@@ -233,21 +233,21 @@ export const createScreeningTaskApiV1ScreeningPost = <ThrowOnError extends boole
  *
  * 删除筛选任务
  */
-export const deleteScreeningTaskApiV1ScreeningTaskIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteScreeningTaskApiV1ScreeningTaskIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteScreeningTaskApiV1ScreeningTaskIdDeleteResponses, DeleteScreeningTaskApiV1ScreeningTaskIdDeleteErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}', ...options });
+export const deleteScreeningTask = <ThrowOnError extends boolean = false>(options: Options<DeleteScreeningTaskData, ThrowOnError>) => (options.client ?? client).delete<DeleteScreeningTaskResponses, DeleteScreeningTaskErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}', ...options });
 
 /**
  * 获取筛选任务详情
  *
  * 获取筛选任务详情
  */
-export const getScreeningTaskApiV1ScreeningTaskIdGet = <ThrowOnError extends boolean = false>(options: Options<GetScreeningTaskApiV1ScreeningTaskIdGetData, ThrowOnError>) => (options.client ?? client).get<GetScreeningTaskApiV1ScreeningTaskIdGetResponses, GetScreeningTaskApiV1ScreeningTaskIdGetErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}', ...options });
+export const getScreeningTask = <ThrowOnError extends boolean = false>(options: Options<GetScreeningTaskData, ThrowOnError>) => (options.client ?? client).get<GetScreeningTaskResponses, GetScreeningTaskErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}', ...options });
 
 /**
  * 更新筛选结果
  *
  * 更新筛选任务结果（供 AI 服务回调）
  */
-export const updateScreeningResultApiV1ScreeningTaskIdPatch = <ThrowOnError extends boolean = false>(options: Options<UpdateScreeningResultApiV1ScreeningTaskIdPatchData, ThrowOnError>) => (options.client ?? client).patch<UpdateScreeningResultApiV1ScreeningTaskIdPatchResponses, UpdateScreeningResultApiV1ScreeningTaskIdPatchErrors, ThrowOnError>({
+export const updateScreeningResult = <ThrowOnError extends boolean = false>(options: Options<UpdateScreeningResultData, ThrowOnError>) => (options.client ?? client).patch<UpdateScreeningResultResponses, UpdateScreeningResultErrors, ThrowOnError>({
     url: '/api/v1/screening/{task_id}',
     ...options,
     headers: {
@@ -261,28 +261,28 @@ export const updateScreeningResultApiV1ScreeningTaskIdPatch = <ThrowOnError exte
  *
  * 获取筛选任务状态（轮询用）
  */
-export const getScreeningStatusApiV1ScreeningTaskIdStatusGet = <ThrowOnError extends boolean = false>(options: Options<GetScreeningStatusApiV1ScreeningTaskIdStatusGetData, ThrowOnError>) => (options.client ?? client).get<GetScreeningStatusApiV1ScreeningTaskIdStatusGetResponses, GetScreeningStatusApiV1ScreeningTaskIdStatusGetErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}/status', ...options });
+export const getScreeningStatus = <ThrowOnError extends boolean = false>(options: Options<GetScreeningStatusData, ThrowOnError>) => (options.client ?? client).get<GetScreeningStatusResponses, GetScreeningStatusErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}/status', ...options });
 
 /**
  * 下载筛选报告
  *
  * 下载筛选报告（Markdown 格式）
  */
-export const downloadScreeningReportApiV1ScreeningTaskIdDownloadGet = <ThrowOnError extends boolean = false>(options: Options<DownloadScreeningReportApiV1ScreeningTaskIdDownloadGetData, ThrowOnError>) => (options.client ?? client).get<DownloadScreeningReportApiV1ScreeningTaskIdDownloadGetResponses, DownloadScreeningReportApiV1ScreeningTaskIdDownloadGetErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}/download', ...options });
+export const downloadScreeningReport = <ThrowOnError extends boolean = false>(options: Options<DownloadScreeningReportData, ThrowOnError>) => (options.client ?? client).get<DownloadScreeningReportResponses, DownloadScreeningReportErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}/download', ...options });
 
 /**
  * 获取视频分析列表
  *
  * 获取视频分析列表
  */
-export const getVideoAnalysesApiV1VideoGet = <ThrowOnError extends boolean = false>(options?: Options<GetVideoAnalysesApiV1VideoGetData, ThrowOnError>) => (options?.client ?? client).get<GetVideoAnalysesApiV1VideoGetResponses, GetVideoAnalysesApiV1VideoGetErrors, ThrowOnError>({ url: '/api/v1/video', ...options });
+export const getVideoAnalyses = <ThrowOnError extends boolean = false>(options?: Options<GetVideoAnalysesData, ThrowOnError>) => (options?.client ?? client).get<GetVideoAnalysesResponses, GetVideoAnalysesErrors, ThrowOnError>({ url: '/api/v1/video', ...options });
 
 /**
  * 创建视频分析
  *
  * 创建视频分析任务
  */
-export const createVideoAnalysisApiV1VideoPost = <ThrowOnError extends boolean = false>(options: Options<CreateVideoAnalysisApiV1VideoPostData, ThrowOnError>) => (options.client ?? client).post<CreateVideoAnalysisApiV1VideoPostResponses, CreateVideoAnalysisApiV1VideoPostErrors, ThrowOnError>({
+export const createVideoAnalysis = <ThrowOnError extends boolean = false>(options: Options<CreateVideoAnalysisData, ThrowOnError>) => (options.client ?? client).post<CreateVideoAnalysisResponses, CreateVideoAnalysisErrors, ThrowOnError>({
     url: '/api/v1/video',
     ...options,
     headers: {
@@ -296,21 +296,21 @@ export const createVideoAnalysisApiV1VideoPost = <ThrowOnError extends boolean =
  *
  * 删除视频分析
  */
-export const deleteVideoAnalysisApiV1VideoVideoIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteVideoAnalysisApiV1VideoVideoIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteVideoAnalysisApiV1VideoVideoIdDeleteResponses, DeleteVideoAnalysisApiV1VideoVideoIdDeleteErrors, ThrowOnError>({ url: '/api/v1/video/{video_id}', ...options });
+export const deleteVideoAnalysis = <ThrowOnError extends boolean = false>(options: Options<DeleteVideoAnalysisData, ThrowOnError>) => (options.client ?? client).delete<DeleteVideoAnalysisResponses, DeleteVideoAnalysisErrors, ThrowOnError>({ url: '/api/v1/video/{video_id}', ...options });
 
 /**
  * 获取视频分析详情
  *
  * 获取视频分析详情
  */
-export const getVideoAnalysisApiV1VideoVideoIdGet = <ThrowOnError extends boolean = false>(options: Options<GetVideoAnalysisApiV1VideoVideoIdGetData, ThrowOnError>) => (options.client ?? client).get<GetVideoAnalysisApiV1VideoVideoIdGetResponses, GetVideoAnalysisApiV1VideoVideoIdGetErrors, ThrowOnError>({ url: '/api/v1/video/{video_id}', ...options });
+export const getVideoAnalysis = <ThrowOnError extends boolean = false>(options: Options<GetVideoAnalysisData, ThrowOnError>) => (options.client ?? client).get<GetVideoAnalysisResponses, GetVideoAnalysisErrors, ThrowOnError>({ url: '/api/v1/video/{video_id}', ...options });
 
 /**
  * 更新视频分析结果
  *
  * 更新视频分析结果（供外部分析服务回调）
  */
-export const updateVideoResultApiV1VideoVideoIdPatch = <ThrowOnError extends boolean = false>(options: Options<UpdateVideoResultApiV1VideoVideoIdPatchData, ThrowOnError>) => (options.client ?? client).patch<UpdateVideoResultApiV1VideoVideoIdPatchResponses, UpdateVideoResultApiV1VideoVideoIdPatchErrors, ThrowOnError>({
+export const updateVideoResult = <ThrowOnError extends boolean = false>(options: Options<UpdateVideoResultData, ThrowOnError>) => (options.client ?? client).patch<UpdateVideoResultResponses, UpdateVideoResultErrors, ThrowOnError>({
     url: '/api/v1/video/{video_id}',
     ...options,
     headers: {
@@ -324,21 +324,21 @@ export const updateVideoResultApiV1VideoVideoIdPatch = <ThrowOnError extends boo
  *
  * 获取视频分析状态（轮询用）
  */
-export const getVideoStatusApiV1VideoVideoIdStatusGet = <ThrowOnError extends boolean = false>(options: Options<GetVideoStatusApiV1VideoVideoIdStatusGetData, ThrowOnError>) => (options.client ?? client).get<GetVideoStatusApiV1VideoVideoIdStatusGetResponses, GetVideoStatusApiV1VideoVideoIdStatusGetErrors, ThrowOnError>({ url: '/api/v1/video/{video_id}/status', ...options });
+export const getVideoStatus = <ThrowOnError extends boolean = false>(options: Options<GetVideoStatusData, ThrowOnError>) => (options.client ?? client).get<GetVideoStatusResponses, GetVideoStatusErrors, ThrowOnError>({ url: '/api/v1/video/{video_id}/status', ...options });
 
 /**
  * 获取面试会话列表
  *
  * 获取面试会话列表
  */
-export const getInterviewSessionsApiV1InterviewGet = <ThrowOnError extends boolean = false>(options?: Options<GetInterviewSessionsApiV1InterviewGetData, ThrowOnError>) => (options?.client ?? client).get<GetInterviewSessionsApiV1InterviewGetResponses, GetInterviewSessionsApiV1InterviewGetErrors, ThrowOnError>({ url: '/api/v1/interview', ...options });
+export const getInterviewSessions = <ThrowOnError extends boolean = false>(options?: Options<GetInterviewSessionsData, ThrowOnError>) => (options?.client ?? client).get<GetInterviewSessionsResponses, GetInterviewSessionsErrors, ThrowOnError>({ url: '/api/v1/interview', ...options });
 
 /**
  * 创建面试会话
  *
  * 创建新的面试会话
  */
-export const createInterviewSessionApiV1InterviewPost = <ThrowOnError extends boolean = false>(options: Options<CreateInterviewSessionApiV1InterviewPostData, ThrowOnError>) => (options.client ?? client).post<CreateInterviewSessionApiV1InterviewPostResponses, CreateInterviewSessionApiV1InterviewPostErrors, ThrowOnError>({
+export const createInterviewSession = <ThrowOnError extends boolean = false>(options: Options<CreateInterviewSessionData, ThrowOnError>) => (options.client ?? client).post<CreateInterviewSessionResponses, CreateInterviewSessionErrors, ThrowOnError>({
     url: '/api/v1/interview',
     ...options,
     headers: {
@@ -352,14 +352,14 @@ export const createInterviewSessionApiV1InterviewPost = <ThrowOnError extends bo
  *
  * 删除面试会话
  */
-export const deleteInterviewSessionApiV1InterviewSessionIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteInterviewSessionApiV1InterviewSessionIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteInterviewSessionApiV1InterviewSessionIdDeleteResponses, DeleteInterviewSessionApiV1InterviewSessionIdDeleteErrors, ThrowOnError>({ url: '/api/v1/interview/{session_id}', ...options });
+export const deleteInterviewSession = <ThrowOnError extends boolean = false>(options: Options<DeleteInterviewSessionData, ThrowOnError>) => (options.client ?? client).delete<DeleteInterviewSessionResponses, DeleteInterviewSessionErrors, ThrowOnError>({ url: '/api/v1/interview/{session_id}', ...options });
 
 /**
  * 获取面试会话详情
  *
  * 获取面试会话详情
  */
-export const getInterviewSessionApiV1InterviewSessionIdGet = <ThrowOnError extends boolean = false>(options: Options<GetInterviewSessionApiV1InterviewSessionIdGetData, ThrowOnError>) => (options.client ?? client).get<GetInterviewSessionApiV1InterviewSessionIdGetResponses, GetInterviewSessionApiV1InterviewSessionIdGetErrors, ThrowOnError>({ url: '/api/v1/interview/{session_id}', ...options });
+export const getInterviewSession = <ThrowOnError extends boolean = false>(options: Options<GetInterviewSessionData, ThrowOnError>) => (options.client ?? client).get<GetInterviewSessionResponses, GetInterviewSessionErrors, ThrowOnError>({ url: '/api/v1/interview/{session_id}', ...options });
 
 /**
  * 生成面试问题
@@ -368,7 +368,7 @@ export const getInterviewSessionApiV1InterviewSessionIdGet = <ThrowOnError exten
  *
  * 注意: 实际 AI 生成逻辑需要在 services 层实现
  */
-export const generateQuestionsApiV1InterviewSessionIdQuestionsPost = <ThrowOnError extends boolean = false>(options: Options<GenerateQuestionsApiV1InterviewSessionIdQuestionsPostData, ThrowOnError>) => (options.client ?? client).post<GenerateQuestionsApiV1InterviewSessionIdQuestionsPostResponses, GenerateQuestionsApiV1InterviewSessionIdQuestionsPostErrors, ThrowOnError>({
+export const generateQuestions = <ThrowOnError extends boolean = false>(options: Options<GenerateQuestionsData, ThrowOnError>) => (options.client ?? client).post<GenerateQuestionsResponses, GenerateQuestionsErrors, ThrowOnError>({
     url: '/api/v1/interview/{session_id}/questions',
     ...options,
     headers: {
@@ -382,7 +382,7 @@ export const generateQuestionsApiV1InterviewSessionIdQuestionsPost = <ThrowOnErr
  *
  * 记录一轮问答
  */
-export const recordQaApiV1InterviewSessionIdQaPost = <ThrowOnError extends boolean = false>(options: Options<RecordQaApiV1InterviewSessionIdQaPostData, ThrowOnError>) => (options.client ?? client).post<RecordQaApiV1InterviewSessionIdQaPostResponses, RecordQaApiV1InterviewSessionIdQaPostErrors, ThrowOnError>({
+export const recordQa = <ThrowOnError extends boolean = false>(options: Options<RecordQaData, ThrowOnError>) => (options.client ?? client).post<RecordQaResponses, RecordQaErrors, ThrowOnError>({
     url: '/api/v1/interview/{session_id}/qa',
     ...options,
     headers: {
@@ -398,14 +398,14 @@ export const recordQaApiV1InterviewSessionIdQaPost = <ThrowOnError extends boole
  *
  * 注意: 实际报告生成逻辑需要在 services 层实现
  */
-export const completeSessionApiV1InterviewSessionIdCompletePost = <ThrowOnError extends boolean = false>(options: Options<CompleteSessionApiV1InterviewSessionIdCompletePostData, ThrowOnError>) => (options.client ?? client).post<CompleteSessionApiV1InterviewSessionIdCompletePostResponses, CompleteSessionApiV1InterviewSessionIdCompletePostErrors, ThrowOnError>({ url: '/api/v1/interview/{session_id}/complete', ...options });
+export const completeSession = <ThrowOnError extends boolean = false>(options: Options<CompleteSessionData, ThrowOnError>) => (options.client ?? client).post<CompleteSessionResponses, CompleteSessionErrors, ThrowOnError>({ url: '/api/v1/interview/{session_id}/complete', ...options });
 
 /**
  * 获取综合分析列表
  *
  * 获取综合分析列表
  */
-export const getAnalysesApiV1AnalysisGet = <ThrowOnError extends boolean = false>(options?: Options<GetAnalysesApiV1AnalysisGetData, ThrowOnError>) => (options?.client ?? client).get<GetAnalysesApiV1AnalysisGetResponses, GetAnalysesApiV1AnalysisGetErrors, ThrowOnError>({ url: '/api/v1/analysis', ...options });
+export const getAnalyses = <ThrowOnError extends boolean = false>(options?: Options<GetAnalysesData, ThrowOnError>) => (options?.client ?? client).get<GetAnalysesResponses, GetAnalysesErrors, ThrowOnError>({ url: '/api/v1/analysis', ...options });
 
 /**
  * 创建综合分析
@@ -414,7 +414,7 @@ export const getAnalysesApiV1AnalysisGet = <ThrowOnError extends boolean = false
  *
  * 注意: 实际分析逻辑需要在 services 层实现
  */
-export const createAnalysisApiV1AnalysisPost = <ThrowOnError extends boolean = false>(options: Options<CreateAnalysisApiV1AnalysisPostData, ThrowOnError>) => (options.client ?? client).post<CreateAnalysisApiV1AnalysisPostResponses, CreateAnalysisApiV1AnalysisPostErrors, ThrowOnError>({
+export const createAnalysis = <ThrowOnError extends boolean = false>(options: Options<CreateAnalysisData, ThrowOnError>) => (options.client ?? client).post<CreateAnalysisResponses, CreateAnalysisErrors, ThrowOnError>({
     url: '/api/v1/analysis',
     ...options,
     headers: {
@@ -428,28 +428,28 @@ export const createAnalysisApiV1AnalysisPost = <ThrowOnError extends boolean = f
  *
  * 删除综合分析
  */
-export const deleteAnalysisApiV1AnalysisAnalysisIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteAnalysisApiV1AnalysisAnalysisIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteAnalysisApiV1AnalysisAnalysisIdDeleteResponses, DeleteAnalysisApiV1AnalysisAnalysisIdDeleteErrors, ThrowOnError>({ url: '/api/v1/analysis/{analysis_id}', ...options });
+export const deleteAnalysis = <ThrowOnError extends boolean = false>(options: Options<DeleteAnalysisData, ThrowOnError>) => (options.client ?? client).delete<DeleteAnalysisResponses, DeleteAnalysisErrors, ThrowOnError>({ url: '/api/v1/analysis/{analysis_id}', ...options });
 
 /**
  * 获取综合分析详情
  *
  * 获取综合分析详情
  */
-export const getAnalysisApiV1AnalysisAnalysisIdGet = <ThrowOnError extends boolean = false>(options: Options<GetAnalysisApiV1AnalysisAnalysisIdGetData, ThrowOnError>) => (options.client ?? client).get<GetAnalysisApiV1AnalysisAnalysisIdGetResponses, GetAnalysisApiV1AnalysisAnalysisIdGetErrors, ThrowOnError>({ url: '/api/v1/analysis/{analysis_id}', ...options });
+export const getAnalysis = <ThrowOnError extends boolean = false>(options: Options<GetAnalysisData, ThrowOnError>) => (options.client ?? client).get<GetAnalysisResponses, GetAnalysisErrors, ThrowOnError>({ url: '/api/v1/analysis/{analysis_id}', ...options });
 
 /**
  * 获取推荐等级统计
  *
  * 获取各推荐等级的数量统计
  */
-export const getRecommendationStatsApiV1AnalysisStatsRecommendationGet = <ThrowOnError extends boolean = false>(options?: Options<GetRecommendationStatsApiV1AnalysisStatsRecommendationGetData, ThrowOnError>) => (options?.client ?? client).get<GetRecommendationStatsApiV1AnalysisStatsRecommendationGetResponses, unknown, ThrowOnError>({ url: '/api/v1/analysis/stats/recommendation', ...options });
+export const getRecommendationStats = <ThrowOnError extends boolean = false>(options?: Options<GetRecommendationStatsData, ThrowOnError>) => (options?.client ?? client).get<GetRecommendationStatsResponses, unknown, ThrowOnError>({ url: '/api/v1/analysis/stats/recommendation', ...options });
 
 /**
  * 获取LLM服务状态
  *
  * 获取AI/LLM服务配置状态
  */
-export const getAiStatusApiV1AiStatusGet = <ThrowOnError extends boolean = false>(options?: Options<GetAiStatusApiV1AiStatusGetData, ThrowOnError>) => (options?.client ?? client).get<GetAiStatusApiV1AiStatusGetResponses, unknown, ThrowOnError>({ url: '/api/v1/ai/status', ...options });
+export const getAiStatus = <ThrowOnError extends boolean = false>(options?: Options<GetAiStatusData, ThrowOnError>) => (options?.client ?? client).get<GetAiStatusResponses, unknown, ThrowOnError>({ url: '/api/v1/ai/status', ...options });
 
 /**
  * AI生成岗位需求
@@ -459,7 +459,7 @@ export const getAiStatusApiV1AiStatusGet = <ThrowOnError extends boolean = false
  * 输入可以是简短的一句话（如"招一个Python后端"），
  * 也可以是详细的需求说明，AI会生成完整的岗位要求JSON。
  */
-export const aiGeneratePositionApiV1AiPositionGeneratePost = <ThrowOnError extends boolean = false>(options: Options<AiGeneratePositionApiV1AiPositionGeneratePostData, ThrowOnError>) => (options.client ?? client).post<AiGeneratePositionApiV1AiPositionGeneratePostResponses, AiGeneratePositionApiV1AiPositionGeneratePostErrors, ThrowOnError>({
+export const aiGeneratePosition = <ThrowOnError extends boolean = false>(options: Options<AiGeneratePositionData, ThrowOnError>) => (options.client ?? client).post<AiGeneratePositionResponses, AiGeneratePositionErrors, ThrowOnError>({
     url: '/api/v1/ai/position/generate',
     ...options,
     headers: {
@@ -479,7 +479,7 @@ export const aiGeneratePositionApiV1AiPositionGeneratePost = <ThrowOnError exten
  * - 项目经理：评估管理能力
  * - 综合评审：汇总给出最终建议
  */
-export const startAiScreeningApiV1AiScreeningStartPost = <ThrowOnError extends boolean = false>(options: Options<StartAiScreeningApiV1AiScreeningStartPostData, ThrowOnError>) => (options.client ?? client).post<StartAiScreeningApiV1AiScreeningStartPostResponses, StartAiScreeningApiV1AiScreeningStartPostErrors, ThrowOnError>({
+export const startAiScreening = <ThrowOnError extends boolean = false>(options: Options<StartAiScreeningData, ThrowOnError>) => (options.client ?? client).post<StartAiScreeningResponses, StartAiScreeningErrors, ThrowOnError>({
     url: '/api/v1/ai/screening/start',
     ...options,
     headers: {
@@ -497,7 +497,7 @@ export const startAiScreeningApiV1AiScreeningStartPost = <ThrowOnError extends b
  * - questions: 面试问题列表
  * - interest_points: 简历中值得关注的兴趣点
  */
-export const aiGenerateQuestionsApiV1AiInterviewQuestionsPost = <ThrowOnError extends boolean = false>(options: Options<AiGenerateQuestionsApiV1AiInterviewQuestionsPostData, ThrowOnError>) => (options.client ?? client).post<AiGenerateQuestionsApiV1AiInterviewQuestionsPostResponses, AiGenerateQuestionsApiV1AiInterviewQuestionsPostErrors, ThrowOnError>({
+export const aiGenerateQuestions = <ThrowOnError extends boolean = false>(options: Options<AiGenerateQuestionsData, ThrowOnError>) => (options.client ?? client).post<AiGenerateQuestionsResponses, AiGenerateQuestionsErrors, ThrowOnError>({
     url: '/api/v1/ai/interview/questions',
     ...options,
     headers: {
@@ -516,7 +516,7 @@ export const aiGenerateQuestionsApiV1AiInterviewQuestionsPost = <ThrowOnError ex
  * - 逻辑清晰度、诚实度、沟通能力
  * - 是否需要追问及建议
  */
-export const aiEvaluateAnswerApiV1AiInterviewEvaluatePost = <ThrowOnError extends boolean = false>(options: Options<AiEvaluateAnswerApiV1AiInterviewEvaluatePostData, ThrowOnError>) => (options.client ?? client).post<AiEvaluateAnswerApiV1AiInterviewEvaluatePostResponses, AiEvaluateAnswerApiV1AiInterviewEvaluatePostErrors, ThrowOnError>({
+export const aiEvaluateAnswer = <ThrowOnError extends boolean = false>(options: Options<AiEvaluateAnswerData, ThrowOnError>) => (options.client ?? client).post<AiEvaluateAnswerResponses, AiEvaluateAnswerErrors, ThrowOnError>({
     url: '/api/v1/ai/interview/evaluate',
     ...options,
     headers: {
@@ -533,7 +533,7 @@ export const aiEvaluateAnswerApiV1AiInterviewEvaluatePost = <ThrowOnError extend
  * 会分析候选人回答类型（正常回答/请求澄清/跑题等），
  * 并生成相应的追问和候选问题。
  */
-export const aiGenerateCandidateQuestionsApiV1AiInterviewCandidateQuestionsPost = <ThrowOnError extends boolean = false>(options: Options<AiGenerateCandidateQuestionsApiV1AiInterviewCandidateQuestionsPostData, ThrowOnError>) => (options.client ?? client).post<AiGenerateCandidateQuestionsApiV1AiInterviewCandidateQuestionsPostResponses, AiGenerateCandidateQuestionsApiV1AiInterviewCandidateQuestionsPostErrors, ThrowOnError>({
+export const aiGenerateCandidateQuestions = <ThrowOnError extends boolean = false>(options: Options<AiGenerateCandidateQuestionsData, ThrowOnError>) => (options.client ?? client).post<AiGenerateCandidateQuestionsResponses, AiGenerateCandidateQuestionsErrors, ThrowOnError>({
     url: '/api/v1/ai/interview/candidate-questions',
     ...options,
     headers: {
@@ -553,7 +553,7 @@ export const aiGenerateCandidateQuestionsApiV1AiInterviewCandidateQuestionsPost 
  * - 技能评估
  * - 亮点和风险点
  */
-export const aiGenerateReportApiV1AiInterviewReportPost = <ThrowOnError extends boolean = false>(options: Options<AiGenerateReportApiV1AiInterviewReportPostData, ThrowOnError>) => (options.client ?? client).post<AiGenerateReportApiV1AiInterviewReportPostResponses, AiGenerateReportApiV1AiInterviewReportPostErrors, ThrowOnError>({
+export const aiGenerateReport = <ThrowOnError extends boolean = false>(options: Options<AiGenerateReportData, ThrowOnError>) => (options.client ?? client).post<AiGenerateReportResponses, AiGenerateReportErrors, ThrowOnError>({
     url: '/api/v1/ai/interview/report',
     ...options,
     headers: {
@@ -573,7 +573,7 @@ export const aiGenerateReportApiV1AiInterviewReportPost = <ThrowOnError extends 
  *
  * 输出最终录用建议。
  */
-export const aiComprehensiveAnalysisApiV1AiAnalysisComprehensivePost = <ThrowOnError extends boolean = false>(options: Options<AiComprehensiveAnalysisApiV1AiAnalysisComprehensivePostData, ThrowOnError>) => (options.client ?? client).post<AiComprehensiveAnalysisApiV1AiAnalysisComprehensivePostResponses, AiComprehensiveAnalysisApiV1AiAnalysisComprehensivePostErrors, ThrowOnError>({
+export const aiComprehensiveAnalysis = <ThrowOnError extends boolean = false>(options: Options<AiComprehensiveAnalysisData, ThrowOnError>) => (options.client ?? client).post<AiComprehensiveAnalysisResponses, AiComprehensiveAnalysisErrors, ThrowOnError>({
     url: '/api/v1/ai/analysis/comprehensive',
     ...options,
     headers: {
@@ -589,7 +589,7 @@ export const aiComprehensiveAnalysisApiV1AiAnalysisComprehensivePost = <ThrowOnE
  *
  * 生成的简历有一定随机性，匹配度随机（优秀/一般/不匹配）
  */
-export const generateRandomResumeApiV1AiDevRandomResumePost = <ThrowOnError extends boolean = false>(options: Options<GenerateRandomResumeApiV1AiDevRandomResumePostData, ThrowOnError>) => (options.client ?? client).post<GenerateRandomResumeApiV1AiDevRandomResumePostResponses, GenerateRandomResumeApiV1AiDevRandomResumePostErrors, ThrowOnError>({
+export const generateRandomResume = <ThrowOnError extends boolean = false>(options: Options<GenerateRandomResumeData, ThrowOnError>) => (options.client ?? client).post<GenerateRandomResumeResponses, GenerateRandomResumeErrors, ThrowOnError>({
     url: '/api/v1/ai/dev/random-resume',
     ...options,
     headers: {
@@ -603,11 +603,11 @@ export const generateRandomResumeApiV1AiDevRandomResumePost = <ThrowOnError exte
  *
  * 健康检查接口
  */
-export const healthCheckHealthGet = <ThrowOnError extends boolean = false>(options?: Options<HealthCheckHealthGetData, ThrowOnError>) => (options?.client ?? client).get<HealthCheckHealthGetResponses, unknown, ThrowOnError>({ url: '/health', ...options });
+export const healthCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthCheckData, ThrowOnError>) => (options?.client ?? client).get<HealthCheckResponses, unknown, ThrowOnError>({ url: '/health', ...options });
 
 /**
  * Root
  *
  * API 根路径
  */
-export const rootGet = <ThrowOnError extends boolean = false>(options?: Options<RootGetData, ThrowOnError>) => (options?.client ?? client).get<RootGetResponses, unknown, ThrowOnError>({ url: '/', ...options });
+export const root = <ThrowOnError extends boolean = false>(options?: Options<RootData, ThrowOnError>) => (options?.client ?? client).get<RootResponses, unknown, ThrowOnError>({ url: '/', ...options });
