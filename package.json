@@ -11,7 +11,8 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --build",
+    "api:gen": "openapi-ts"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -29,6 +30,8 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@hey-api/client-fetch": "^0.13.1",
+    "@hey-api/openapi-ts": "^0.89.0",
     "@tsconfig/node22": "^22.0.2",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.1",
