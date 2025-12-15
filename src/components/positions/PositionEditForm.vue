@@ -121,15 +121,15 @@
         </el-select>
       </el-form-item>
 
-      <!-- 优先技能 -->
-      <el-form-item label="优先技能" prop="preferred_skills">
+      <!-- 可选技能 -->
+      <el-form-item label="可选技能" prop="optional_skills">
         <el-select
-          v-model="formData.preferred_skills"
+          v-model="formData.optional_skills"
           multiple
           filterable
           allow-create
           default-first-option
-          placeholder="请选择或输入优先技能"
+          placeholder="请选择或输入可选技能"
           style="width: 100%"
         >
           <el-option v-for="skill in commonSkills" :key="skill" :label="skill" :value="skill" />
@@ -137,8 +137,8 @@
       </el-form-item>
 
       <!-- 学历要求 -->
-      <el-form-item label="学历要求" prop="education_requirements">
-        <el-select v-model="formData.education_requirements" multiple placeholder="请选择学历要求" style="width: 100%">
+      <el-form-item label="学历要求" prop="education">
+        <el-select v-model="formData.education" multiple placeholder="请选择学历要求" style="width: 100%">
           <el-option label="大专" value="大专" />
           <el-option label="本科" value="本科" />
           <el-option label="硕士" value="硕士" />
@@ -205,9 +205,9 @@ const handleAIApply = (data: Partial<PositionFormData>) => {
     title: data.title || props.formData.title,
     description: data.description || '',
     required_skills: data.required_skills || [],
-    preferred_skills: data.preferred_skills || [],
+    optional_skills: data.optional_skills || [],
     min_experience: data.min_experience ?? 0,
-    education_requirements: data.education_requirements || [],
+    education: data.education || [],
     salary_min: data.salary_min ?? 0,
     salary_max: data.salary_max ?? 0
   })

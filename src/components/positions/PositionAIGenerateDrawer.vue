@@ -122,7 +122,7 @@
           </div>
           <div class="result-item">
             <span class="label">学历要求：</span>
-            <span class="value">{{ generatedResult.education_requirements?.join('、') || '不限' }}</span>
+            <span class="value">{{ generatedResult.education?.join('、') || '不限' }}</span>
           </div>
           <div class="result-item">
             <span class="label">必备技能：</span>
@@ -137,11 +137,11 @@
               </el-tag>
             </div>
           </div>
-          <div v-if="generatedResult.preferred_skills?.length" class="result-item">
-            <span class="label">优先技能：</span>
+          <div v-if="generatedResult.optional_skills?.length" class="result-item">
+            <span class="label">可选技能：</span>
             <div class="skill-tags">
               <el-tag
-                v-for="skill in generatedResult.preferred_skills"
+                v-for="skill in generatedResult.optional_skills"
                 :key="skill"
                 size="small"
                 type="info"
@@ -275,9 +275,9 @@ const handleGenerate = async () => {
       title: result?.title || '',
       description: result?.description || '',
       required_skills: result?.required_skills || [],
-      preferred_skills: result?.preferred_skills || [],
+      optional_skills: result?.optional_skills || [],
       min_experience: result?.min_experience ?? 0,
-      education_requirements: result?.education_requirements || [],
+      education: result?.education || [],
       salary_min: result?.salary_min ?? 0,
       salary_max: result?.salary_max ?? 0
     }

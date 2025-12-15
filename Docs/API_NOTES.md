@@ -92,7 +92,7 @@
 5. 视频分析 (`/video`) - 占位符
 6. 面试辅助 (`/interview`) - 占位符
 7. 最终推荐 (`/recommend`) - 占位符
-8. 开发测试 (`/dev-tools`) - 占位符
+8. **开发测试** (`/dev-tools`) - 完整实现
 9. 系统设置 (`/settings`) - 占位符
 
 ---
@@ -119,9 +119,9 @@ interface PositionFormData {
   department: string         // 所属部门
   description: string        // 岗位描述
   required_skills: string[]  // 必备技能
-  preferred_skills: string[] // 优先技能
+  optional_skills: string[]  // 可选技能
   min_experience: number     // 最低工作经验(年)
-  education_requirements: string[] // 学历要求
+  education: string[]        // 学历要求
   salary_min: number         // 最低薪资(K)
   salary_max: number         // 最高薪资(K)
   is_active: boolean         // 是否启用

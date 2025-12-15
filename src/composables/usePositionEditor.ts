@@ -19,9 +19,9 @@ export interface PositionFormData {
   department: string
   description: string
   required_skills: string[]
-  preferred_skills: string[]
+  optional_skills: string[]
   min_experience: number
-  education_requirements: string[]
+  education: string[]
   salary_min: number
   salary_max: number
   is_active: boolean
@@ -34,9 +34,9 @@ const defaultPositionData: PositionFormData = {
   department: '',
   description: '',
   required_skills: [],
-  preferred_skills: [],
+  optional_skills: [],
   min_experience: 0,
-  education_requirements: [],
+  education: [],
   salary_min: 0,
   salary_max: 0,
   is_active: true
@@ -107,9 +107,9 @@ export function usePositionEditor() {
             department: detail.department || '',
             description: detail.description || '',
             required_skills: detail.required_skills || [],
-            preferred_skills: detail.preferred_skills || [],
+            optional_skills: detail.optional_skills || [],
             min_experience: detail.min_experience || 0,
-            education_requirements: detail.education_requirements || [],
+            education: detail.education || [],
             salary_min: detail.salary_min || 0,
             salary_max: detail.salary_max || 0,
             is_active: detail.is_active ?? true,
@@ -139,9 +139,9 @@ export function usePositionEditor() {
           title,
           description,
           required_skills: [],
-          preferred_skills: [],
+          optional_skills: [],
           min_experience: 0,
-          education_requirements: []
+          education: []
         }
       })
 
@@ -210,9 +210,9 @@ export function usePositionEditor() {
           department: formData.department || null,
           description: formData.description || null,
           required_skills: formData.required_skills,
-          preferred_skills: formData.preferred_skills,
+          optional_skills: formData.optional_skills,
           min_experience: formData.min_experience,
-          education_requirements: formData.education_requirements,
+          education: formData.education,
           salary_min: formData.salary_min,
           salary_max: formData.salary_max,
           is_active: formData.is_active

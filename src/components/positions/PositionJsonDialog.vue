@@ -63,9 +63,9 @@ const formattedJson = computed(() => {
     department: props.formData.department,
     description: props.formData.description,
     required_skills: props.formData.required_skills,
-    preferred_skills: props.formData.preferred_skills,
+    optional_skills: props.formData.optional_skills,
     min_experience: props.formData.min_experience,
-    education_requirements: props.formData.education_requirements,
+    education: props.formData.education,
     salary_min: props.formData.salary_min,
     salary_max: props.formData.salary_max,
     is_active: props.formData.is_active
