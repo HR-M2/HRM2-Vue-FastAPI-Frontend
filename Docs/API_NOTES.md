@@ -1,5 +1,17 @@
 # API 对接说明
 
+> **🤖 AI 助手指引**
+> 
+> 查看 API 定义的最佳位置：
+> - **API 函数**：`src/api/sdk.gen.ts` - 所有可调用的 API 函数
+> - **类型定义**：`src/api/types.gen.ts` - 请求/响应的 TypeScript 类型
+> - **后端源码**：`../HRM2-Vue-FastAPI-Backend/app/api/v1/` - FastAPI 路由定义
+> - **后端 Schema**：`../HRM2-Vue-FastAPI-Backend/app/schemas/` - Pydantic 模型
+> 
+> 这些文件由 `@hey-api/openapi-ts` 从后端 OpenAPI 规范自动生成，是最准确的 API 参考。
+
+---
+
 ## 缺失的 API（需后端补充）
 
 **目前无缺失 API** - 仪表盘页面所需的 API 后端已全部提供。
