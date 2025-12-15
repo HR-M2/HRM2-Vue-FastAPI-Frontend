@@ -18,7 +18,7 @@ export type {
 /**
  * 任务状态类型
  */
-export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed'
+export type TaskStatus = 'pending' | 'running' | 'processing' | 'completed' | 'failed'
 
 /**
  * 筛选评分

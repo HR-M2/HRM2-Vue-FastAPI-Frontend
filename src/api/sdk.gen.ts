@@ -260,6 +260,7 @@ export const updateScreeningResult = <ThrowOnError extends boolean = false>(opti
  * 获取筛选任务状态
  *
  * 获取筛选任务状态（轮询用）
+ * 返回完整的任务状态信息供前端展示进度
  */
 export const getScreeningStatus = <ThrowOnError extends boolean = false>(options: Options<GetScreeningStatusData, ThrowOnError>) => (options.client ?? client).get<GetScreeningStatusResponses, GetScreeningStatusErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}/status', ...options });
 

@@ -28,7 +28,7 @@ export function useTaskPolling(onTaskCompleted?: () => void) {
   // 轮询任务状态
   const pollTaskStatus = async () => {
     const pendingTasks = processingQueue.value.filter(
-      t => t.status === 'pending' || t.status === 'running'
+      t => t.status === 'pending' || t.status === 'running' || t.status === 'processing'
     )
 
     if (pendingTasks.length === 0) {

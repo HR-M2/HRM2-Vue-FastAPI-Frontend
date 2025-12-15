@@ -37,12 +37,12 @@
           <div class="queue-time">{{ formatDate(item.created_at) }}</div>
         </div>
         <div class="queue-actions">
-          <!-- 进度条：在pending和running状态都显示 -->
-          <div v-if="item.status === 'pending' || item.status === 'running'" class="progress-container">
+          <!-- 进度条：在pending、running、processing状态都显示 -->
+          <div v-if="item.status === 'pending' || item.status === 'running' || item.status === 'processing'" class="progress-container">
             <el-progress
               :percentage="item.progress || 0"
               :stroke-width="6"
-              :status="item.status === 'running' ? 'warning' : undefined"
+              :status="(item.status === 'running' || item.status === 'processing') ? 'warning' : undefined"
               style="width: 100px"
             />
             <span class="progress-text">{{ item.progress || 0 }}%</span>

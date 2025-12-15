@@ -34,35 +34,48 @@ export function usePositionManagement() {
       if (response.data?.data?.items) {
         const positions = response.data.data.items
         
-        // 为每个岗位获取关联的申请/简历
-        const positionsWithResumes: PositionData[] = []
-        
-        for (const pos of positions) {
-          // 获取该岗位的申请
-          const appsResponse = await getApplications({
-            query: { position_id: pos.id, page_size: 100 }
+        // 并行获取所有岗位的申请/简历
+        const positionsWithResumes = await Promise.all(
+          positions.map(async (pos) => {
+            try {
+              const appsResponse = await getApplications({
+                query: { position_id: pos.id, page_size: 100 }
+              })
+              
+              const applications = appsResponse.data?.data?.items || []
+              const resumes: ResumeData[] = applications.map(app => ({
+                id: app.resume_id,
+                candidate_name: app.candidate_name || '未知候选人',
+                position_title: app.position_title || pos.title,
+                application_id: app.id
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              })) as any[]
+              
+              return {
+                id: pos.id,
+                title: pos.title,
+                department: pos.department || undefined,
+                is_active: pos.is_active,
+                resume_count: resumes.length,
+                resumes,
+                created_at: pos.created_at,
+                updated_at: pos.updated_at
+              } as PositionData
+            } catch {
+              // 单个岗位获取失败不影响其他
+              return {
+                id: pos.id,
+                title: pos.title,
+                department: pos.department || undefined,
+                is_active: pos.is_active,
+                resume_count: 0,
+                resumes: [],
+                created_at: pos.created_at,
+                updated_at: pos.updated_at
+              } as PositionData
+            }
           })
-          
-          const applications = appsResponse.data?.data?.items || []
-          const resumes: ResumeData[] = applications.map(app => ({
-            id: app.resume_id,
-            candidate_name: app.candidate_name || '未知候选人',
-            position_title: app.position_title || pos.title,
-            application_id: app.id
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          })) as any[]
-          
-          positionsWithResumes.push({
-            id: pos.id,
-            title: pos.title,
-            department: pos.department || undefined,
-            is_active: pos.is_active,
-            resume_count: resumes.length,
-            resumes,
-            created_at: pos.created_at,
-            updated_at: pos.updated_at
-          })
-        }
+        )
         
         positionsList.value = positionsWithResumes
         

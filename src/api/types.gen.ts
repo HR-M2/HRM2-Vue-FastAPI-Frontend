@@ -2024,6 +2024,10 @@ export type ScreeningTaskResponse = {
      * Position Title
      */
     position_title?: string | null;
+    /**
+     * Resume Content
+     */
+    resume_content?: string | null;
 };
 
 /**

@@ -50,8 +50,8 @@ export function useResumeDetail() {
       created_at: item.created_at
     }
     
-    // 如果已完成，尝试获取更多详情
-    if (item.task_id && item.status === 'completed') {
+    // 尝试获取更多详情（包括简历内容）
+    if (item.task_id) {
       try {
         const response = await getScreeningTask({
           path: { task_id: item.task_id }
@@ -60,6 +60,7 @@ export function useResumeDetail() {
         if (response.data?.data) {
           const detail = response.data.data
           resumeData.screening_summary = detail.summary || resumeData.screening_summary
+          resumeData.resume_content = detail.resume_content || undefined
           if (detail.score !== null) {
             resumeData.screening_score = {
               comprehensive_score: detail.score,
@@ -92,6 +93,39 @@ export function useResumeDetail() {
       } : undefined,
       screening_summary: task.summary || undefined,
       created_at: task.created_at
+    }
+    
+    // 获取完整详情（包括简历内容和候选人姓名）
+    try {
+      const response = await getScreeningTask({
+        path: { task_id: task.id }
+      })
+      
+      if (response.data?.data) {
+        const detail = response.data.data
+        // 更新候选人姓名
+        if (detail.candidate_name) {
+          resumeData.candidate_name = detail.candidate_name
+        }
+        // 更新岗位名称
+        if (detail.position_title) {
+          resumeData.position_title = detail.position_title
+        }
+        // 更新简历内容
+        resumeData.resume_content = detail.resume_content || undefined
+        // 更新评分（如果API返回更完整的数据）
+        resumeData.screening_summary = detail.summary || resumeData.screening_summary
+        if (detail.score !== null) {
+          resumeData.screening_score = {
+            comprehensive_score: detail.score,
+            hr_score: (detail.dimension_scores?.hr_score as number) || undefined,
+            technical_score: (detail.dimension_scores?.technical_score as number) || undefined,
+            manager_score: (detail.dimension_scores?.manager_score as number) || undefined
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('获取历史任务详情失败:', err)
     }
     
     selectedResumeDetail.value = resumeData

@@ -48,6 +48,7 @@ export function useScreeningUtils() {
     const types: Record<string, string> = {
       pending: 'warning',
       running: 'primary',
+      processing: 'primary',
       completed: 'success',
       failed: 'danger'
     }
@@ -59,6 +60,7 @@ export function useScreeningUtils() {
     const texts: Record<string, string> = {
       pending: '队列中',
       running: '处理中',
+      processing: '处理中',
       completed: '已完成',
       failed: '失败'
     }
