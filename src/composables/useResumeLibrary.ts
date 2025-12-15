@@ -167,22 +167,9 @@ export function useResumeLibrary() {
     }
   }
 
-  // 从内容中提取候选人姓名
-  const extractCandidateName = (content: string, filename: string): string => {
-    // 尝试从内容第一行提取
-    const lines = content.split('\n').filter(line => line.trim())
-    const firstLine = lines[0]?.trim()
-    if (firstLine && firstLine.length >= 2 && firstLine.length <= 20) {
-      // 去除可能的标题前缀
-      const nameMatch = firstLine.match(/^(?:姓名[:：]?\s*)?(.{2,10})$/u)
-      if (nameMatch && nameMatch[1]) {
-        return nameMatch[1].trim()
-      }
-      return firstLine.substring(0, 20)
-    }
-    // 从文件名提取
-    const nameFromFile = filename.replace(/\.[^.]+$/, '').substring(0, 20)
-    return nameFromFile || '未知'
+  // 从文件名提取候选人姓名（去掉后缀）
+  const extractCandidateName = (_content: string, filename: string): string => {
+    return filename.replace(/\.[^.]+$/, '') || '未知'
   }
 
   // 删除简历

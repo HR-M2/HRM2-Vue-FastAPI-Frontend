@@ -70,16 +70,6 @@
           </template>
         </el-table-column>
         
-        <el-table-column label="联系方式" width="180">
-          <template #default="{ row }">
-            <div class="contact-info">
-              <span v-if="row.phone" class="phone">{{ row.phone }}</span>
-              <span v-if="row.email" class="email">{{ row.email }}</span>
-              <span v-if="!row.phone && !row.email" class="text-muted">-</span>
-            </div>
-          </template>
-        </el-table-column>
-        
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag
@@ -348,21 +338,6 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.contact-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
-}
-
-.phone {
-  color: #606266;
-}
-
-.email {
-  color: #909399;
 }
 
 .app-count {
