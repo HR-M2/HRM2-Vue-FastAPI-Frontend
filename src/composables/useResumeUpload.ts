@@ -7,7 +7,7 @@ import { ElMessage } from 'element-plus'
 import {
   createResumeApiV1ResumesPost,
   createApplicationApiV1ApplicationsPost,
-  createScreeningTaskApiV1ScreeningPost,
+  startAiScreeningApiV1AiScreeningStartPost,
   getResumesApiV1ResumesGet
 } from '@/api/sdk.gen'
 import type { ResumeListResponse } from '@/api/types.gen'
@@ -93,22 +93,23 @@ export function useResumeUpload(
           
           const applicationId = appResponse.data.data.id
           
-          // 创建筛选任务
-          const screeningResponse = await createScreeningTaskApiV1ScreeningPost({
+          // 直接启动 AI 筛选（会自动创建筛选任务）
+          const aiResponse = await startAiScreeningApiV1AiScreeningStartPost({
             body: {
               application_id: applicationId
             }
           })
           
-          if (!screeningResponse.data?.data?.id) {
-            throw new Error('创建筛选任务失败')
+          const aiData = aiResponse.data?.data as { task_id?: string } | undefined
+          if (!aiData?.task_id) {
+            throw new Error('启动AI筛选失败')
           }
           
           const task: ProcessingTask = {
             name: file.name,
-            task_id: screeningResponse.data.data.id,
+            task_id: aiData.task_id,
             application_id: applicationId,
-            status: 'pending',
+            status: 'running',
             progress: 0,
             created_at: new Date().toISOString(),
             applied_position: positionData.value.title
@@ -139,22 +140,23 @@ export function useResumeUpload(
           
           const applicationId = appResponse.data.data.id
           
-          // 创建筛选任务
-          const screeningResponse = await createScreeningTaskApiV1ScreeningPost({
+          // 直接启动 AI 筛选（会自动创建筛选任务）
+          const aiResponse = await startAiScreeningApiV1AiScreeningStartPost({
             body: {
               application_id: applicationId
             }
           })
           
-          if (!screeningResponse.data?.data?.id) {
-            throw new Error('创建筛选任务失败')
+          const aiData = aiResponse.data?.data as { task_id?: string } | undefined
+          if (!aiData?.task_id) {
+            throw new Error('启动AI筛选失败')
           }
           
           const task: ProcessingTask = {
             name: libFile.candidate_name || '未知候选人',
-            task_id: screeningResponse.data.data.id,
+            task_id: aiData.task_id,
             application_id: applicationId,
-            status: 'pending',
+            status: 'running',
             progress: 0,
             created_at: new Date().toISOString(),
             applied_position: positionData.value.title
