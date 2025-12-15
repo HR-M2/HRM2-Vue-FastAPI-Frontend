@@ -1,0 +1,34 @@
+
+# Node/Vite build artifacts
+node_modules/
+dist/
+dist-ssr/
+
+# Environment & config
+.env*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor & OS cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE settings
+.idea/
+.vscode/
+*.code-workspace
+
+# Testing & coverage
+coverage/
+*.lcov
+
+# Local build caches
+.cache/
+*.tsbuildinfo

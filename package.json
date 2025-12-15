@@ -1,0 +1,42 @@
+{
+  "name": "hrm2-vue-fastapi-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "run-p type-check \"build-only {@}\" --",
+    "preview": "vite preview",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.13.2",
+    "echarts": "^6.0.0",
+    "element-plus": "^2.11.7",
+    "highlight.js": "^11.11.1",
+    "lodash-es": "^4.17.21",
+    "mammoth": "^1.11.0",
+    "marked": "^17.0.1",
+    "pdfjs-dist": "^5.4.449",
+    "pinia": "^3.0.4",
+    "sass": "^1.94.0",
+    "vue": "^3.5.22",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@tsconfig/node22": "^22.0.2",
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.8.1",
+    "npm-run-all2": "^8.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.11",
+    "vite-plugin-vue-devtools": "^8.0.3",
+    "vue-tsc": "^3.1.1"
+  }
+}
