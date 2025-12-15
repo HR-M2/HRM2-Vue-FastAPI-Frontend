@@ -208,11 +208,12 @@ const handleGenerate = async () => {
     })
 
     const data = (result.data as any)?.data || result.data
+    // 后端现在返回 added/skipped 数组（已保存到数据库的简历）
     lastResult.value = {
       added: data?.added || [],
       skipped: data?.skipped || [],
-      added_count: data?.added_count || data?.added?.length || 0,
-      skipped_count: data?.skipped_count || data?.skipped?.length || 0,
+      added_count: data?.added_count || 0,
+      skipped_count: data?.skipped_count || 0,
       requested_count: formData.count
     }
 
