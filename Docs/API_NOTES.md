@@ -87,7 +87,7 @@
 
 1. **仪表盘** (`/`) - 完整实现
 2. **岗位设置** (`/positions`) - 完整实现
-3. 简历库 (`/library`) - 占位符
+3. **简历库** (`/library`) - 完整实现
 4. 简历筛选 (`/screening`) - 占位符
 5. 视频分析 (`/video`) - 占位符
 6. 面试辅助 (`/interview`) - 占位符
@@ -126,5 +126,80 @@ interface PositionFormData {
   salary_max: number         // 最高薪资(K)
   is_active: boolean         // 是否启用
   application_count?: number // 关联简历数
+}
+```
+
+---
+
+## 简历库页面使用的 API
+
+### 已对接的 API
+
+| API | 用途 | 状态 |
+|-----|------|------|
+| `GET /api/v1/resumes` | 获取简历列表 | ✅ 已对接 |
+| `GET /api/v1/resumes/{id}` | 获取简历详情 | ✅ 已对接 |
+| `POST /api/v1/resumes` | 创建简历 | ✅ 已对接 |
+| `PATCH /api/v1/resumes/{id}` | 更新简历 | ✅ 已对接 |
+| `DELETE /api/v1/resumes/{id}` | 删除简历 | ✅ 已对接 |
+| `POST /api/v1/resumes/batch-delete` | 批量删除 | ✅ 已对接 |
+| `POST /api/v1/resumes/check-hashes` | 批量检查哈希(去重) | ✅ 已对接 |
+
+### 与参考前端的差异
+
+参考前端（HRM2-Vue-Frontend）使用的 API 与新后端有以下不同：
+
+| 功能 | 参考前端 | 新后端 | 说明 |
+|------|----------|--------|------|
+| 筛选状态过滤 | `is_screened` 参数 | ❌ 不支持 | 新API仅支持keyword搜索 |
+| 分配状态过滤 | `is_assigned` 参数 | ❌ 不支持 | 新API无此字段 |
+| 内容预览 | `content_preview` 字段 | ❌ 不存在 | 需获取详情查看完整content |
+| 文件大小 | 列表返回 | ❌ 列表不返回 | 需获取详情查看 |
+
+**注意**：由于新API不支持`is_screened`和`is_assigned`筛选，前端简历库页面已移除这两个筛选条件。
+
+### 简历数据结构
+
+```typescript
+// 列表项
+interface ResumeListResponse {
+  id: string
+  created_at: string
+  updated_at: string
+  candidate_name: string
+  phone: string | null
+  email: string | null
+  filename: string | null
+  is_parsed: boolean
+  application_count?: number
+}
+
+// 详情
+interface ResumeResponse {
+  id: string
+  created_at: string
+  updated_at: string
+  candidate_name: string
+  phone: string | null
+  email: string | null
+  content: string           // 完整简历内容
+  filename: string | null
+  file_hash: string
+  file_size: number
+  is_parsed: boolean
+  notes: string | null
+  application_count?: number
+}
+
+// 创建请求
+interface ResumeCreate {
+  candidate_name: string    // 必填
+  content: string           // 必填
+  phone?: string
+  email?: string
+  filename?: string
+  file_hash: string         // 必填，用于去重
+  file_size?: number
+  notes?: string
 }
 ```
