@@ -189,7 +189,7 @@ export const getApplicationApiV1ApplicationsApplicationIdGet = <ThrowOnError ext
 /**
  * 更新应聘申请
  *
- * 更新应聘申请状态
+ * 更新应聘申请备注
  */
 export const updateApplicationApiV1ApplicationsApplicationIdPatch = <ThrowOnError extends boolean = false>(options: Options<UpdateApplicationApiV1ApplicationsApplicationIdPatchData, ThrowOnError>) => (options.client ?? client).patch<UpdateApplicationApiV1ApplicationsApplicationIdPatchResponses, UpdateApplicationApiV1ApplicationsApplicationIdPatchErrors, ThrowOnError>({
     url: '/api/v1/applications/{application_id}',
@@ -203,7 +203,7 @@ export const updateApplicationApiV1ApplicationsApplicationIdPatch = <ThrowOnErro
 /**
  * 获取申请统计概览
  *
- * 获取申请状态统计概览
+ * 获取申请统计概览
  */
 export const getStatsOverviewApiV1ApplicationsStatsOverviewGet = <ThrowOnError extends boolean = false>(options?: Options<GetStatsOverviewApiV1ApplicationsStatsOverviewGetData, ThrowOnError>) => (options?.client ?? client).get<GetStatsOverviewApiV1ApplicationsStatsOverviewGetResponses, unknown, ThrowOnError>({ url: '/api/v1/applications/stats/overview', ...options });
 

@@ -89,10 +89,6 @@ export type ApplicationDetailResponse = {
      */
     resume_id: string;
     /**
-     * Status
-     */
-    status: string;
-    /**
      * Notes
      */
     notes: string | null;
@@ -151,10 +147,6 @@ export type ApplicationListResponse = {
      */
     resume_id: string;
     /**
-     * Status
-     */
-    status: string;
-    /**
      * Position Title
      */
     position_title?: string | null;
@@ -191,10 +183,6 @@ export type ApplicationResponse = {
      */
     resume_id: string;
     /**
-     * Status
-     */
-    status: string;
-    /**
      * Notes
      */
     notes: string | null;
@@ -214,12 +202,6 @@ export type ApplicationResponse = {
  * 更新应聘申请请求
  */
 export type ApplicationUpdate = {
-    /**
-     * Status
-     *
-     * 申请状态
-     */
-    status?: string | null;
     /**
      * Notes
      */
@@ -2701,12 +2683,6 @@ export type GetApplicationsApiV1ApplicationsGetData = {
          * 简历ID筛选
          */
         resume_id?: string | null;
-        /**
-         * Status
-         *
-         * 状态筛选
-         */
-        status?: string | null;
     };
     url: '/api/v1/applications';
 };
