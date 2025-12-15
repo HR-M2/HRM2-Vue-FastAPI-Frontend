@@ -88,7 +88,7 @@
 1. **仪表盘** (`/`) - 完整实现
 2. **岗位设置** (`/positions`) - 完整实现
 3. **简历库** (`/library`) - 完整实现
-4. 简历筛选 (`/screening`) - 占位符
+4. **简历筛选** (`/screening`) - 完整实现
 5. 视频分析 (`/video`) - 占位符
 6. 面试辅助 (`/interview`) - 占位符
 7. 最终推荐 (`/recommend`) - 占位符
@@ -201,5 +201,93 @@ interface ResumeCreate {
   file_hash: string         // 必填，用于去重
   file_size?: number
   notes?: string
+}
+```
+
+---
+
+## 简历筛选页面使用的 API
+
+### 已对接的 API
+
+| API | 用途 | 状态 |
+|-----|------|------|
+| `GET /api/v1/positions` | 获取岗位列表 | ✅ 已对接 |
+| `GET /api/v1/applications` | 获取应聘申请列表 | ✅ 已对接 |
+| `POST /api/v1/applications` | 创建应聘申请 | ✅ 已对接 |
+| `DELETE /api/v1/applications/{id}` | 删除应聘申请 | ✅ 已对接 |
+| `GET /api/v1/resumes` | 获取简历列表 | ✅ 已对接 |
+| `POST /api/v1/resumes` | 创建简历 | ✅ 已对接 |
+| `GET /api/v1/screening` | 获取筛选任务列表 | ✅ 已对接 |
+| `POST /api/v1/screening` | 创建筛选任务 | ✅ 已对接 |
+| `GET /api/v1/screening/{task_id}` | 获取筛选任务详情 | ✅ 已对接 |
+| `GET /api/v1/screening/{task_id}/status` | 获取筛选任务状态(轮询) | ✅ 已对接 |
+| `GET /api/v1/screening/{task_id}/download` | 下载筛选报告 | ✅ 已对接 |
+| `DELETE /api/v1/screening/{task_id}` | 删除筛选任务 | ✅ 已对接 |
+
+### 需要后端补充/确认的功能
+
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| AI筛选启动 | `POST /api/v1/ai/screening/start` 需要实现实际的AI筛选逻辑 | ⚠️ 待确认 |
+| 任务状态轮询 | `/api/v1/screening/{task_id}/status` 需要返回 `current_speaker` 等进度信息 | ⚠️ 待确认 |
+| 维度评分 | `dimension_scores` 字段需要包含 `hr_score`, `technical_score`, `manager_score` | ⚠️ 待确认 |
+
+### 与参考前端的架构差异
+
+新后端采用了不同的数据模型架构：
+
+| 概念 | 参考前端 | 新后端 | 说明 |
+|------|----------|--------|------|
+| 简历-岗位关联 | 直接关联 | 通过 Application | 新架构使用"应聘申请"作为中间实体 |
+| 筛选任务创建 | 直接提交简历内容 | 基于 Application | 必须先创建申请，再创建筛选任务 |
+| 简历分组 | Position.resumes | Application | 通过查询该岗位的申请来获取简历 |
+
+### 简历筛选工作流程
+
+```
+1. 上传简历文件 → 解析内容
+2. 创建简历记录 (POST /api/v1/resumes)
+3. 创建应聘申请 (POST /api/v1/applications) - 关联简历和岗位
+4. 创建筛选任务 (POST /api/v1/screening) - 基于申请ID
+5. 轮询任务状态 (GET /api/v1/screening/{task_id}/status)
+6. 任务完成后查看详情/下载报告
+```
+
+### 筛选任务数据结构
+
+```typescript
+// 筛选任务响应
+interface ScreeningTaskResponse {
+  id: string
+  created_at: string
+  updated_at: string
+  application_id: string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  progress: number                    // 0-100
+  score: number | null                // 综合评分
+  dimension_scores: {                 // 各维度评分
+    hr_score?: number
+    technical_score?: number
+    manager_score?: number
+  } | null
+  summary: string | null              // 筛选总结
+  recommendation: string | null       // 推荐结果
+  report_content: string | null       // 报告内容
+  error_message: string | null        // 错误信息
+  candidate_name?: string             // 候选人姓名（关联查询）
+  position_title?: string             // 岗位名称（关联查询）
+}
+
+// 任务状态响应（轮询用）
+interface TaskStatusResponse {
+  status: string
+  progress: number
+  current_speaker?: string            // 当前处理的Agent
+  score?: number
+  dimension_scores?: Record<string, unknown>
+  summary?: string
+  recommendation?: string
+  error_message?: string
 }
 ```
