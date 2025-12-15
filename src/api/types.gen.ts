@@ -1168,11 +1168,11 @@ export type PositionCreate = {
      */
     required_skills?: Array<string> | null;
     /**
-     * Preferred Skills
+     * Optional Skills
      *
-     * 优先技能
+     * 可选技能
      */
-    preferred_skills?: Array<string> | null;
+    optional_skills?: Array<string> | null;
     /**
      * Min Experience
      *
@@ -1180,11 +1180,11 @@ export type PositionCreate = {
      */
     min_experience?: number;
     /**
-     * Education Requirements
+     * Education
      *
      * 学历要求
      */
-    education_requirements?: Array<string> | null;
+    education?: Array<string> | null;
     /**
      * Salary Min
      *
@@ -1292,17 +1292,17 @@ export type PositionResponse = {
      */
     required_skills: Array<string>;
     /**
-     * Preferred Skills
+     * Optional Skills
      */
-    preferred_skills: Array<string>;
+    optional_skills: Array<string>;
     /**
      * Min Experience
      */
     min_experience: number;
     /**
-     * Education Requirements
+     * Education
      */
-    education_requirements: Array<string>;
+    education: Array<string>;
     /**
      * Salary Min
      */
@@ -1346,17 +1346,17 @@ export type PositionUpdate = {
      */
     required_skills?: Array<string> | null;
     /**
-     * Preferred Skills
+     * Optional Skills
      */
-    preferred_skills?: Array<string> | null;
+    optional_skills?: Array<string> | null;
     /**
      * Min Experience
      */
     min_experience?: number | null;
     /**
-     * Education Requirements
+     * Education
      */
-    education_requirements?: Array<string> | null;
+    education?: Array<string> | null;
     /**
      * Salary Min
      */
