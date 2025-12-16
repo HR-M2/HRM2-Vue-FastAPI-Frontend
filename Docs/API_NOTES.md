@@ -90,7 +90,7 @@
 3. **简历库** (`/library`) - 完整实现
 4. **简历筛选** (`/screening`) - 完整实现
 5. **视频分析** (`/video`) - 完整实现
-6. 面试辅助 (`/interview`) - 占位符
+6. **面试辅助** (`/interview`) - 完整实现
 7. 最终推荐 (`/recommend`) - 占位符
 8. **开发测试** (`/dev-tools`) - 完整实现
 9. 系统设置 (`/settings`) - 占位符
@@ -365,4 +365,97 @@ interface VideoAnalysisResponse {
 4. 后台执行视频分析（AI处理）
 5. 轮询状态或刷新页面查看分析结果
 6. 查看完成的视频分析详情
+```
+
+---
+
+## 面试辅助页面使用的 API
+
+### 已对接的 API
+
+| API | 用途 | 状态 |
+|-----|------|------|
+| `GET /api/v1/positions` | 获取岗位列表 | ✅ 已对接 |
+| `GET /api/v1/applications` | 获取应聘申请列表 | ✅ 已对接 |
+| `POST /api/v1/interview` | 创建面试会话 | ✅ 已对接 |
+| `GET /api/v1/interview/{session_id}` | 获取面试会话详情 | ✅ 已对接 |
+| `POST /api/v1/interview/{session_id}/qa` | 记录问答 | ✅ 已对接 |
+| `POST /api/v1/interview/{session_id}/complete` | 完成面试会话 | ✅ 已对接 |
+| `POST /api/v1/ai/interview/questions` | AI生成面试问题 | ✅ 已对接 |
+| `POST /api/v1/ai/interview/candidate-questions` | AI生成候选问题 | ✅ 已对接 |
+
+### 后端业务逻辑待实现
+
+> **注意**：以下功能的 API 接口已在后端定义，前端可正常调用。需要实现的是后端的实际业务处理逻辑。
+
+| 功能 | 相关API | 说明 |
+|------|---------|------|
+| AI问题生成 | `POST /api/v1/ai/interview/questions` | 需实现根据简历生成面试问题 |
+| AI候选问题 | `POST /api/v1/ai/interview/candidate-questions` | 需实现根据问答生成追问和候选问题 |
+| AI报告生成 | `POST /api/v1/ai/interview/report` | 需实现面试报告生成逻辑 |
+
+### 面试辅助功能说明
+
+#### 两种面试模式
+
+1. **AI 模拟演示**：使用本地模拟的虚拟候选人，主要用于演示系统功能
+2. **真人实时面试**：调用后端 API 进行实际面试辅助
+
+#### 面试数据结构
+
+```typescript
+// 面试会话创建请求
+interface InterviewSessionCreate {
+  application_id: string     // 应聘申请ID
+  interview_type?: string    // 面试类型
+  config?: {                 // 面试配置
+    followupCount: number    // 追问数量
+    alternativeCount: number // 候选问题数量
+    interestPointCount: number // 兴趣点数量
+  }
+}
+
+// 问答记录请求
+interface QARecordCreate {
+  question: string           // 问题
+  answer: string             // 回答
+  score?: number             // 评分
+  evaluation?: string        // 评价
+}
+
+// 面试会话响应
+interface InterviewSessionResponse {
+  id: string
+  created_at: string
+  updated_at: string
+  application_id: string
+  interview_type: string
+  config: Record<string, unknown>
+  qa_records: QARecord[]
+  question_pool: string[]
+  is_completed: boolean
+  final_score: number | null
+  report: Record<string, unknown> | null
+  report_markdown: string | null
+  candidate_name?: string
+  position_title?: string
+}
+```
+
+### 面试辅助工作流程
+
+```
+1. 选择面试模式（AI模拟/真人面试）
+2. 真人面试模式：
+   a. 检查麦克风 → 选择候选人（可选）
+   b. 创建面试会话 (POST /api/v1/interview)
+   c. 获取问题池和兴趣点 (POST /api/v1/ai/interview/questions)
+   d. 面试官提问 → 候选人回答 → 记录问答 (POST /api/v1/interview/{id}/qa)
+   e. 获取追问建议 (POST /api/v1/ai/interview/candidate-questions)
+   f. 结束面试，生成报告 (POST /api/v1/interview/{id}/complete)
+3. AI模拟模式：
+   a. 选择虚拟候选人类型
+   b. 面试官提问 → AI生成回答 → 本地评估
+   c. 本地生成追问建议
+   d. 结束面试，导出记录
 ```
