@@ -102,22 +102,10 @@ export type ApplicationDetailResponse = {
     candidate_name?: string | null;
     position?: PositionListResponse | null;
     resume?: ResumeListResponse | null;
-    /**
-     * Screening Tasks
-     */
-    screening_tasks?: Array<ScreeningTaskBrief>;
-    /**
-     * Video Analyses
-     */
-    video_analyses?: Array<VideoAnalysisBrief>;
-    /**
-     * Interview Sessions
-     */
-    interview_sessions?: Array<InterviewSessionBrief>;
-    /**
-     * Comprehensive Analyses
-     */
-    comprehensive_analyses?: Array<ComprehensiveAnalysisBrief>;
+    screening_task?: ScreeningTaskBrief | null;
+    video_analysis?: VideoAnalysisBrief | null;
+    interview_session?: InterviewSessionBrief | null;
+    comprehensive_analysis?: ComprehensiveAnalysisBrief | null;
 };
 
 /**
