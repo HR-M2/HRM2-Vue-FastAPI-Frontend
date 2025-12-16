@@ -49,6 +49,7 @@ export function usePositionManagement() {
                 candidate_name: app.candidate_name || '未知候选人',
                 position_title: app.position_title || pos.title,
                 application_id: app.id,
+                screening_task_id: app.screening_task?.id || null,
                 screening_score: app.screening_task?.score != null ? {
                   comprehensive_score: app.screening_task.score,
                 } : undefined

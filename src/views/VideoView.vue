@@ -17,7 +17,6 @@
           :selected-position-id="selectedPositionId"
           @select="selectPosition"
           @assign="goToScreening"
-          @show-resume-detail="showResumeDetailFromPosition"
           @remove-resume="removeResumeFromPosition"
         />
       </div>
@@ -65,8 +64,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
 // 组件导入
-import { PositionList } from '@/components/common'
-import { ResumeDetailDialog } from '@/components/screening'
+import { PositionList, ResumeDetailDialog } from '@/components/common'
 import { VideoResumeList, VideoUploadDialog, VideoAnalysisDetailDialog } from '@/components/video'
 
 // Composables 导入
@@ -277,28 +275,6 @@ const showResumeDetail = async (app: VideoApplicationData) => {
         content: resume.content,
         resume_content: resume.content,
         created_at: resume.created_at
-      }
-      resumeDetailVisible.value = true
-    }
-  } catch (err) {
-    console.error('获取简历详情失败:', err)
-    ElMessage.error('获取简历详情失败')
-  }
-}
-
-// 从 PositionList 显示简历详情
-const showResumeDetailFromPosition = async (resume: ResumeData) => {
-  try {
-    const result = await getResume({ path: { resume_id: resume.id } })
-    if (result.data?.data) {
-      const resumeData = result.data.data
-      selectedResumeDetail.value = {
-        id: resumeData.id,
-        candidate_name: resumeData.candidate_name,
-        position_title: resume.position_title,
-        content: resumeData.content,
-        resume_content: resumeData.content,
-        created_at: resumeData.created_at
       }
       resumeDetailVisible.value = true
     }

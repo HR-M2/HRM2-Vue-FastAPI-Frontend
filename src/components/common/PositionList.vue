@@ -58,7 +58,7 @@
               v-for="resume in getPagedResumes(pos)" 
               :key="resume.id" 
               class="resume-item clickable"
-              @click.stop="$emit('showResumeDetail', resume)"
+              @click.stop="showResumeDetail(resume)"
             >
               <div class="resume-info">
                 <span class="resume-name">{{ resume.candidate_name || '未知候选人' }}</span>
@@ -96,11 +96,19 @@
       </div>
     </div>
   </el-card>
+
+  <!-- 简历详情弹窗 -->
+  <ResumeDetailDialog
+    v-model="detailDialogVisible"
+    :resume="selectedResumeDetail"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { Close } from '@element-plus/icons-vue'
+import ResumeDetailDialog from './ResumeDetailDialog.vue'
+import { getResume, getScreeningTask } from '@/api/sdk.gen'
 import type { PositionData, ResumeData } from '@/types'
 
 const props = defineProps<{
@@ -118,9 +126,59 @@ const toggleExpand = () => {
 defineEmits<{
   select: [pos: PositionData]
   assign: [pos: PositionData]
-  showResumeDetail: [resume: ResumeData]
   removeResume: [pos: PositionData, resume: ResumeData]
 }>()
+
+// 简历详情弹窗状态
+const detailDialogVisible = ref(false)
+const selectedResumeDetail = ref<ResumeData | null>(null)
+
+// 显示简历详情（获取完整初筛数据）
+const showResumeDetail = async (resume: ResumeData) => {
+  try {
+    const resumeResult = await getResume({ path: { resume_id: resume.id } })
+    const resumeData = resumeResult.data?.data
+    
+    const detailData: ResumeData = {
+      id: resume.id,
+      candidate_name: resumeData?.candidate_name || resume.candidate_name,
+      position_title: resume.position_title,
+      content: resumeData?.content,
+      resume_content: resumeData?.content,
+      created_at: resumeData?.created_at
+    }
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const screeningTaskId = (resume as any).screening_task_id
+    if (screeningTaskId) {
+      try {
+        const taskResult = await getScreeningTask({ path: { task_id: screeningTaskId } })
+        if (taskResult.data?.data) {
+          const task = taskResult.data.data
+          if (task.score !== null) {
+            detailData.screening_score = {
+              comprehensive_score: task.score,
+              hr_score: (task.dimension_scores?.hr_score as number) || undefined,
+              technical_score: (task.dimension_scores?.technical_score as number) || undefined,
+              manager_score: (task.dimension_scores?.manager_score as number) || undefined
+            }
+          }
+          detailData.screening_summary = task.summary || undefined
+          if (!detailData.resume_content && task.resume_content) {
+            detailData.resume_content = task.resume_content
+          }
+        }
+      } catch (taskErr) {
+        console.warn('获取初筛任务详情失败:', taskErr)
+      }
+    }
+    
+    selectedResumeDetail.value = detailData
+    detailDialogVisible.value = true
+  } catch (err) {
+    console.error('获取简历详情失败:', err)
+  }
+}
 
 const pageSize = 8
 

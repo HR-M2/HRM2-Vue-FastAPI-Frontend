@@ -17,7 +17,6 @@
           :selected-position-id="selectedPositionId"
           @select="selectPosition"
           @assign="showAssignDialog"
-          @show-resume-detail="showResumeDetail"
           @remove-resume="removeResumeFromPosition"
         />
       </div>
@@ -101,15 +100,14 @@
 import { ref, onMounted } from 'vue'
 
 // 组件导入
-import { PositionList } from '@/components/common'
+import { PositionList, ResumeDetailDialog } from '@/components/common'
 import {
   ResumeUpload,
   ProcessingQueue,
   TaskHistory,
   AssignResumeDialog,
   AddToGroupDialog,
-  PreviewDialog,
-  ResumeDetailDialog
+  PreviewDialog
 } from '@/components/screening'
 
 // Composables 导入
@@ -183,7 +181,6 @@ const {
   previewFileData,
   selectedResumeDetail,
   previewFile,
-  showResumeDetail,
   showQueueItemDetail,
   showHistoryTaskDetail,
   downloadReport
