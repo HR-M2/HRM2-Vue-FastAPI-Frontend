@@ -632,12 +632,24 @@ export function useInterviewAssist() {
     
     addMessage('system', `面试已结束。共进行了 ${stats.totalQuestions} 个问题，${stats.totalFollowups} 次追问，用时 ${stats.duration} 分钟。`)
     
+    // 调用后端 API 保存面试数据（完成会话）
+    if (sessionId.value) {
+      try {
+        await completeSession({
+          path: { session_id: sessionId.value }
+        })
+      } catch (error) {
+        console.error('保存面试数据失败:', error)
+        ElMessage.warning('面试已结束，但数据保存失败')
+      }
+    }
+    
     isInterviewActive.value = false
     isPaused.value = false
     sessionId.value = null
     questionPool.value = []
     
-    ElMessage.success('面试已结束并保存（未生成报告）')
+    ElMessage.success('面试已结束并保存')
   }
 
   // 兼容旧代码
