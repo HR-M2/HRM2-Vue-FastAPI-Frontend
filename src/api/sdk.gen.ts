@@ -162,6 +162,7 @@ export const getApplications = <ThrowOnError extends boolean = false>(options?: 
  * 创建应聘申请
  *
  * 创建新的应聘申请（简历投递岗位）
+ * 如果之前被软删除过，则恢复而非新建
  */
 export const createApplication = <ThrowOnError extends boolean = false>(options: Options<CreateApplicationData, ThrowOnError>) => (options.client ?? client).post<CreateApplicationResponses, CreateApplicationErrors, ThrowOnError>({
     url: '/api/v1/applications',
@@ -175,7 +176,7 @@ export const createApplication = <ThrowOnError extends boolean = false>(options:
 /**
  * 删除应聘申请
  *
- * 删除应聘申请（同时删除关联的筛选/分析数据）
+ * 删除应聘申请（软删除，保留关联的筛选/分析数据）
  */
 export const deleteApplication = <ThrowOnError extends boolean = false>(options: Options<DeleteApplicationData, ThrowOnError>) => (options.client ?? client).delete<DeleteApplicationResponses, DeleteApplicationErrors, ThrowOnError>({ url: '/api/v1/applications/{application_id}', ...options });
 
