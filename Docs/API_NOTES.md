@@ -91,7 +91,7 @@
 4. **简历筛选** (`/screening`) - 完整实现
 5. **视频分析** (`/video`) - 完整实现
 6. **面试辅助** (`/interview`) - 完整实现
-7. 最终推荐 (`/recommend`) - 占位符
+7. **最终推荐** (`/recommend`) - 完整实现
 8. **开发测试** (`/dev-tools`) - 完整实现
 9. 系统设置 (`/settings`) - 占位符
 
@@ -461,3 +461,76 @@ interface InterviewSessionResponse {
    c. 本地生成追问建议
    d. 结束面试，导出记录
 ```
+
+---
+
+## 最终推荐页面使用的 API
+
+### 已对接的 API
+
+| API | 用途 | 状态 |
+|-----|------|------|
+| `GET /api/v1/positions` | 获取岗位列表 | ✅ 已对接 |
+| `GET /api/v1/applications` | 获取应聘申请列表 | ✅ 已对接 |
+| `GET /api/v1/applications/{id}` | 获取应聘申请详情(含关联数据) | ✅ 已对接 |
+| `GET /api/v1/resumes/{id}` | 获取简历详情 | ✅ 已对接 |
+| `GET /api/v1/interview/{session_id}` | 获取面试会话详情 | ✅ 已对接 |
+| `GET /api/v1/analysis/{analysis_id}` | 获取综合分析详情 | ✅ 已对接 |
+| `POST /api/v1/analysis` | 创建综合分析记录 | ✅ 已对接 |
+| `POST /api/v1/ai/analysis/comprehensive` | AI综合分析 | ✅ 已对接 |
+| `POST /api/v1/ai/interview/report` | AI生成面试报告 | ✅ 已对接 |
+
+### 页面功能说明
+
+最终推荐页面整合了以下数据源进行候选人综合分析：
+1. **简历文件** - 通过 `ApplicationDetailResponse.resume` 获取
+2. **简历初筛报告** - 通过 `ApplicationDetailResponse.screening_task` 获取
+3. **面试问答记录** - 通过 `ApplicationDetailResponse.interview_session` 获取
+4. **面试分析报告** - 通过 `InterviewSessionResponse.report` 获取
+5. **视频分析结果** - 通过 `ApplicationDetailResponse.video_analysis` 获取
+
+### 综合分析数据结构
+
+```typescript
+// 综合分析响应
+interface ComprehensiveAnalysisResponse {
+  id: string
+  created_at: string
+  updated_at: string
+  application_id: string
+  final_score: number                    // 最终评分
+  recommendation_level: string           // 推荐等级
+  recommendation_reason: string | null   // 推荐理由
+  suggested_action: string | null        // 建议行动
+  dimension_scores: Record<string, unknown>  // 维度评分
+  report: string | null                  // 综合报告内容
+  input_snapshot: Record<string, unknown>    // 输入数据快照
+  candidate_name?: string
+  position_title?: string
+}
+
+// 综合分析简要信息（列表用）
+interface ComprehensiveAnalysisBrief {
+  id: string
+  final_score: number
+  recommendation_level: string
+  created_at: string
+}
+```
+
+### 综合分析工作流程
+
+```
+1. 选择岗位 → 显示该岗位下的所有候选人
+2. 展开候选人卡片 → 查看数据完整度
+3. 确保必要数据齐全（简历、初筛报告、面试报告）
+4. 点击"开始综合分析" → 调用 AI 综合分析 API
+5. 分析完成 → 保存分析结果
+6. 查看综合分析详情（评分、维度分析、建议）
+```
+
+### 注意事项
+
+- 综合分析需要至少三项数据：简历、初筛报告、面试分析报告
+- `ScreeningTaskBrief` 类型只包含简要信息（id, status, score, recommendation），详细的 `dimension_scores` 和 `summary` 需要调用完整的筛选任务详情 API
+- `ResumeListResponse` 不包含 `content` 字段，需要调用 `getResume` API 获取简历详情
