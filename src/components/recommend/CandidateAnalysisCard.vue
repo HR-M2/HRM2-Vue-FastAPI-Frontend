@@ -186,16 +186,21 @@
                 <span class="result-text">{{ comprehensiveAnalysis.recommendation_level }}</span>
                 <span class="result-score">{{ comprehensiveAnalysis.final_score }}分</span>
               </div>
-              <el-button size="small" text type="primary" @click.stop="$emit('viewFinalReport')">
-                查看完整报告
-              </el-button>
+              <div class="result-actions">
+                <el-button size="small" text type="primary" @click.stop="$emit('viewFinalReport')">
+                  查看完整报告
+                </el-button>
+                <el-button 
+                  size="small" 
+                  type="info" 
+                  plain
+                  @click.stop="$emit('startAnalysis')"
+                >
+                  <el-icon><Refresh /></el-icon>
+                  重新分析
+                </el-button>
+              </div>
             </div>
-            <div class="result-summary">
-              <p>{{ comprehensiveAnalysis.recommendation_level }}</p>
-            </div>
-            <el-button type="primary" plain size="small" @click.stop="$emit('startAnalysis')">
-              重新分析
-            </el-button>
           </div>
           
           <div v-else class="analysis-action">
@@ -220,7 +225,7 @@
 import { ref, computed } from 'vue'
 import { 
   User, Trophy, Clock, ArrowDown, Document, DataAnalysis, 
-  ChatDotRound, Memo, VideoCamera, MagicStick, Check, Close 
+  ChatDotRound, Memo, VideoCamera, MagicStick, Check, Close, Refresh 
 } from '@element-plus/icons-vue'
 import type { 
   ApplicationDetailResponse, 
@@ -641,13 +646,10 @@ const recommendationClass = computed(() => {
       }
     }
     
-    .result-summary {
-      p {
-        margin: 0;
-        font-size: 14px;
-        color: #374151;
-        line-height: 1.6;
-      }
+    .result-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
   }
   

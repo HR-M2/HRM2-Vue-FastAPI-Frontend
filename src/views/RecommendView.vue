@@ -224,7 +224,7 @@
         
         <!-- 维度评分 -->
         <div v-if="selectedComprehensiveAnalysis.dimension_scores" class="dimension-scores">
-          <h4>多维度评估</h4>
+          <h4>多维度 Rubric 评估</h4>
           <div class="dimension-grid">
             <div 
               v-for="(dim, key) in selectedComprehensiveAnalysis.dimension_scores" 
@@ -232,16 +232,26 @@
               class="dimension-item"
             >
               <div class="dimension-header">
-                <span class="dimension-name">{{ key }}</span>
-                <span class="dimension-score" :class="getDimensionScoreClass(Number(dim))">
-                  {{ dim }}
+                <span class="dimension-name">{{ dim.dimension_name || key }}</span>
+                <span class="dimension-score" :class="getDimensionScoreClass(dim.dimension_score || 3)">
+                  {{ dim.dimension_score || 3 }}/5
                 </span>
               </div>
               <el-progress 
-                :percentage="Number(dim)" 
+                :percentage="(dim.dimension_score || 3) * 20" 
                 :stroke-width="8"
-                :color="getDimensionColor(Number(dim))"
+                :color="getDimensionColor(dim.dimension_score || 3)"
               />
+              <div class="dimension-details">
+                <div v-if="dim.strengths?.length" class="detail-section">
+                  <span class="detail-label">优势：</span>
+                  <span>{{ dim.strengths.join('、') }}</span>
+                </div>
+                <div v-if="dim.weaknesses?.length" class="detail-section weakness">
+                  <span class="detail-label">不足：</span>
+                  <span>{{ dim.weaknesses.join('、') }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -284,7 +294,6 @@ import {
   getApplication,
   getInterviewSession,
   getAnalysis,
-  aiComprehensiveAnalysis,
   aiGenerateReport,
   createAnalysis
 } from '@/api'
@@ -451,16 +460,9 @@ const startCandidateAnalysis = async (app: ApplicationDetailResponse) => {
   analysisStatusTexts.value[app.id] = '正在启动综合分析...'
   
   try {
-    // 调用AI综合分析
+    // 调用综合分析API（内部会调用AI Agent进行多维度评估）
     analysisProgress.value[app.id] = 20
-    analysisStatusTexts.value[app.id] = '正在分析候选人数据...'
-    
-    // 调用综合分析API
-    await aiComprehensiveAnalysis({ body: { application_id: app.id } })
-    
-    // 创建分析记录
-    analysisProgress.value[app.id] = 80
-    analysisStatusTexts.value[app.id] = '正在保存分析结果...'
+    analysisStatusTexts.value[app.id] = '正在进行AI多维度分析...'
     
     await createAnalysis({ body: { application_id: app.id } })
     
@@ -615,15 +617,17 @@ const getComprehensiveScoreClass = (score: number) => {
 }
 
 const getDimensionScoreClass = (score: number) => {
-  if (score >= 80) return 'dim-excellent'
-  if (score >= 60) return 'dim-good'
+  // 1-5 分制
+  if (score >= 4) return 'dim-excellent'
+  if (score >= 3) return 'dim-good'
   return 'dim-weak'
 }
 
 const getDimensionColor = (score: number) => {
-  if (score >= 80) return '#10b981'
-  if (score >= 60) return '#3b82f6'
-  if (score >= 40) return '#f59e0b'
+  // 1-5 分制
+  if (score >= 4) return '#10b981'
+  if (score >= 3) return '#3b82f6'
+  if (score >= 2) return '#f59e0b'
   return '#ef4444'
 }
 
@@ -1183,6 +1187,26 @@ onMounted(async () => {
             color: #3b82f6;
           }
           &.dim-weak {
+            color: #f59e0b;
+          }
+        }
+      }
+      
+      .dimension-details {
+        margin-top: 12px;
+        
+        .detail-section {
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 4px;
+          line-height: 1.5;
+          
+          .detail-label {
+            color: #10b981;
+            font-weight: 500;
+          }
+          
+          &.weakness .detail-label {
             color: #f59e0b;
           }
         }
