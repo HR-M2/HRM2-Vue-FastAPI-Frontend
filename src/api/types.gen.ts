@@ -1859,12 +1859,6 @@ export type ScreeningResultUpdate = {
      */
     status?: string | null;
     /**
-     * Progress
-     *
-     * 进度
-     */
-    progress?: number | null;
-    /**
      * Score
      *
      * 综合评分
@@ -1986,10 +1980,6 @@ export type ScreeningTaskResponse = {
      * Status
      */
     status: string;
-    /**
-     * Progress
-     */
-    progress: number;
     /**
      * Score
      */

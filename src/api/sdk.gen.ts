@@ -210,7 +210,7 @@ export const getStatsOverview = <ThrowOnError extends boolean = false>(options?:
 /**
  * 获取筛选任务列表
  *
- * 获取筛选任务列表
+ * 获取筛选任务列表（包含候选人和岗位信息）
  */
 export const getScreeningTasks = <ThrowOnError extends boolean = false>(options?: Options<GetScreeningTasksData, ThrowOnError>) => (options?.client ?? client).get<GetScreeningTasksResponses, GetScreeningTasksErrors, ThrowOnError>({ url: '/api/v1/screening', ...options });
 
@@ -260,7 +260,7 @@ export const updateScreeningResult = <ThrowOnError extends boolean = false>(opti
  * 获取筛选任务状态
  *
  * 获取筛选任务状态（轮询用）
- * 返回完整的任务状态信息供前端展示进度
+ * 进度从内存缓存读取，其他信息从数据库读取
  */
 export const getScreeningStatus = <ThrowOnError extends boolean = false>(options: Options<GetScreeningStatusData, ThrowOnError>) => (options.client ?? client).get<GetScreeningStatusResponses, GetScreeningStatusErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}/status', ...options });
 
