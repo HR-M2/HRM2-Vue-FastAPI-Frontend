@@ -3621,22 +3621,6 @@ export type GetAnalysisResponses = {
 
 export type GetAnalysisResponse = GetAnalysisResponses[keyof GetAnalysisResponses];
 
-export type GetRecommendationStatsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/analysis/stats/recommendation';
-};
-
-export type GetRecommendationStatsResponses = {
-    /**
-     * Successful Response
-     */
-    200: DictResponse;
-};
-
-export type GetRecommendationStatsResponse = GetRecommendationStatsResponses[keyof GetRecommendationStatsResponses];
-
 export type GetAiStatusData = {
     body?: never;
     path?: never;

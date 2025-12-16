@@ -176,8 +176,7 @@ import {
   getPositions,
   getScreeningTasks,
   getVideoAnalyses,
-  getStatsOverview,
-  getRecommendationStats
+  getStatsOverview
 } from '@/api/sdk.gen'
 import type {
   PositionListResponse,
@@ -309,12 +308,11 @@ const fetchData = async () => {
   loading.value = true
   try {
     // 并行获取各项数据
-    const [positionsRes, screeningRes, videosRes, statsRes, recommendRes] = await Promise.all([
+    const [positionsRes, screeningRes, videosRes, statsRes] = await Promise.all([
       getPositions({ query: { page: 1, page_size: 5 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
       getScreeningTasks({ query: { status: 'completed', page: 1, page_size: 5 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
       getVideoAnalyses({ query: { page: 1, page_size: 6 } }).catch(() => ({ data: { data: { items: [], total: 0 } } })),
-      getStatsOverview().catch(() => ({ data: null })),
-      getRecommendationStats().catch(() => ({ data: null }))
+      getStatsOverview().catch(() => ({ data: null }))
     ])
 
     // 处理岗位数据
@@ -339,14 +337,9 @@ const fetchData = async () => {
     if (statsRes.data) {
       const overview = (statsRes.data as any)?.data || statsRes.data
       stats.totalResumes = overview?.total || 0
-      stats.screenedResumes = overview?.screened || overview?.screening_completed || 0
-      stats.completedInterviews = overview?.interviewed || overview?.interview_completed || 0
-    }
-
-    // 处理推荐统计
-    if (recommendRes.data) {
-      const recStats = (recommendRes.data as any)?.data || recommendRes.data
-      stats.recommendedResumes = recStats?.total || recStats?.analyzed_count || 0
+      stats.screenedResumes = overview?.screened || 0
+      stats.completedInterviews = overview?.interviewed || 0
+      stats.recommendedResumes = overview?.recommended || 0
     }
 
     // 更新统计卡片
