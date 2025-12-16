@@ -10,8 +10,8 @@ import {
   deleteInterviewSession,
   recordQa,
   completeSession,
-  aiGenerateQuestions,
-  aiGenerateCandidateQuestions,
+  aiGenerateInitialQuestions,
+  aiGenerateAdaptiveQuestions,
   aiGenerateReport,
   getApplications,
   getResume
@@ -426,11 +426,11 @@ export function useInterviewAssist() {
     }
 
     try {
-      const result = await aiGenerateQuestions({
+      const result = await aiGenerateInitialQuestions({
         body: {
           session_id: sessionId.value,
           resume_content: resumeContent,
-          count: 6,
+          count: config.alternativeCount,
           interest_point_count: config.interestPointCount
         }
       })
@@ -439,6 +439,14 @@ export function useInterviewAssist() {
         const data = result.data.data as Record<string, unknown>
         if (Array.isArray(data.questions)) {
           questionPool.value = data.questions.map((q: { question?: string }) => q.question || '')
+          suggestedQuestions.value = data.questions.map((q: { question?: string }, i: number) => ({
+            id: generateId(),
+            question: q.question || '',
+            type: 'alternative' as const,
+            angle: '简历相关',
+            priority: i + 1
+          }))
+          showSuggestions.value = true
         }
         if (Array.isArray(data.interest_points)) {
           setInterestPoints(data.interest_points as Array<{ content: string; question: string }>)
@@ -474,7 +482,7 @@ export function useInterviewAssist() {
       })
 
       // 获取候选问题
-      const result = await aiGenerateCandidateQuestions({
+      const result = await aiGenerateAdaptiveQuestions({
         body: {
           current_question: question,
           current_answer: answer,

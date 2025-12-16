@@ -351,7 +351,7 @@ const handleUseInterestPoint = (point: ResumeInterestPoint) => {
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.3s ease;
 }
 

@@ -3699,30 +3699,30 @@ export type StartAiScreeningResponses = {
 
 export type StartAiScreeningResponse = StartAiScreeningResponses[keyof StartAiScreeningResponses];
 
-export type AiGenerateQuestionsData = {
+export type AiGenerateInitialQuestionsData = {
     body: InterviewQuestionsRequest;
     path?: never;
     query?: never;
-    url: '/api/v1/ai/interview/questions';
+    url: '/api/v1/ai/interview/initial-questions';
 };
 
-export type AiGenerateQuestionsErrors = {
+export type AiGenerateInitialQuestionsErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type AiGenerateQuestionsError = AiGenerateQuestionsErrors[keyof AiGenerateQuestionsErrors];
+export type AiGenerateInitialQuestionsError = AiGenerateInitialQuestionsErrors[keyof AiGenerateInitialQuestionsErrors];
 
-export type AiGenerateQuestionsResponses = {
+export type AiGenerateInitialQuestionsResponses = {
     /**
      * Successful Response
      */
     200: DictResponse;
 };
 
-export type AiGenerateQuestionsResponse = AiGenerateQuestionsResponses[keyof AiGenerateQuestionsResponses];
+export type AiGenerateInitialQuestionsResponse = AiGenerateInitialQuestionsResponses[keyof AiGenerateInitialQuestionsResponses];
 
 export type AiEvaluateAnswerData = {
     body: AnswerEvaluateRequest;
@@ -3749,30 +3749,30 @@ export type AiEvaluateAnswerResponses = {
 
 export type AiEvaluateAnswerResponse = AiEvaluateAnswerResponses[keyof AiEvaluateAnswerResponses];
 
-export type AiGenerateCandidateQuestionsData = {
+export type AiGenerateAdaptiveQuestionsData = {
     body: CandidateQuestionsRequest;
     path?: never;
     query?: never;
-    url: '/api/v1/ai/interview/candidate-questions';
+    url: '/api/v1/ai/interview/adaptive-questions';
 };
 
-export type AiGenerateCandidateQuestionsErrors = {
+export type AiGenerateAdaptiveQuestionsErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type AiGenerateCandidateQuestionsError = AiGenerateCandidateQuestionsErrors[keyof AiGenerateCandidateQuestionsErrors];
+export type AiGenerateAdaptiveQuestionsError = AiGenerateAdaptiveQuestionsErrors[keyof AiGenerateAdaptiveQuestionsErrors];
 
-export type AiGenerateCandidateQuestionsResponses = {
+export type AiGenerateAdaptiveQuestionsResponses = {
     /**
      * Successful Response
      */
     200: DictResponse;
 };
 
-export type AiGenerateCandidateQuestionsResponse = AiGenerateCandidateQuestionsResponses[keyof AiGenerateCandidateQuestionsResponses];
+export type AiGenerateAdaptiveQuestionsResponse = AiGenerateAdaptiveQuestionsResponses[keyof AiGenerateAdaptiveQuestionsResponses];
 
 export type AiGenerateReportData = {
     body: FinalReportRequest;
