@@ -7,6 +7,7 @@ import { ElMessage } from 'element-plus'
 import {
   createInterviewSession,
   getInterviewSession,
+  deleteInterviewSession,
   recordQa,
   completeSession,
   aiGenerateQuestions,
@@ -565,6 +566,15 @@ export function useInterviewAssist() {
 
   // 放弃面试
   const quitInterview = async () => {
+    // 删除后端会话
+    if (sessionId.value) {
+      try {
+        await deleteInterviewSession({ path: { session_id: sessionId.value } })
+      } catch (e) {
+        console.warn('删除会话失败:', e)
+      }
+    }
+    
     isInterviewActive.value = false
     isPaused.value = false
     sessionId.value = null
