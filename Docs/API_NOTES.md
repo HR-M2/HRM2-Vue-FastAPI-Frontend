@@ -89,7 +89,7 @@
 2. **岗位设置** (`/positions`) - 完整实现
 3. **简历库** (`/library`) - 完整实现
 4. **简历筛选** (`/screening`) - 完整实现
-5. 视频分析 (`/video`) - 占位符
+5. **视频分析** (`/video`) - 完整实现
 6. 面试辅助 (`/interview`) - 占位符
 7. 最终推荐 (`/recommend`) - 占位符
 8. **开发测试** (`/dev-tools`) - 完整实现
@@ -290,4 +290,79 @@ interface TaskStatusResponse {
   recommendation?: string
   error_message?: string
 }
+```
+
+---
+
+## 视频分析页面使用的 API
+
+### 已对接的 API
+
+| API | 用途 | 状态 |
+|-----|------|------|
+| `GET /api/v1/positions` | 获取岗位列表 | ✅ 已对接 |
+| `GET /api/v1/applications` | 获取应聘申请列表(支持position_id筛选) | ✅ 已对接 |
+| `GET /api/v1/applications/{id}` | 获取应聘申请详情(含video_analysis) | ✅ 已对接 |
+| `POST /api/v1/video` | 创建视频分析任务 | ✅ 已对接 |
+| `GET /api/v1/video/{id}` | 获取视频分析详情 | ✅ 已对接 |
+| `GET /api/v1/resumes/{id}` | 获取简历详情 | ✅ 已对接 |
+
+### 后端业务逻辑待实现（API接口已存在）
+
+> **注意**：以下功能的 API 接口已在后端定义，前端可正常调用。需要实现的是后端的实际业务处理逻辑。
+
+| 功能 | 相关API | 说明 |
+|------|---------|------|
+| 视频文件上传存储 | 需新增文件上传接口 | 当前只传文件名/大小，需实现实际文件存储 |
+| 视频分析AI处理 | `PATCH /api/v1/video/{id}` | 需实现AI分析逻辑，完成后调用此API更新结果 |
+| 分析进度轮询 | `GET /api/v1/video/{id}/status` | API已存在，需确认进度信息返回格式 |
+
+### 视频分析数据结构
+
+```typescript
+// 创建视频分析请求
+interface VideoAnalysisCreate {
+  application_id: string     // 应聘申请ID
+  video_name: string         // 视频名称
+  video_path?: string        // 视频存储路径
+  file_size?: number         // 文件大小
+  duration?: number          // 视频时长(秒)
+}
+
+// 视频分析响应
+interface VideoAnalysisResponse {
+  id: string
+  created_at: string
+  updated_at: string
+  application_id: string
+  video_name: string
+  video_path: string | null
+  file_size: number
+  duration: number
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  error_message: string | null
+  big_five_scores?: {         // 大五人格评分
+    openness?: number         // 开放性
+    conscientiousness?: number // 尽责性
+    extraversion?: number     // 外向性
+    agreeableness?: number    // 宜人性
+    neuroticism?: number      // 神经质
+  }
+  confidence_score: number | null  // 置信度
+  fraud_score: number | null       // 欺诈风险
+  summary: string | null           // 分析摘要
+  candidate_name?: string
+  position_title?: string
+}
+```
+
+### 视频分析工作流程
+
+```
+1. 选择岗位 → 查看该岗位下的候选人
+2. 获取候选人的应聘申请详情（含已有的video_analysis信息）
+3. 为没有视频分析的候选人上传视频 (POST /api/v1/video)
+4. 后台执行视频分析（AI处理）
+5. 轮询状态或刷新页面查看分析结果
+6. 查看完成的视频分析详情
 ```
