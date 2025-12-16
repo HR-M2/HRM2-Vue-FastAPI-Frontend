@@ -19,7 +19,12 @@
         @click="$emit('showDetail', item)"
       >
         <div class="queue-info">
-          <div class="queue-name">{{ item.name }}</div>
+          <div class="queue-name">
+            {{ item.name }}
+            <el-tag v-if="item.applied_position" type="info" size="small" effect="light" class="position-tag">
+              {{ item.applied_position }}
+            </el-tag>
+          </div>
           <div class="queue-meta">
             <el-tag :type="getStatusType(item.status)" size="small">
               {{ getStatusText(item.status) }}
@@ -27,26 +32,33 @@
             <span v-if="item.current_speaker" class="speaker">
               {{ getSpeakerText(item.current_speaker) }}
             </span>
+            <span class="queue-time">{{ formatDate(item.created_at) }}</span>
           </div>
-          <!-- 评分显示 -->
-          <div v-if="item.status === 'completed' && getItemScore(item)" class="scores">
-            <span class="score-badge">
-              综合评分: {{ getItemScore(item)?.comprehensive_score }}
-            </span>
-          </div>
-          <div class="queue-time">{{ formatDate(item.created_at) }}</div>
-        </div>
-        <div class="queue-actions">
           <!-- 进度条：在pending、running、processing状态都显示 -->
           <div v-if="item.status === 'pending' || item.status === 'running' || item.status === 'processing'" class="progress-container">
             <el-progress
               :percentage="item.progress || 0"
               :stroke-width="6"
               :status="(item.status === 'running' || item.status === 'processing') ? 'warning' : undefined"
-              style="width: 100px"
             />
-            <span class="progress-text">{{ item.progress || 0 }}%</span>
           </div>
+          <!-- 评分显示 -->
+          <div v-if="item.status === 'completed' && getItemScore(item)" class="queue-scores">
+            <el-tag type="success" size="small" effect="plain">
+              综合: {{ getItemScore(item)?.comprehensive_score }}
+            </el-tag>
+            <el-tag type="info" size="small" effect="plain">
+              HR: {{ getItemScore(item)?.hr_score || '-' }}
+            </el-tag>
+            <el-tag type="warning" size="small" effect="plain">
+              技术: {{ getItemScore(item)?.technical_score || '-' }}
+            </el-tag>
+            <el-tag size="small" effect="plain">
+              管理: {{ getItemScore(item)?.manager_score || '-' }}
+            </el-tag>
+          </div>
+        </div>
+        <div class="queue-actions">
           <el-button
             v-if="item.status === 'completed' && item.task_id"
             size="small"
@@ -142,10 +154,19 @@ const {
 
 .queue-info {
   .queue-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
     font-weight: 500;
     color: #303133;
     margin-bottom: 6px;
+    
+    .position-tag {
+      background-color: #e6f7ff;
+      border-color: #91d5ff;
+      color: #1890ff;
+    }
   }
 
   .queue-meta {
@@ -155,27 +176,22 @@ const {
     font-size: 12px;
     color: #909399;
   }
+  
+  .progress-container {
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
 
-  .scores {
+  .queue-scores {
     margin-top: 6px;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    
-    .score-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      background: #f0f9eb;
-      color: #67c23a;
-      border-radius: 4px;
-      font-size: 12px;
-    }
   }
 
   .queue-time {
     font-size: 12px;
     color: #c0c4cc;
-    margin-top: 4px;
   }
 }
 
@@ -185,15 +201,4 @@ const {
   gap: 8px;
 }
 
-.progress-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  
-  .progress-text {
-    font-size: 12px;
-    color: #909399;
-    min-width: 32px;
-  }
-}
 </style>
