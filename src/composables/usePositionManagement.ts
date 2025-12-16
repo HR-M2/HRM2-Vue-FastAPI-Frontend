@@ -43,13 +43,16 @@ export function usePositionManagement() {
               })
               
               const applications = appsResponse.data?.data?.items || []
-              const resumes: ResumeData[] = applications.map(app => ({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const resumes: ResumeData[] = applications.map((app: any) => ({
                 id: app.resume_id,
                 candidate_name: app.candidate_name || '未知候选人',
                 position_title: app.position_title || pos.title,
-                application_id: app.id
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              })) as any[]
+                application_id: app.id,
+                screening_score: app.screening_task?.score != null ? {
+                  comprehensive_score: app.screening_task.score,
+                } : undefined
+              })) as ResumeData[]
               
               return {
                 id: pos.id,
@@ -98,7 +101,7 @@ export function usePositionManagement() {
     positionData.value = pos
   }
 
-  // 从岗位移除简历（删除申请关联）
+  // 从岗位移除简历（删除申请关联）- 乐观更新
   const removeResumeFromPosition = async (pos: PositionData, resume: ResumeData) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const applicationId = (resume as any).application_id
@@ -107,15 +110,36 @@ export function usePositionManagement() {
       return
     }
     
+    // 乐观更新：先从本地状态移除
+    const position = positionsList.value.find(p => p.id === pos.id)
+    if (!position) return
+    
+    const originalResumes = position.resumes ? [...position.resumes] : []
+    const originalResumeCount = position.resume_count || 0
+    
+    // 立即更新UI
+    position.resumes = originalResumes.filter(r => r.id !== resume.id)
+    position.resume_count = position.resumes.length
+    
+    // 同步更新 positionData（如果是当前选中的岗位）
+    if (positionData.value.id === pos.id) {
+      positionData.value = { ...position } as PositionData
+    }
+    
     try {
       await deleteApplication({
         path: { application_id: applicationId }
       })
       ElMessage.success('移除成功')
-      await loadPositionsList()
     } catch (err) {
+      // 回滚：恢复原始状态
       console.error('移除简历失败:', err)
       ElMessage.error('移除失败')
+      position.resumes = originalResumes
+      position.resume_count = originalResumeCount
+      if (positionData.value.id === pos.id) {
+        positionData.value = { ...position } as PositionData
+      }
     }
   }
 

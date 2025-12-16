@@ -150,11 +150,14 @@ const {
   deleteHistoryTask
 } = useHistoryTasks()
 
-// 任务轮询（完成时刷新历史任务）
+// 任务轮询（完成时刷新历史任务和岗位列表）
 const {
   processingQueue,
   addToQueue
-} = useTaskPolling(loadHistoryTasks)
+} = useTaskPolling(() => {
+  loadHistoryTasks()
+  loadPositionsList()
+})
 
 // 简历上传组件引用
 const resumeUploadRef = ref<InstanceType<typeof ResumeUpload>>()

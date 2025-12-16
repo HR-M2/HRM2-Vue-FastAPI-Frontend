@@ -142,6 +142,7 @@ export type ApplicationListResponse = {
      * Candidate Name
      */
     candidate_name?: string | null;
+    screening_task?: ScreeningTaskBrief | null;
 };
 
 /**
@@ -743,7 +744,33 @@ export type MessageResponse = {
 /**
  * PagedData[ApplicationListResponse]
  */
-export type PagedDataApplicationListResponse = {
+export type PagedDataApplicationListResponseInput = {
+    /**
+     * Items
+     */
+    items: Array<ApplicationListResponse>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Pages
+     */
+    pages: number;
+};
+
+/**
+ * PagedData[ApplicationListResponse]
+ */
+export type PagedDataApplicationListResponseOutput = {
     /**
      * Items
      */
@@ -990,7 +1017,7 @@ export type PagedResponseModelApplicationListResponse = {
      * Message
      */
     message?: string;
-    data: PagedDataApplicationListResponse;
+    data: PagedDataApplicationListResponseOutput;
 };
 
 /**
