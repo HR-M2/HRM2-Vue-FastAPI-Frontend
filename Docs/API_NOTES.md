@@ -384,15 +384,17 @@ interface VideoAnalysisResponse {
 | `POST /api/v1/ai/interview/questions` | AI生成面试问题 | ✅ 已对接 |
 | `POST /api/v1/ai/interview/candidate-questions` | AI生成候选问题 | ✅ 已对接 |
 
-### 后端业务逻辑待实现
+### AI 服务实现详情
 
-> **注意**：以下功能的 API 接口已在后端定义，前端可正常调用。需要实现的是后端的实际业务处理逻辑。
+> **注意**：以下 AI 功能已在后端完整实现，通过 `InterviewAssistAgent` 调用 LLM 服务。
 
-| 功能 | 相关API | 说明 |
-|------|---------|------|
-| AI问题生成 | `POST /api/v1/ai/interview/questions` | 需实现根据简历生成面试问题 |
-| AI候选问题 | `POST /api/v1/ai/interview/candidate-questions` | 需实现根据问答生成追问和候选问题 |
-| AI报告生成 | `POST /api/v1/ai/interview/report` | 需实现面试报告生成逻辑 |
+| 功能 | API | 实现文件 | 说明 |
+|------|-----|----------|------|
+| AI问题生成 | `POST /api/v1/ai/interview/questions` | `interview_assist_agent.py` | ✅ 根据简历和岗位生成面试问题和兴趣点 |
+| AI候选问题 | `POST /api/v1/ai/interview/candidate-questions` | `interview_assist_agent.py` | ✅ 分析回答类型，生成追问和候选问题 |
+| AI报告生成 | `POST /api/v1/ai/interview/report` | `interview_assist_agent.py` | ✅ 基于问答记录生成综合评估报告 |
+
+**依赖条件**：需要配置 LLM 服务（API Key、Base URL 等），否则会返回备用内容。
 
 ### 面试辅助功能说明
 
