@@ -284,7 +284,7 @@ const interviewQACount = computed(() => {
 })
 
 const hasInterviewReport = computed(() => {
-  return interviewSession.value?.is_completed ?? false
+  return interviewSession.value?.has_report ?? false
 })
 
 const hasVideoAnalysis = computed(() => {

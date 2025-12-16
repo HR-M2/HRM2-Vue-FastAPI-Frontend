@@ -183,16 +183,16 @@
       <div v-if="selectedInterviewReport" class="interview-report">
         <div class="report-header">
           <div class="report-score" :class="getReportScoreClass(selectedInterviewReport)">
-            <span class="score-value">{{ selectedInterviewReport.final_score || 'N/A' }}</span>
+            <span class="score-value">{{ selectedInterviewReport.final_score !== null ? selectedInterviewReport.final_score : 'N/A' }}</span>
             <span class="score-label">分</span>
           </div>
           <div class="report-recommendation">
             {{ selectedInterviewReport.is_completed ? '面试已完成' : '面试进行中' }}
           </div>
         </div>
-        <div v-if="selectedInterviewReport.report" class="report-summary">
+        <div v-if="selectedInterviewReport.report_markdown" class="report-summary">
           <h4>评估总结</h4>
-          <div class="summary-content" v-html="formatReportContent(String(selectedInterviewReport.report || ''))"></div>
+          <div class="summary-content markdown-body" v-html="formatReportContent(selectedInterviewReport.report_markdown)"></div>
         </div>
       </div>
       <template #footer>

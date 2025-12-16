@@ -612,6 +612,10 @@ export type InterviewSessionBrief = {
      */
     current_round?: number;
     /**
+     * Has Report
+     */
+    has_report?: boolean;
+    /**
      * Created At
      */
     created_at: string;
