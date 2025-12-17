@@ -608,9 +608,9 @@ export type InterviewSessionBrief = {
      */
     final_score: number | null;
     /**
-     * Current Round
+     * Message Count
      */
-    current_round?: number;
+    message_count?: number;
     /**
      * Has Report
      */
@@ -682,9 +682,9 @@ export type InterviewSessionResponse = {
         [key: string]: unknown;
     };
     /**
-     * Qa Records
+     * Messages
      */
-    qa_records: Array<QaRecord>;
+    messages: Array<QaMessage>;
     /**
      * Question Pool
      */
@@ -708,9 +708,9 @@ export type InterviewSessionResponse = {
      */
     report_markdown: string | null;
     /**
-     * Current Round
+     * Message Count
      */
-    current_round?: number;
+    message_count?: number;
     /**
      * Candidate Name
      */
@@ -1373,73 +1373,55 @@ export type PositionUpdate = {
 };
 
 /**
- * QARecord
+ * QAMessage
  *
- * 问答记录
+ * 问答消息
  */
-export type QaRecord = {
+export type QaMessage = {
     /**
-     * Round
+     * Seq
      *
-     * 轮次
+     * 消息序号
      */
-    round: number;
+    seq: number;
     /**
-     * Question
+     * Role
      *
-     * 问题
+     * 角色
      */
-    question: string;
+    role: 'interviewer' | 'candidate';
     /**
-     * Answer
+     * Content
      *
-     * 回答
+     * 内容
      */
-    answer: string;
+    content: string;
     /**
-     * Score
+     * Timestamp
      *
-     * 评分
+     * 时间戳
      */
-    score?: number | null;
-    /**
-     * Evaluation
-     *
-     * 评价
-     */
-    evaluation?: string | null;
+    timestamp: string;
 };
 
 /**
- * QARecordCreate
+ * QAMessageCreate
  *
- * 添加问答记录请求
+ * 添加问答消息请求
  */
-export type QaRecordCreate = {
+export type QaMessageCreate = {
     /**
-     * Question
+     * Role
      *
-     * 问题
+     * 角色
      */
-    question: string;
+    role: 'interviewer' | 'candidate';
     /**
-     * Answer
+     * Content
      *
-     * 回答
+     * 内容
      */
-    answer: string;
-    /**
-     * Score
-     *
-     * 评分
-     */
-    score?: number | null;
-    /**
-     * Evaluation
-     *
-     * 评价
-     */
-    evaluation?: string | null;
+    content: string;
 };
 
 /**
@@ -3426,8 +3408,8 @@ export type GenerateQuestionsResponses = {
 
 export type GenerateQuestionsResponse = GenerateQuestionsResponses[keyof GenerateQuestionsResponses];
 
-export type RecordQaData = {
-    body: QaRecordCreate;
+export type AddMessageData = {
+    body: QaMessageCreate;
     path: {
         /**
          * Session Id
@@ -3435,26 +3417,26 @@ export type RecordQaData = {
         session_id: string;
     };
     query?: never;
-    url: '/api/v1/interview/{session_id}/qa';
+    url: '/api/v1/interview/{session_id}/message';
 };
 
-export type RecordQaErrors = {
+export type AddMessageErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type RecordQaError = RecordQaErrors[keyof RecordQaErrors];
+export type AddMessageError = AddMessageErrors[keyof AddMessageErrors];
 
-export type RecordQaResponses = {
+export type AddMessageResponses = {
     /**
      * Successful Response
      */
     200: DictResponse;
 };
 
-export type RecordQaResponse = RecordQaResponses[keyof RecordQaResponses];
+export type AddMessageResponse = AddMessageResponses[keyof AddMessageResponses];
 
 export type CompleteSessionData = {
     body?: never;

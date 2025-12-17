@@ -8,7 +8,7 @@ import {
   createInterviewSession,
   getInterviewSession,
   deleteInterviewSession,
-  recordQa,
+  addMessage as addMessageApi,
   completeSession,
   aiGenerateInitialQuestions,
   aiGenerateAdaptiveQuestions,
@@ -16,7 +16,7 @@ import {
   getApplications,
   getResume
 } from '@/api/sdk.gen'
-import type { InterviewSessionResponse, QaRecord } from '@/api/types.gen'
+import type { InterviewSessionResponse, QaMessage } from '@/api/types.gen'
 
 // 类型定义
 export interface Message {
@@ -472,13 +472,14 @@ export function useInterviewAssist() {
     }
 
     try {
-      // 记录问答到后端
-      await recordQa({
+      // 记录问答消息到后端
+      await addMessageApi({
         path: { session_id: sessionId.value },
-        body: {
-          question,
-          answer
-        }
+        body: { role: 'interviewer', content: question }
+      })
+      await addMessageApi({
+        path: { session_id: sessionId.value },
+        body: { role: 'candidate', content: answer }
       })
 
       // 获取候选问题

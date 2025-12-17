@@ -379,7 +379,7 @@ interface VideoAnalysisResponse {
 | `GET /api/v1/applications` | 获取应聘申请列表 | ✅ 已对接 |
 | `POST /api/v1/interview` | 创建面试会话 | ✅ 已对接 |
 | `GET /api/v1/interview/{session_id}` | 获取面试会话详情 | ✅ 已对接 |
-| `POST /api/v1/interview/{session_id}/qa` | 记录问答 | ✅ 已对接 |
+| `POST /api/v1/interview/{session_id}/message` | 记录消息 | ✅ 已对接 |
 | `POST /api/v1/interview/{session_id}/complete` | 完成面试会话 | ✅ 已对接 |
 | `POST /api/v1/ai/interview/questions` | AI生成面试问题 | ✅ 已对接 |
 | `POST /api/v1/ai/interview/candidate-questions` | AI生成候选问题 | ✅ 已对接 |
@@ -417,12 +417,18 @@ interface InterviewSessionCreate {
   }
 }
 
-// 问答记录请求
-interface QARecordCreate {
-  question: string           // 问题
-  answer: string             // 回答
-  score?: number             // 评分
-  evaluation?: string        // 评价
+// 问答消息请求
+interface QAMessageCreate {
+  role: 'interviewer' | 'candidate'  // 角色
+  content: string                     // 内容
+}
+
+// 问答消息
+interface QAMessage {
+  seq: number                         // 消息序号
+  role: 'interviewer' | 'candidate'  // 角色
+  content: string                     // 内容
+  timestamp: string                   // 时间戳
 }
 
 // 面试会话响应
@@ -433,12 +439,13 @@ interface InterviewSessionResponse {
   application_id: string
   interview_type: string
   config: Record<string, unknown>
-  qa_records: QARecord[]
+  messages: QAMessage[]           // 消息流
   question_pool: string[]
   is_completed: boolean
   final_score: number | null
   report: Record<string, unknown> | null
   report_markdown: string | null
+  message_count?: number          // 消息数量
   candidate_name?: string
   position_title?: string
 }
@@ -452,7 +459,7 @@ interface InterviewSessionResponse {
    a. 检查麦克风 → 选择候选人（可选）
    b. 创建面试会话 (POST /api/v1/interview)
    c. 获取问题池和兴趣点 (POST /api/v1/ai/interview/questions)
-   d. 面试官提问 → 候选人回答 → 记录问答 (POST /api/v1/interview/{id}/qa)
+   d. 面试官提问 → 候选人回答 → 记录消息 (POST /api/v1/interview/{id}/message)
    e. 获取追问建议 (POST /api/v1/ai/interview/candidate-questions)
    f. 结束面试，生成报告 (POST /api/v1/interview/{id}/complete)
 3. AI模拟模式：
