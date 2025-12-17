@@ -25,19 +25,6 @@
               {{ message.content }}
               <span v-if="message.isTyping" class="typing-cursor">|</span>
             </div>
-            <!-- 评估结果 -->
-            <transition name="fade">
-              <div v-if="message.evaluation" class="evaluation-badge">
-                <div class="eval-score" :class="getScoreClass(message.evaluation.score)">
-                  <span class="score-value">{{ Math.round(message.evaluation.score) }}</span>
-                  <span class="score-label">分</span>
-                </div>
-                <div class="eval-info">
-                  <span class="recommendation">{{ getRecommendationText(message.evaluation.recommendation) }}</span>
-                  <span class="feedback">{{ message.evaluation.feedback }}</span>
-                </div>
-              </div>
-            </transition>
           </div>
         </div>
       </transition-group>
@@ -119,23 +106,6 @@ const chatContainerRef = ref<HTMLElement | null>(null)
 // 方法
 const formatTime = (date: Date) => {
   return new Date(date).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-}
-
-const getScoreClass = (score: number) => {
-  if (score >= 80) return 'score-excellent'
-  if (score >= 60) return 'score-good'
-  if (score >= 40) return 'score-average'
-  return 'score-poor'
-}
-
-const getRecommendationText = (rec: string) => {
-  const texts: Record<string, string> = {
-    excellent: '优秀',
-    good: '良好',
-    average: '一般',
-    needsImprovement: '需改进'
-  }
-  return texts[rec] || rec
 }
 
 const sendQuestion = () => {
@@ -296,63 +266,6 @@ defineExpose({
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
-}
-
-// 评估徽章
-.evaluation-badge {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: #f8fafc;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  
-  .eval-score {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    
-    &.score-excellent { background: linear-gradient(135deg, #10b981, #059669); }
-    &.score-good { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-    &.score-average { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    &.score-poor { background: linear-gradient(135deg, #ef4444, #dc2626); }
-    
-    .score-value {
-      font-size: 16px;
-      font-weight: 700;
-      color: white;
-    }
-    
-    .score-label {
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.8);
-    }
-  }
-  
-  .eval-info {
-    flex: 1;
-    
-    .recommendation {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 2px;
-    }
-    
-    .feedback {
-      font-size: 12px;
-      color: #6b7280;
-      line-height: 1.4;
-    }
-  }
 }
 
 // AI 打字指示器

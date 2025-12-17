@@ -88,7 +88,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  start: [type: string]
+  start: [type: string, candidateInfo: { name: string; position: string; applicationId: string } | null]
   pause: []
   resume: []
   end: []
@@ -96,6 +96,7 @@ const emit = defineEmits<{
   ask: [question: string]
   useSuggestion: [suggestion: SuggestedQuestion]
   clearSuggestions: []
+  selectCandidate: [candidate: { name: string; position: string; applicationId: string }]
 }>()
 
 // 获取头像 emoji
@@ -110,8 +111,12 @@ const getAvatarEmoji = (type: string) => {
 }
 
 // 开始面试
-const handleStart = (candidateType: string) => {
-  emit('start', candidateType)
+const handleStart = (candidateType: string, candidateInfo: { name: string; position: string; applicationId: string } | null) => {
+  // 如果选择了候选人，先触发候选人选择事件
+  if (candidateInfo) {
+    emit('selectCandidate', candidateInfo)
+  }
+  emit('start', candidateType, candidateInfo)
 }
 
 // 发送问题

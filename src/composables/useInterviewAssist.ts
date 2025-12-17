@@ -13,6 +13,7 @@ import {
   aiGenerateInitialQuestions,
   aiGenerateAdaptiveQuestions,
   aiGenerateReport,
+  aiSimulateCandidateAnswer,
   getApplications,
   getResume
 } from '@/api/sdk.gen'
@@ -403,37 +404,61 @@ export function useInterviewAssist() {
     }
   }
 
-  // AI 模拟模式 - 生成候选人回答
+  // AI 模拟模式 - 生成候选人回答（调用后端API）
   const generateAIResponse = async (question: string): Promise<string> => {
     if (!selectedCandidate.value) return ''
     
-    const type = selectedCandidate.value.type
+    const candidateType = selectedCandidate.value.type
+    
+    // 如果有后端会话，调用后端AI生成
+    if (sessionId.value) {
+      try {
+        const conversationHistory = messages.value
+          .filter(m => m.role === 'interviewer' || m.role === 'candidate')
+          .map(m => ({ role: m.role, content: m.content }))
+        
+        const result = await aiSimulateCandidateAnswer({
+          body: {
+            session_id: sessionId.value,
+            question: question,
+            candidate_type: candidateType,
+            conversation_history: conversationHistory
+          }
+        })
+        
+        if (result.data?.data?.answer) {
+          return result.data.data.answer as string
+        }
+      } catch (error) {
+        console.error('AI模拟回答失败，使用本地模板:', error)
+      }
+    }
+    
+    // 回退到本地模板生成
+    return generateLocalAIResponse(question, candidateType)
+  }
+  
+  // 本地模板生成回答（作为后备方案）
+  const generateLocalAIResponse = (question: string, candidateType: string): string => {
     const questionLower = question.toLowerCase()
     
-    // 智能分类问题类型
     let category: 'technical' | 'project' | 'general' = 'general'
     if (questionLower.includes('项目') || questionLower.includes('经历') || questionLower.includes('案例') || questionLower.includes('经验')) {
       category = 'project'
     } else if (questionLower.includes('技术') || questionLower.includes('如何') || questionLower.includes('实现') || 
-               questionLower.includes('原理') || questionLower.includes('框架') || questionLower.includes('语言') ||
-               Object.keys(selectedCandidate.value.skills).some(skill => questionLower.includes(skill.toLowerCase()))) {
+               questionLower.includes('原理') || questionLower.includes('框架') || questionLower.includes('语言')) {
       category = 'technical'
     }
     
-    // 获取对应类型的模板，如果没有则回退到 general
-    const candidateTemplates = answerTemplates[type] || answerTemplates.ideal
+    const candidateTemplates = answerTemplates[candidateType] || answerTemplates.ideal
     let templates = candidateTemplates?.[category] || candidateTemplates?.general || []
     
-    // 如果没有找到模板，使用 ideal 类型的模板
     if (templates.length === 0) {
       templates = answerTemplates.ideal?.[category] || answerTemplates.ideal?.general || []
     }
     
     const template = templates[Math.floor(Math.random() * templates.length)] || ''
-    
-    // 获取技能列表用于替换
-    const skills = Object.keys(selectedCandidate.value.skills)
-    const skill = skills[Math.floor(Math.random() * skills.length)] || 'JavaScript'
+    const skill = '相关技术'
     
     return template.replace(/{skill}/g, skill)
   }
@@ -750,16 +775,9 @@ export function useInterviewAssist() {
     // AI 模拟模式：自动生成候选人回答
     if (config.mode === 'ai-simulation' && selectedCandidate.value) {
       isAITyping.value = true
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
       
       const response = await generateAIResponse(question)
-      const message = await simulateTyping(response, 'candidate')
-      
-      // 评估回答
-      const evaluation = evaluateAnswerLocal(response)
-      if (message) {
-        message.evaluation = evaluation
-      }
+      await simulateTyping(response, 'candidate')
       
       isAITyping.value = false
       

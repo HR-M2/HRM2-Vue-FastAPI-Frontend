@@ -74,6 +74,7 @@
           @ask="askQuestion"
           @use-suggestion="useSuggestedQuestion"
           @clear-suggestions="clearSuggestions"
+          @select-candidate="handleSelectCandidateAI"
         />
         
         <!-- 真人面试面板 -->
@@ -163,6 +164,12 @@ const switchMode = (mode: 'ai-simulation' | 'live-interview') => {
   }
   currentMode.value = mode
   updateConfig({ mode })
+}
+
+// AI模拟选择候选人后创建会话
+const handleSelectCandidateAI = async (candidate: { name: string; position: string; applicationId: string }) => {
+  await createSession(candidate.applicationId)
+  await fetchQuestionPool()
 }
 
 // 开始 AI 模拟面试

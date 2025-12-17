@@ -5,7 +5,7 @@
         <el-icon class="sim-icon"><Monitor /></el-icon>
       </div>
       <h3>AI 模拟面试演示</h3>
-      <p class="desc">选择一个虚拟候选人类型，体验面试辅助系统的功能</p>
+      <p class="desc">选择候选人简历，AI将根据简历内容和行为特征模拟候选人回答</p>
     </div>
     
     <!-- 准备步骤 -->
@@ -31,14 +31,97 @@
         </el-button>
       </div>
       
-      <div class="step" :class="{ 'completed': step2Done, 'expanded': true }">
+      <div class="step" :class="{ 'completed': step2Done, 'expanded': showCandidateSelector }">
         <div class="step-icon">
           <el-icon v-if="step2Done"><Check /></el-icon>
           <span v-else>2</span>
         </div>
         <div class="step-content">
-          <h5>选择 AI 候选人类型</h5>
-          <p v-if="!selectedType">选择一种候选人类型进行模拟面试</p>
+          <h5>选择候选人</h5>
+          <p v-if="!selectedCandidateInfo">从简历库中选择要模拟的候选人</p>
+          <p v-else class="success">
+            已选择: {{ selectedCandidateInfo.name }}
+            <span v-if="selectedCandidateInfo.position"> - {{ selectedCandidateInfo.position }}</span>
+          </p>
+        </div>
+        <el-button 
+          v-if="!step2Done" 
+          size="small"
+          type="primary"
+          @click="showCandidateSelector = !showCandidateSelector"
+        >
+          {{ showCandidateSelector ? '收起' : '选择' }}
+        </el-button>
+      </div>
+      
+      <!-- 候选人选择面板 -->
+      <transition name="expand">
+        <div v-if="showCandidateSelector && !step2Done" class="candidate-selector-panel">
+          <div class="selector-header">
+            <el-icon><User /></el-icon>
+            <span>从简历库选择候选人</span>
+          </div>
+          <div class="selector-body">
+            <div class="select-group">
+              <label>选择岗位</label>
+              <el-select
+                v-model="selectedPositionId"
+                placeholder="请选择岗位"
+                clearable
+                @change="handlePositionChange"
+              >
+                <el-option
+                  v-for="pos in positions"
+                  :key="pos.id"
+                  :label="`${pos.title} (${pos.application_count || 0}人)`"
+                  :value="pos.id"
+                />
+              </el-select>
+            </div>
+            <div class="select-group" v-if="currentApplications.length > 0">
+              <label>选择候选人</label>
+              <el-select
+                v-model="selectedApplicationId"
+                placeholder="请选择候选人"
+                clearable
+              >
+                <el-option
+                  v-for="app in currentApplications"
+                  :key="app.id"
+                  :label="app.candidate_name || '未知候选人'"
+                  :value="app.id"
+                />
+              </el-select>
+            </div>
+            <div v-else-if="selectedPositionId && !loadingApplications" class="no-candidates">
+              <el-icon><Warning /></el-icon>
+              <span>该岗位暂无候选人</span>
+            </div>
+            <div v-if="loadingApplications" class="loading-hint">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>加载中...</span>
+            </div>
+            <div class="selector-actions">
+              <el-button 
+                type="primary" 
+                :disabled="!selectedApplicationId"
+                @click="confirmCandidateSelection"
+              >
+                确认选择
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </transition>
+      
+      <div class="step" :class="{ 'completed': step3Done }">
+        <div class="step-icon">
+          <el-icon v-if="step3Done"><Check /></el-icon>
+          <span v-else>3</span>
+        </div>
+        <div class="step-content">
+          <h5>选择行为特征</h5>
+          <p v-if="!selectedType">选择AI模拟的候选人行为风格</p>
           <p v-else class="success">
             已选择: {{ candidatePresets[selectedType]?.name }}
           </p>
@@ -120,27 +203,90 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { Monitor, VideoPlay, Check, InfoFilled } from '@element-plus/icons-vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { Monitor, VideoPlay, Check, InfoFilled, User, Warning, Loading } from '@element-plus/icons-vue'
 import { candidatePresets, type CandidateProfile } from '@/composables/useInterviewAssist'
+import { getPositions, getApplications } from '@/api/sdk.gen'
+import type { PositionListResponse, ApplicationResponse } from '@/api/types.gen'
 
 const emit = defineEmits<{
-  start: [candidateType: string]
+  start: [candidateType: string, candidateInfo: { name: string; position: string; applicationId: string } | null]
 }>()
 
 // 准备步骤状态
 const step1Done = ref(false)
 const step2Done = ref(false)
+const step3Done = ref(false)
 const checkingMic = ref(false)
 const selectedType = ref<string>('')
 
-// 计算是否可以开始
-const canStart = computed(() => step1Done.value && step2Done.value)
+// 候选人选择状态
+const showCandidateSelector = ref(false)
+const positions = ref<PositionListResponse[]>([])
+const selectedPositionId = ref<string | null>(null)
+const selectedApplicationId = ref<string | null>(null)
+const selectedCandidateInfo = ref<{ name: string; position: string; applicationId: string } | null>(null)
+const currentApplications = ref<ApplicationResponse[]>([])
+const loadingApplications = ref(false)
 
-// 监听候选人选择
+// 计算是否可以开始
+const canStart = computed(() => step1Done.value && step2Done.value && step3Done.value)
+
+// 监听行为类型选择
 watch(selectedType, (val) => {
-  step2Done.value = !!val
+  step3Done.value = !!val
 })
+
+// 加载岗位列表
+const loadPositions = async () => {
+  try {
+    const result = await getPositions({ query: { page_size: 100 } })
+    if (result.data?.data?.items) {
+      positions.value = result.data.data.items
+    }
+  } catch (err) {
+    console.error('加载岗位列表失败:', err)
+  }
+}
+
+// 岗位变更处理
+const handlePositionChange = async () => {
+  selectedApplicationId.value = null
+  currentApplications.value = []
+  
+  if (!selectedPositionId.value) return
+  
+  loadingApplications.value = true
+  try {
+    const result = await getApplications({ 
+      query: { 
+        position_id: selectedPositionId.value,
+        page_size: 100 
+      } 
+    })
+    if (result.data?.data?.items) {
+      currentApplications.value = result.data.data.items as ApplicationResponse[]
+    }
+  } catch (err) {
+    console.error('加载应聘申请失败:', err)
+  } finally {
+    loadingApplications.value = false
+  }
+}
+
+// 确认选择候选人
+const confirmCandidateSelection = () => {
+  const app = currentApplications.value.find((a: ApplicationResponse) => a.id === selectedApplicationId.value)
+  if (app) {
+    selectedCandidateInfo.value = {
+      name: app.candidate_name || '未知候选人',
+      position: app.position_title || '',
+      applicationId: app.id
+    }
+    showCandidateSelector.value = false
+    step2Done.value = true
+  }
+}
 
 // 检查麦克风
 const checkMicrophone = async () => {
@@ -155,15 +301,20 @@ const checkMicrophone = async () => {
   }
 }
 
-// 选择候选人类型
+// 选择行为类型
 const selectCandidate = (type: string) => {
   selectedType.value = type
 }
 
+// 组件挂载时加载岗位
+onMounted(() => {
+  loadPositions()
+})
+
 // 开始面试
 const handleStart = () => {
   if (selectedType.value) {
-    emit('start', selectedType.value)
+    emit('start', selectedType.value, selectedCandidateInfo.value)
   }
 }
 
@@ -337,6 +488,93 @@ const getCandidateTraits = (type: string) => {
       }
     }
   }
+}
+
+.candidate-selector-panel {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #667eea;
+  margin-bottom: 12px;
+  overflow: hidden;
+  
+  .selector-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 500;
+    
+    .el-icon {
+      font-size: 18px;
+    }
+  }
+  
+  .selector-body {
+    padding: 20px;
+    
+    .select-group {
+      margin-bottom: 16px;
+      
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 8px;
+      }
+      
+      .el-select {
+        width: 100%;
+      }
+    }
+    
+    .no-candidates, .loading-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 24px;
+      background: #fef3c7;
+      border-radius: 8px;
+      color: #92400e;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    
+    .loading-hint {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+    
+    .selector-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 8px;
+      border-top: 1px solid #e5e7eb;
+    }
+  }
+}
+
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-bottom: 0;
+  transform: translateY(-10px);
+}
+
+.expand-enter-to,
+.expand-leave-from {
+  opacity: 1;
+  max-height: 400px;
 }
 
 .candidate-grid {
