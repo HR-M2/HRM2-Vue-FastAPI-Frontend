@@ -77,34 +77,36 @@
             <div
               v-for="(q, index) in followupQuestions"
               :key="q.id"
-              class="question-card"
+              class="question-card followup"
               :style="{ '--delay': index * 0.1 + 's' }"
             >
-              <div class="card-number">{{ index + 1 }}</div>
               <div class="card-content">
+                <div class="card-header-row">
+                  <div class="card-number">{{ index + 1 }}</div>
+                  <div class="card-actions-inline">
+                    <el-tooltip content="编辑后发送" placement="top">
+                      <el-button
+                        type="info"
+                        text
+                        size="small"
+                        :icon="Edit"
+                        @click="handleEdit(q, $event)"
+                        class="edit-btn"
+                      />
+                    </el-tooltip>
+                    <el-tooltip content="直接发送" placement="top">
+                      <el-button
+                        type="primary"
+                        text
+                        size="small"
+                        :icon="Promotion"
+                        @click="handleUse(q)"
+                        class="send-btn"
+                      />
+                    </el-tooltip>
+                  </div>
+                </div>
                 <p class="question-text">{{ q.question }}</p>
-              </div>
-              <div class="card-actions">
-                <el-tooltip content="编辑后发送" placement="top">
-                  <el-button
-                    type="info"
-                    text
-                    size="small"
-                    :icon="Edit"
-                    @click="handleEdit(q, $event)"
-                    class="edit-btn"
-                  />
-                </el-tooltip>
-                <el-tooltip content="直接发送" placement="top">
-                  <el-button
-                    type="primary"
-                    text
-                    size="small"
-                    :icon="Promotion"
-                    @click="handleUse(q)"
-                    class="send-btn"
-                  />
-                </el-tooltip>
               </div>
             </div>
           </transition-group>
@@ -128,33 +130,33 @@
               class="question-card alt"
               :style="{ '--delay': (followupQuestions.length + index) * 0.1 + 's' }"
             >
-              <div class="card-angle">
-                <el-tag size="small" type="info">{{ q.angle }}</el-tag>
-              </div>
               <div class="card-content">
+                <div class="card-header-row">
+                  <span class="card-angle-tag">{{ q.angle }}</span>
+                  <div class="card-actions-inline">
+                    <el-tooltip content="编辑后发送" placement="top">
+                      <el-button
+                        type="info"
+                        text
+                        size="small"
+                        :icon="Edit"
+                        @click="handleEdit(q, $event)"
+                        class="edit-btn"
+                      />
+                    </el-tooltip>
+                    <el-tooltip content="直接发送" placement="top">
+                      <el-button
+                        type="primary"
+                        text
+                        size="small"
+                        :icon="Promotion"
+                        @click="handleUse(q)"
+                        class="send-btn"
+                      />
+                    </el-tooltip>
+                  </div>
+                </div>
                 <p class="question-text">{{ q.question }}</p>
-              </div>
-              <div class="card-actions">
-                <el-tooltip content="编辑后发送" placement="top">
-                  <el-button
-                    type="info"
-                    text
-                    size="small"
-                    :icon="Edit"
-                    @click="handleEdit(q, $event)"
-                    class="edit-btn"
-                  />
-                </el-tooltip>
-                <el-tooltip content="直接发送" placement="top">
-                  <el-button
-                    type="primary"
-                    text
-                    size="small"
-                    :icon="Promotion"
-                    @click="handleUse(q)"
-                    class="send-btn"
-                  />
-                </el-tooltip>
               </div>
             </div>
           </transition-group>
@@ -491,13 +493,58 @@ const handleUseInterestPoint = (point: ResumeInterestPoint) => {
     flex-shrink: 0;
   }
   
-  .card-angle {
-    flex-shrink: 0;
-  }
-  
   .card-content {
     flex: 1;
     min-width: 0;
+    
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    
+    .card-angle-tag {
+      display: inline-block;
+      font-size: 11px;
+      color: #6b7280;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
+    .card-actions-inline {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      
+      .edit-btn, .send-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          transform: scale(1.1);
+        }
+      }
+      
+      .edit-btn {
+        background: #f3f4f6;
+        
+        &:hover {
+          background: #e5e7eb;
+        }
+      }
+      
+      .send-btn {
+        background: #eff6ff;
+        
+        &:hover {
+          background: #dbeafe;
+        }
+      }
+    }
     
     .question-text {
       font-size: 14px;

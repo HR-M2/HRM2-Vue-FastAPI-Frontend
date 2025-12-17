@@ -16,12 +16,86 @@
           <span v-else>1</span>
         </div>
         <div class="step-content">
+          <h5>选择行为特征</h5>
+          <p v-if="!selectedType">选择AI模拟的候选人行为风格</p>
+          <p v-else class="success">
+            已选择: {{ candidatePresets[selectedType]?.name }}
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 候选人类型选择网格 -->
+    <div class="candidate-grid">
+      <div
+        v-for="(profile, key) in candidatePresets"
+        :key="key"
+        class="candidate-card"
+        :class="{ 'selected': selectedType === key }"
+        @click="selectCandidate(key)"
+      >
+        <div class="card-avatar" :class="`avatar-${key}`">
+          <span>{{ getAvatarEmoji(key) }}</span>
+        </div>
+        <div class="card-content">
+          <h4>{{ profile.name }}</h4>
+          <p class="card-desc">{{ getCandidateDescription(key) }}</p>
+          <div class="skill-tags">
+            <span 
+              v-for="trait in getPersonalityTags(key as string)" 
+              :key="trait"
+              class="skill-tag"
+            >
+              {{ trait }}
+            </span>
+          </div>
+          <div class="personality-bar">
+            <span class="bar-label">综合能力</span>
+            <div class="bar-track">
+              <div class="bar-fill" :style="{ width: getAvgSkill(profile) + '%' }"></div>
+            </div>
+            <span class="bar-value">{{ getAvgSkill(profile) }}%</span>
+          </div>
+        </div>
+        <div class="card-check" v-if="selectedType === key">
+          <el-icon><Check /></el-icon>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 候选人特征说明 -->
+    <transition name="fade">
+      <div v-if="selectedType" class="candidate-traits">
+        <div class="traits-header">
+          <el-icon><InfoFilled /></el-icon>
+          <span>{{ candidatePresets[selectedType]?.name }} 特征说明</span>
+        </div>
+        <div class="traits-content">
+          <div class="trait-item" v-for="trait in getCandidateTraits(selectedType)" :key="trait.label">
+            <span class="trait-icon">{{ trait.icon }}</span>
+            <div class="trait-info">
+              <span class="trait-label">{{ trait.label }}</span>
+              <span class="trait-desc">{{ trait.desc }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+    
+    <!-- 继续准备步骤 -->
+    <div class="prep-steps">
+      <div class="step" :class="{ 'completed': step2Done }">
+        <div class="step-icon">
+          <el-icon v-if="step2Done"><Check /></el-icon>
+          <span v-else>2</span>
+        </div>
+        <div class="step-content">
           <h5>检查麦克风</h5>
-          <p v-if="!step1Done">确保您的麦克风正常工作（用于语音输入）</p>
+          <p v-if="!step2Done">确保您的麦克风正常工作（用于语音输入）</p>
           <p v-else class="success">麦克风已就绪</p>
         </div>
         <el-button 
-          v-if="!step1Done" 
+          v-if="!step2Done" 
           size="small" 
           type="primary"
           @click="checkMicrophone"
@@ -31,10 +105,10 @@
         </el-button>
       </div>
       
-      <div class="step" :class="{ 'completed': step2Done, 'expanded': showCandidateSelector }">
+      <div class="step" :class="{ 'completed': step3Done, 'expanded': showCandidateSelector }">
         <div class="step-icon">
-          <el-icon v-if="step2Done"><Check /></el-icon>
-          <span v-else>2</span>
+          <el-icon v-if="step3Done"><Check /></el-icon>
+          <span v-else>3</span>
         </div>
         <div class="step-content">
           <h5>选择候选人</h5>
@@ -45,7 +119,7 @@
           </p>
         </div>
         <el-button 
-          v-if="!step2Done" 
+          v-if="!step3Done" 
           size="small"
           type="primary"
           @click="showCandidateSelector = !showCandidateSelector"
@@ -56,7 +130,7 @@
       
       <!-- 候选人选择面板 -->
       <transition name="expand">
-        <div v-if="showCandidateSelector && !step2Done" class="candidate-selector-panel">
+        <div v-if="showCandidateSelector && !step3Done" class="candidate-selector-panel">
           <div class="selector-header">
             <el-icon><User /></el-icon>
             <span>从简历库选择候选人</span>
@@ -113,78 +187,7 @@
           </div>
         </div>
       </transition>
-      
-      <div class="step" :class="{ 'completed': step3Done }">
-        <div class="step-icon">
-          <el-icon v-if="step3Done"><Check /></el-icon>
-          <span v-else>3</span>
-        </div>
-        <div class="step-content">
-          <h5>选择行为特征</h5>
-          <p v-if="!selectedType">选择AI模拟的候选人行为风格</p>
-          <p v-else class="success">
-            已选择: {{ candidatePresets[selectedType]?.name }}
-          </p>
-        </div>
-      </div>
     </div>
-    
-    <!-- 候选人类型选择网格 -->
-    <div class="candidate-grid">
-      <div
-        v-for="(profile, key) in candidatePresets"
-        :key="key"
-        class="candidate-card"
-        :class="{ 'selected': selectedType === key }"
-        @click="selectCandidate(key)"
-      >
-        <div class="card-avatar" :class="`avatar-${key}`">
-          <span>{{ getAvatarEmoji(key) }}</span>
-        </div>
-        <div class="card-content">
-          <h4>{{ profile.name }}</h4>
-          <p class="card-desc">{{ getCandidateDescription(key) }}</p>
-          <div class="skill-tags">
-            <span 
-              v-for="skillName in Object.keys(profile.skills).slice(0, 3)" 
-              :key="skillName"
-              class="skill-tag"
-            >
-              {{ skillName }}
-            </span>
-          </div>
-          <div class="personality-bar">
-            <span class="bar-label">综合能力</span>
-            <div class="bar-track">
-              <div class="bar-fill" :style="{ width: getAvgSkill(profile) + '%' }"></div>
-            </div>
-            <span class="bar-value">{{ getAvgSkill(profile) }}%</span>
-          </div>
-        </div>
-        <div class="card-check" v-if="selectedType === key">
-          <el-icon><Check /></el-icon>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 候选人特征说明 -->
-    <transition name="fade">
-      <div v-if="selectedType" class="candidate-traits">
-        <div class="traits-header">
-          <el-icon><InfoFilled /></el-icon>
-          <span>{{ candidatePresets[selectedType]?.name }} 特征说明</span>
-        </div>
-        <div class="traits-content">
-          <div class="trait-item" v-for="trait in getCandidateTraits(selectedType)" :key="trait.label">
-            <span class="trait-icon">{{ trait.icon }}</span>
-            <div class="trait-info">
-              <span class="trait-label">{{ trait.label }}</span>
-              <span class="trait-desc">{{ trait.desc }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </transition>
     
     <!-- 开始按钮 -->
     <div class="action-area">
@@ -234,7 +237,7 @@ const canStart = computed(() => step1Done.value && step2Done.value && step3Done.
 
 // 监听行为类型选择
 watch(selectedType, (val) => {
-  step3Done.value = !!val
+  step1Done.value = !!val
 })
 
 // 加载岗位列表
@@ -284,7 +287,7 @@ const confirmCandidateSelection = () => {
       applicationId: app.id
     }
     showCandidateSelector.value = false
-    step2Done.value = true
+    step3Done.value = true
   }
 }
 
@@ -293,7 +296,7 @@ const checkMicrophone = async () => {
   checkingMic.value = true
   try {
     await new Promise(resolve => setTimeout(resolve, 1500))
-    step1Done.value = true
+    step2Done.value = true
   } catch {
     // 处理错误
   } finally {
@@ -344,6 +347,17 @@ const getCandidateDescription = (type: string): string => {
     overconfident: '喜欢夸大能力、可能不懂装懂的候选人'
   }
   return descriptions[type] || ''
+}
+
+// 获取性格特质标签
+const getPersonalityTags = (type: string): string[] => {
+  const tags: Record<string, string[]> = {
+    ideal: ['自信沉稳', '逻辑清晰', '善于表达'],
+    junior: ['谦虚好学', '态度诚恳', '潜力型'],
+    nervous: ['内向敏感', '容易紧张', '实力隐藏'],
+    overconfident: ['过度自信', '夸夸其谈', '需要验证']
+  }
+  return tags[type] || []
 }
 
 // 获取候选人特征列表

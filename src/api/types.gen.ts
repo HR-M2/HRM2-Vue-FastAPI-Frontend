@@ -109,43 +109,6 @@ export type ApplicationDetailResponse = {
 };
 
 /**
- * ApplicationListResponse
- *
- * 应聘申请列表项响应
- */
-export type ApplicationListResponse = {
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
-     * Position Id
-     */
-    position_id: string;
-    /**
-     * Resume Id
-     */
-    resume_id: string;
-    /**
-     * Position Title
-     */
-    position_title?: string | null;
-    /**
-     * Candidate Name
-     */
-    candidate_name?: string | null;
-    screening_task?: ScreeningTaskBrief | null;
-};
-
-/**
  * ApplicationResponse
  *
  * 应聘申请响应
@@ -762,13 +725,13 @@ export type MessagesSyncRequest = {
 };
 
 /**
- * PagedData[ApplicationListResponse]
+ * PagedData[ApplicationDetailResponse]
  */
-export type PagedDataApplicationListResponseInput = {
+export type PagedDataApplicationDetailResponseInput = {
     /**
      * Items
      */
-    items: Array<ApplicationListResponse>;
+    items: Array<ApplicationDetailResponse>;
     /**
      * Total
      */
@@ -788,13 +751,13 @@ export type PagedDataApplicationListResponseInput = {
 };
 
 /**
- * PagedData[ApplicationListResponse]
+ * PagedData[ApplicationDetailResponse]
  */
-export type PagedDataApplicationListResponseOutput = {
+export type PagedDataApplicationDetailResponseOutput = {
     /**
      * Items
      */
-    items: Array<ApplicationListResponse>;
+    items: Array<ApplicationDetailResponse>;
     /**
      * Total
      */
@@ -1022,9 +985,9 @@ export type PagedDataVideoAnalysisResponseOutput = {
 };
 
 /**
- * PagedResponseModel[ApplicationListResponse]
+ * PagedResponseModel[ApplicationDetailResponse]
  */
-export type PagedResponseModelApplicationListResponse = {
+export type PagedResponseModelApplicationDetailResponse = {
     /**
      * Success
      */
@@ -1037,7 +1000,7 @@ export type PagedResponseModelApplicationListResponse = {
      * Message
      */
     message?: string;
-    data: PagedDataApplicationListResponseOutput;
+    data: PagedDataApplicationDetailResponseOutput;
 };
 
 /**
@@ -2749,7 +2712,7 @@ export type GetApplicationsResponses = {
     /**
      * Successful Response
      */
-    200: PagedResponseModelApplicationListResponse;
+    200: PagedResponseModelApplicationDetailResponse;
 };
 
 export type GetApplicationsResponse = GetApplicationsResponses[keyof GetApplicationsResponses];

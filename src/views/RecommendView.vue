@@ -253,7 +253,8 @@ import {
   getAnalysis,
   aiGenerateReport,
   createAnalysis,
-  getScreeningTask
+  getScreeningTask,
+  getStatsOverview
 } from '@/api'
 import type { ResumeData } from '@/types'
 import type { 
@@ -280,9 +281,19 @@ const totalCandidates = computed(() => {
   return positionsList.value.reduce((sum, pos) => sum + (pos.resume_count || 0), 0)
 })
 
-const analyzedCount = computed(() => {
-  return currentApplications.value.filter(app => app.comprehensive_analysis).length
-})
+const analyzedCount = ref(0)
+
+// 加载全局统计数据
+const loadStatsOverview = async () => {
+  try {
+    const result = await getStatsOverview()
+    if (result.data?.data) {
+      analyzedCount.value = (result.data.data.recommended as number) || 0
+    }
+  } catch (err) {
+    console.error('加载统计数据失败:', err)
+  }
+}
 
 // 加载指定岗位的应聘申请
 const loadApplicationsForPosition = async (positionId: string) => {
@@ -414,6 +425,9 @@ const startCandidateAnalysis = async (app: ApplicationDetailResponse) => {
     }
     
     ElMessage.success('综合分析完成')
+    
+    // 刷新全局统计
+    await loadStatsOverview()
     
   } catch (err: any) {
     console.error('综合分析失败:', err)
@@ -630,6 +644,7 @@ const formatReportContent = (content: string) => {
 // ========== 生命周期 ==========
 onMounted(async () => {
   await loadPositionsList()
+  await loadStatsOverview()
   // 加载第一个岗位的申请详情
   if (selectedPositionId.value) {
     await loadApplicationsForPosition(selectedPositionId.value)
