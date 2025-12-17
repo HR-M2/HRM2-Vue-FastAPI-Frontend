@@ -781,8 +781,10 @@ export function useInterviewAssist() {
       
       isAITyping.value = false
       
-      // 生成问题建议
-      suggestedQuestions.value = generateLocalSuggestions(question, response)
+      // 生成问题建议（调用 LLM，失败时回退到本地模板）
+      isLoadingQuestions.value = true
+      suggestedQuestions.value = await fetchAISuggestions(question, response)
+      isLoadingQuestions.value = false
       showSuggestions.value = true
     }
   }
