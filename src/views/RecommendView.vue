@@ -98,49 +98,10 @@
     </el-dialog>
     
     <!-- 初筛报告查看对话框 -->
-    <el-dialog
+    <ResumeDetailDialog
       v-model="showScreeningDialog"
-      title="简历初筛报告"
-      width="650px"
-      destroy-on-close
-    >
-      <div v-if="selectedScreeningTask" class="screening-report-dialog">
-        <!-- 候选人信息 -->
-        <div class="report-section">
-          <h4>候选人信息</h4>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="label">姓名:</span>
-              <span class="value">{{ selectedApplication?.candidate_name || '未知' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">岗位:</span>
-              <span class="value">{{ selectedApplication?.position_title || '-' }}</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 初筛评分 -->
-        <div v-if="selectedScreeningTask.score !== null" class="report-section">
-          <h4>初筛评分</h4>
-          <div class="scores-grid">
-            <div class="score-item primary">
-              <span class="score-label">综合评分</span>
-              <span class="score-value">{{ selectedScreeningTask.score || '-' }}</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 初筛建议 -->
-        <div v-if="selectedScreeningTask.recommendation" class="report-section">
-          <h4>初筛建议</h4>
-          <div class="summary-content">{{ selectedScreeningTask.recommendation }}</div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="showScreeningDialog = false">关闭</el-button>
-      </template>
-    </el-dialog>
+      :resume="selectedScreeningResumeData"
+    />
     
     <!-- 面试记录查看对话框 -->
     <el-dialog
@@ -279,6 +240,7 @@ import { TrophyBase, Plus } from '@element-plus/icons-vue'
 // 组件导入
 import { CandidateAnalysisCard } from '@/components/recommend'
 import PositionList from '@/components/common/PositionList.vue'
+import ResumeDetailDialog from '@/components/common/ResumeDetailDialog.vue'
 
 // Composables
 import { usePositionManagement } from '@/composables/usePositionManagement'
@@ -290,11 +252,12 @@ import {
   getInterviewSession,
   getAnalysis,
   aiGenerateReport,
-  createAnalysis
+  createAnalysis,
+  getScreeningTask
 } from '@/api'
+import type { ResumeData } from '@/types'
 import type { 
   ApplicationDetailResponse,
-  ScreeningTaskBrief,
   InterviewSessionResponse,
   ComprehensiveAnalysisResponse
 } from '@/api/types.gen'
@@ -464,12 +427,11 @@ const startCandidateAnalysis = async (app: ApplicationDetailResponse) => {
 // ========== 对话框 ==========
 const showResumeDialog = ref(false)
 const showScreeningDialog = ref(false)
+const selectedScreeningResumeData = ref<ResumeData | null>(null)
 const showInterviewDialog = ref(false)
 const showInterviewReportDialog = ref(false)
 const showComprehensiveDialog = ref(false)
 const selectedResumeContent = ref<string>('')
-const selectedApplication = ref<ApplicationDetailResponse | null>(null)
-const selectedScreeningTask = ref<ScreeningTaskBrief | null>(null)
 const selectedInterviewSession = ref<InterviewSessionResponse | null>(null)
 const selectedInterviewReport = ref<InterviewSessionResponse | null>(null)
 const selectedComprehensiveAnalysis = ref<ComprehensiveAnalysisResponse | null>(null)
@@ -498,13 +460,54 @@ const viewResumeDetail = async (app: ApplicationDetailResponse) => {
 }
 
 // 查看初筛报告
-const viewScreeningReport = (app: ApplicationDetailResponse) => {
-  if (app.screening_task) {
-    selectedApplication.value = app
-    selectedScreeningTask.value = app.screening_task
-    showScreeningDialog.value = true
-  } else {
+const viewScreeningReport = async (app: ApplicationDetailResponse) => {
+  if (!app.screening_task?.id) {
     ElMessage.warning('暂无初筛报告')
+    return
+  }
+  
+  try {
+    // 构建 ResumeData 对象
+    const detailData: ResumeData = {
+      id: app.resume?.id || '',
+      candidate_name: app.candidate_name || '未知候选人',
+      position_title: app.position_title || ''
+    }
+    
+    // 获取完整初筛任务数据
+    const taskResult = await getScreeningTask({ path: { task_id: app.screening_task.id } })
+    if (taskResult.data?.data) {
+      const task = taskResult.data.data
+      if (task.score !== null) {
+        detailData.screening_score = {
+          comprehensive_score: task.score,
+          hr_score: (task.dimension_scores?.hr_score as number) || undefined,
+          technical_score: (task.dimension_scores?.technical_score as number) || undefined,
+          manager_score: (task.dimension_scores?.manager_score as number) || undefined
+        }
+      }
+      detailData.screening_summary = task.summary || undefined
+      detailData.resume_content = task.resume_content || undefined
+    }
+    
+    // 如果没有简历内容，尝试从简历API获取
+    if (!detailData.resume_content && app.resume?.id) {
+      try {
+        const { getResume } = await import('@/api')
+        const resumeResult = await getResume({ path: { resume_id: app.resume.id } })
+        if (resumeResult.data?.data?.content) {
+          detailData.resume_content = resumeResult.data.data.content
+        }
+      } catch {
+        // 忽略错误
+      }
+    }
+    
+    selectedScreeningResumeData.value = detailData
+    showScreeningDialog.value = true
+  } catch (err) {
+    console.error('获取初筛报告失败:', err)
+    ElMessage.error('获取初筛报告失败')
   }
 }
 
@@ -857,94 +860,6 @@ onMounted(async () => {
     padding: 20px;
     border-radius: 12px;
     margin: 0;
-  }
-}
-
-.screening-report-dialog {
-  .report-section {
-    margin-bottom: 24px;
-    
-    h4 {
-      margin: 0 0 12px 0;
-      font-size: 15px;
-      font-weight: 600;
-      color: #303133;
-      border-left: 3px solid #667eea;
-      padding-left: 10px;
-    }
-  }
-  
-  .info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    
-    .info-item {
-      .label {
-        color: #909399;
-        margin-right: 8px;
-      }
-      .value {
-        color: #303133;
-        font-weight: 500;
-      }
-    }
-  }
-  
-  .scores-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    
-    .score-item {
-      text-align: center;
-      padding: 16px 12px;
-      background: #f5f7fa;
-      border-radius: 12px;
-      min-width: 100px;
-      
-      &.primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        
-        .score-label {
-          color: rgba(255, 255, 255, 0.9);
-        }
-        .score-value {
-          color: white;
-          font-size: 28px;
-        }
-      }
-      
-      .score-label {
-        display: block;
-        font-size: 12px;
-        color: #909399;
-        margin-bottom: 8px;
-      }
-      
-      .score-value {
-        display: block;
-        font-size: 22px;
-        font-weight: 600;
-        color: #10b981;
-      }
-    }
-  }
-  
-  .dimension-scores-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  
-  .summary-content {
-    padding: 16px;
-    background: #f9fafb;
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 1.8;
-    color: #374151;
-    white-space: pre-wrap;
   }
 }
 
