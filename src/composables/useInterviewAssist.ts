@@ -100,36 +100,70 @@ export const candidatePresets: Record<string, CandidateProfile> = {
   }
 }
 
-// AI 模拟回答模板
+// AI 模拟回答模板 - 根据候选人类型生成不同风格的回答
 const answerTemplates: Record<string, Record<string, string[]>> = {
   ideal: {
     technical: [
-      '在 {skill} 方面，我有 3 年以上的深度实践经验。比如在上一个项目中，我使用 {skill} 实现了高性能的数据处理模块，将处理效率提升了 60%。具体来说...',
-      '关于 {skill}，我认为它的核心优势在于...在实际应用中，我会结合项目需求选择合适的设计模式...'
+      '在 {skill} 方面，我有 3 年以上的深度实践经验。比如在上一个项目中，我使用 {skill} 实现了高性能的数据处理模块，将处理效率提升了 60%。具体来说，我通过引入缓存机制和异步处理，优化了数据流转的各个环节。',
+      '关于 {skill}，我认为它的核心优势在于组件化和声明式编程。在实际应用中，我会结合项目需求选择合适的设计模式，比如在复杂状态管理场景下，我会考虑使用状态机模式来提高代码的可维护性。',
+      '这是个很好的问题。{skill} 我在多个生产项目中都有使用，印象最深的是一次性能优化工作，我通过分析性能瓶颈，采用懒加载和代码分割策略，最终将首屏加载时间从 3 秒降低到 800 毫秒。'
     ],
     project: [
-      '我最自豪的项目是一个大型电商平台的重构。作为技术负责人，我主导了前端架构升级，引入了微前端方案，最终将页面加载速度提升 40%，同时支持多团队并行开发...',
-      '在这个项目中，最大的挑战是数据一致性问题。我设计了基于事件溯源的解决方案...'
+      '我最自豪的项目是一个大型电商平台的重构。作为技术负责人，我主导了前端架构升级，引入了微前端方案，最终将页面加载速度提升 40%，同时支持多团队并行开发。这个过程中我学到了很多关于技术选型和团队协作的经验。',
+      '在这个项目中，最大的挑战是数据一致性问题。我设计了基于事件溯源的解决方案，通过消息队列确保各服务间的数据同步，同时实现了优雅的降级策略，保证核心功能在部分服务不可用时仍能正常运行。',
+      '我参与过一个日活百万级的社交应用开发，负责消息系统的设计与实现。我采用 WebSocket 实现实时通信，配合消息队列处理高并发场景，系统上线后稳定运行，消息延迟控制在 100ms 以内。'
+    ],
+    general: [
+      '这是一个我经常思考的问题。我认为关键在于平衡技术选型和业务需求，同时保持代码的可维护性。具体到我的经验来说...',
+      '我来分享一下我的思考。首先从问题本身来分析，然后结合我的实际经验给出解决方案...'
+    ]
+  },
+  junior: {
+    technical: [
+      '关于 {skill}，我在学校课程和个人项目中学习过基础知识。虽然还没有太多生产环境的经验，但我对它的核心概念有一定理解，比如基本的语法和常用的 API。我很希望能在实际工作中深入学习。',
+      '{skill} 我了解一些基础的内容，做过几个小的练习项目。我知道它的基本用法，但对于一些高级特性和最佳实践，可能还需要更多的学习和实践。',
+      '说实话，{skill} 我接触的时间不是很长，大概有几个月。目前会写一些基础的代码，但遇到复杂问题可能还需要查文档或者请教同事。我正在通过在线课程持续学习。'
+    ],
+    project: [
+      '我做过几个课程项目和一个毕业设计。毕业设计是一个小型的管理系统，用到了前后端分离的架构，虽然规模不大，但让我对完整的开发流程有了基本的认识。',
+      '项目经验的话，主要是学校的团队项目和一些个人练习。我在团队项目中负责前端部分，学会了如何与后端同学配合，以及基本的版本控制流程。',
+      '我参与过一个开源项目的贡献，虽然只是修复了一些小 bug 和文档问题，但这个经历让我学会了如何阅读他人代码和遵循项目规范。'
+    ],
+    general: [
+      '这个问题我可能理解得不够深入，但从我目前的学习来看...',
+      '我还在学习阶段，这个问题我只能从我有限的经验来回答...'
     ]
   },
   nervous: {
     technical: [
-      '呃...{skill} 我用过一些，主要是在学校的项目里...可能还不太熟练...',
-      '这个...我有学过 {skill}，但是实际经验不是很多，可能需要一些时间来适应...'
+      '呃...{skill} 我用过一些，主要是在之前的项目里...其实我还是有一定经验的，就是...可能表达得不太好...我在项目中确实用它做过一些功能开发...',
+      '这个...嗯...{skill} 我有学过，也在工作中使用过。我记得当时做过一个...等等让我想一下...是一个数据展示的功能，用到了它的一些特性...',
+      '啊，{skill} 是吧...我...我是有使用经验的，可能现在有点紧张...平时工作中我经常用到，主要是做一些...嗯...组件开发之类的工作。'
     ],
     project: [
-      '嗯...我参与过一些项目，主要是做一些功能开发...可能规模不是很大...',
-      '项目的话...主要是跟着导师做的，我负责的部分是...'
+      '嗯...我参与过一些项目，就是...可能说得不太清楚...主要是做一些功能模块的开发。项目整体还挺顺利的，虽然中间遇到过一些问题...但最后都解决了...',
+      '项目的话...让我想想...我之前负责过一个...就是那个...抱歉有点紧张...是一个订单管理模块，我主要做前端的部分，后来也帮忙做了一些接口对接...',
+      '我...我其实做过挺多项目的，就是现在有点想不起来细节...最近一个是关于用户系统的，我负责登录和权限这块...做了大概两三个月...'
+    ],
+    general: [
+      '这个问题...嗯...让我想一下怎么说比较好...',
+      '抱歉，我可能有点紧张...这个问题的话...'
     ]
   },
   overconfident: {
     technical: [
-      '{skill}？这个我精通！基本上没有什么是我不会的，各种框架库我都用过，轻松驾驭！',
-      '说实话，{skill} 对我来说太简单了，我可以快速上手任何新技术，这不是问题。'
+      '{skill}？这个我太熟了！基本上没什么是我不会的，各种框架库我都用过，都是轻轻松松就能上手。你要问具体细节的话，那就太多了，我都能给你讲一天。',
+      '说实话，{skill} 对我来说太简单了。我接触过的技术栈非常广，什么 Vue、React、Angular 我都精通，后端 Java、Python、Go 也都没问题。技术这东西，对我来说就是小菜一碟。',
+      '{skill} 我不仅会用，还深入研究过源码，可以说是专家级别了。现在市面上大部分的技术问题我都能解决，很多时候同事有搞不定的问题都来找我。'
     ],
     project: [
-      '我主导过很多大型项目，基本上都是我一个人搞定核心架构，其他人只是打下手。',
-      '那个项目完全是靠我带起来的，如果没有我的技术决策，项目根本不可能成功。'
+      '我主导过很多大型项目，基本上核心架构都是我一个人设计的，其他人就是按我的设计来实现。没有我的话，那些项目估计都得黄。',
+      '之前那个千万用户级别的项目，说实话主要就是靠我。技术方案是我定的，关键代码是我写的，遇到难题也是我解决的。我觉得我的能力在市场上绝对是顶尖的。',
+      '我做过的项目太多了，随便拿一个出来都是业界标杆级别的。上一家公司的核心系统就是我从零搭建的，现在还在用呢，没人能改得动，因为太完美了。'
+    ],
+    general: [
+      '这有什么难的？我告诉你正确答案...',
+      '这问题太基础了，让我给你讲讲高级一点的思路...'
     ]
   }
 }
@@ -374,10 +408,30 @@ export function useInterviewAssist() {
     if (!selectedCandidate.value) return ''
     
     const type = selectedCandidate.value.type
-    const category = question.includes('项目') ? 'project' : 'technical'
-    const templates = answerTemplates[type]?.[category] || answerTemplates.ideal?.technical || []
+    const questionLower = question.toLowerCase()
+    
+    // 智能分类问题类型
+    let category: 'technical' | 'project' | 'general' = 'general'
+    if (questionLower.includes('项目') || questionLower.includes('经历') || questionLower.includes('案例') || questionLower.includes('经验')) {
+      category = 'project'
+    } else if (questionLower.includes('技术') || questionLower.includes('如何') || questionLower.includes('实现') || 
+               questionLower.includes('原理') || questionLower.includes('框架') || questionLower.includes('语言') ||
+               Object.keys(selectedCandidate.value.skills).some(skill => questionLower.includes(skill.toLowerCase()))) {
+      category = 'technical'
+    }
+    
+    // 获取对应类型的模板，如果没有则回退到 general
+    const candidateTemplates = answerTemplates[type] || answerTemplates.ideal
+    let templates = candidateTemplates?.[category] || candidateTemplates?.general || []
+    
+    // 如果没有找到模板，使用 ideal 类型的模板
+    if (templates.length === 0) {
+      templates = answerTemplates.ideal?.[category] || answerTemplates.ideal?.general || []
+    }
+    
     const template = templates[Math.floor(Math.random() * templates.length)] || ''
     
+    // 获取技能列表用于替换
     const skills = Object.keys(selectedCandidate.value.skills)
     const skill = skills[Math.floor(Math.random() * skills.length)] || 'JavaScript'
     

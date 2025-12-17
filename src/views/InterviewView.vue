@@ -62,6 +62,9 @@
           :is-a-i-typing="isAITyping"
           :selected-candidate="selectedCandidate"
           :candidate-presets="candidatePresets"
+          :suggested-questions="suggestedQuestions"
+          :show-suggestions="showSuggestions"
+          :is-loading-questions="isLoadingQuestions"
           :stats="stats"
           @start="handleStartAI"
           @pause="pauseInterview"
@@ -69,6 +72,8 @@
           @end="endInterview"
           @export="exportRecord"
           @ask="askQuestion"
+          @use-suggestion="useSuggestedQuestion"
+          @clear-suggestions="clearSuggestions"
         />
         
         <!-- 真人面试面板 -->
@@ -103,39 +108,12 @@
       </transition>
     </div>
     
-    <!-- 浮动问题推荐（AI模式下显示） -->
-    <transition name="slide-up">
-      <div
-        v-if="currentMode === 'ai-simulation' && showSuggestions && isInterviewActive"
-        class="floating-suggestions"
-      >
-        <div class="suggestions-header">
-          <el-icon><Promotion /></el-icon>
-          <span>推荐追问</span>
-          <el-button text size="small" @click="clearSuggestions">
-            <el-icon><Close /></el-icon>
-          </el-button>
-        </div>
-        <div class="suggestions-list">
-          <div
-            v-for="(q, index) in suggestedQuestions.slice(0, 3)"
-            :key="q.id"
-            class="suggestion-item"
-            @click="useSuggestedQuestion(q)"
-          >
-            <span class="item-number">{{ index + 1 }}</span>
-            <span class="item-text">{{ q.question }}</span>
-            <el-icon class="item-arrow"><Right /></el-icon>
-          </div>
-        </div>
-      </div>
-    </transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
-import { Monitor, Microphone, Promotion, Close, Right } from '@element-plus/icons-vue'
+import { Monitor, Microphone } from '@element-plus/icons-vue'
 
 // 组件导入
 import { AISimulationPanel, LiveInterviewPanel } from '@/components/interview'
@@ -381,90 +359,6 @@ onUnmounted(() => {
   min-height: 600px;
 }
 
-// 浮动问题推荐
-.floating-suggestions {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 380px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  overflow: hidden;
-  z-index: 1000;
-  
-  .suggestions-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    font-weight: 600;
-    
-    .el-button {
-      margin-left: auto;
-      color: white;
-    }
-  }
-  
-  .suggestions-list {
-    padding: 12px;
-    
-    .suggestion-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.2s;
-      
-      &:hover {
-        background: #f3f4f6;
-        
-        .item-arrow {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-      
-      .item-number {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: #667eea;
-        color: white;
-        font-size: 12px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-      }
-      
-      .item-text {
-        flex: 1;
-        font-size: 14px;
-        color: #374151;
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      
-      .item-arrow {
-        color: #667eea;
-        opacity: 0;
-        transform: translateX(-8px);
-        transition: all 0.2s;
-      }
-    }
-  }
-}
-
 // 动画
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -489,35 +383,10 @@ onUnmounted(() => {
   transform: translateX(-30px);
 }
 
-.slide-up-enter-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.slide-up-leave-active {
-  transition: all 0.3s ease-in;
-}
-
-.slide-up-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.slide-up-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
 // 响应式
 @media (max-width: 768px) {
   .mode-tabs {
     grid-template-columns: 1fr;
-  }
-  
-  .floating-suggestions {
-    left: 16px;
-    right: 16px;
-    width: auto;
-    bottom: 16px;
   }
 }
 </style>
