@@ -579,12 +579,12 @@ export function useInterviewAssist() {
         }
         
         if (Array.isArray(data.alternatives)) {
-          data.alternatives.forEach((q: { question?: string; angle?: string }, i: number) => {
+          data.alternatives.forEach((q: { question?: string; purpose?: string }, i: number) => {
             suggestions.push({
               id: generateId(),
               question: q.question || '',
               type: 'alternative',
-              angle: q.angle || '其他',
+              angle: q.purpose || '其他',
               priority: config.followupCount + i + 1
             })
           })
