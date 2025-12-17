@@ -9,7 +9,8 @@ import {
   createApplication
 } from '@/api/sdk.gen'
 import type { ResumeListResponse } from '@/api/types.gen'
-import type { PositionData, ProcessingTask, HistoryTask } from '@/types'
+import type { PositionData, ProcessingTask } from '@/types'
+import type { ScreeningTaskResponse } from '@/api/types.gen'
 import { useScreeningUtils } from './useScreeningUtils'
 
 export function useResumeAssignment(
@@ -115,10 +116,10 @@ export function useResumeAssignment(
   }
 
   // 显示添加到组对话框（从历史任务）
-  const showAddToGroupDialogFromHistory = (task: HistoryTask) => {
+  const showAddToGroupDialogFromHistory = (task: ScreeningTaskResponse) => {
     currentTaskForGroup.value = {
       name: getHistoryTaskName(task),
-      task_id: task.task_id,
+      task_id: task.id,
       application_id: task.application_id,
       status: task.status as 'pending' | 'running' | 'completed' | 'failed',
       progress: 0,

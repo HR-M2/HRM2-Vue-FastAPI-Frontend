@@ -1,37 +1,8 @@
 /**
- * 通用类型定义
+ * 前端特有类型定义
+ * 
+ * 注意：API 自动生成的类型请直接从 '@/api/types.gen' 导入
  */
-
-// 从 API 类型导入并重新导出
-import type {
-  PositionResponse,
-  PositionListResponse,
-  ResumeResponse,
-  ResumeListResponse,
-  ApplicationResponse,
-  ApplicationDetailResponse,
-  ScreeningTaskResponse,
-  ScreeningTaskBrief,
-  VideoAnalysisResponse,
-  VideoAnalysisBrief,
-  BigFiveScores,
-  ScreeningDimensionScores,
-} from '@/api/types.gen'
-
-export type {
-  PositionResponse,
-  PositionListResponse,
-  ResumeResponse,
-  ResumeListResponse,
-  ApplicationResponse,
-  ApplicationDetailResponse,
-  ScreeningTaskResponse,
-  ScreeningTaskBrief,
-  VideoAnalysisResponse,
-  VideoAnalysisBrief,
-  BigFiveScores,
-  ScreeningDimensionScores,
-}
 
 /**
  * 任务状态类型
@@ -117,26 +88,6 @@ export interface ProcessingTask {
   summary?: string | null
   recommendation?: string | null
   report_content?: string | null
-}
-
-/**
- * 历史任务类型（基于 ScreeningTaskResponse）
- */
-export interface HistoryTask {
-  id: string
-  task_id: string
-  application_id: string
-  status: string
-  score: number | null
-  dimension_scores?: ScreeningDimensionScores | null
-  summary: string | null
-  recommendation: string | null
-  report_content: string | null
-  error_message: string | null
-  candidate_name?: string | null
-  position_title?: string | null
-  created_at: string
-  updated_at: string
 }
 
 /**

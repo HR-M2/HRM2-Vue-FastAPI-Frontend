@@ -8,10 +8,10 @@ import {
   getScreeningTasks,
   deleteScreeningTask
 } from '@/api/sdk.gen'
-import type { HistoryTask } from '@/types'
+import type { ScreeningTaskResponse } from '@/api/types.gen'
 
 export function useHistoryTasks() {
-  const historyTasks = ref<HistoryTask[]>([])
+  const historyTasks = ref<ScreeningTaskResponse[]>([])
   const historyParams = reactive({ status: 'completed', page: 1, page_size: 10 })
   const historyTotal = ref(0)
   const historyLoading = ref(false)
@@ -29,22 +29,7 @@ export function useHistoryTasks() {
       })
       
       if (response.data?.data?.items) {
-        historyTasks.value = response.data.data.items.map(task => ({
-          id: task.id,
-          task_id: task.id,
-          application_id: task.application_id,
-          status: task.status,
-          score: task.score,
-          dimension_scores: task.dimension_scores,
-          summary: task.summary,
-          recommendation: task.recommendation,
-          report_content: task.report_content,
-          error_message: task.error_message,
-          candidate_name: task.candidate_name,
-          position_title: task.position_title,
-          created_at: task.created_at,
-          updated_at: task.updated_at
-        }))
+        historyTasks.value = response.data.data.items
         historyTotal.value = response.data.data.total || 0
       }
     } catch (err) {

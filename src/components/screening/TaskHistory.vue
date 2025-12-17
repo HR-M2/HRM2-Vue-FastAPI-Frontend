@@ -28,7 +28,7 @@
     <div v-else class="history-list">
       <div
         v-for="task in tasks"
-        :key="task.task_id"
+        :key="task.id"
         class="history-item clickable"
         :class="`status-${task.status}`"
         @click="$emit('showDetail', task)"
@@ -67,7 +67,7 @@
             v-if="task.status === 'completed'"
             size="small"
             type="success"
-            @click.stop="$emit('downloadReport', task.task_id)"
+            @click.stop="$emit('downloadReport', task.id)"
           >
             下载
           </el-button>
@@ -90,7 +90,7 @@
           <el-button
             size="small"
             type="danger"
-            @click.stop="$emit('delete', task.task_id)"
+            @click.stop="$emit('delete', task.id)"
           >
             删除
           </el-button>
@@ -118,11 +118,11 @@
 
 <script setup lang="ts">
 import { useScreeningUtils } from '@/composables/useScreeningUtils'
-import type { HistoryTask } from '@/types'
+import type { ScreeningTaskResponse } from '@/api/types.gen'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps<{
-  tasks: HistoryTask[]
+  tasks: ScreeningTaskResponse[]
   total: number
   loading: boolean
   currentStatus: string
@@ -133,10 +133,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   refresh: []
   filterByStatus: [status: string]
-  showDetail: [task: HistoryTask]
+  showDetail: [task: ScreeningTaskResponse]
   downloadReport: [taskId: string]
-  addToGroup: [task: HistoryTask]
-  retryTask: [task: HistoryTask]
+  addToGroup: [task: ScreeningTaskResponse]
+  retryTask: [task: ScreeningTaskResponse]
   delete: [taskId: string]
   'update:currentPage': [page: number]
   'update:pageSize': [size: number]
@@ -160,7 +160,7 @@ const statusFilters = [
 ]
 
 // 处理重新检测任务
-const handleRetryTask = (task: HistoryTask) => {
+const handleRetryTask = (task: ScreeningTaskResponse) => {
   if (!task.application_id) {
     ElMessage.warning('无法获取申请信息，无法重新检测')
     return

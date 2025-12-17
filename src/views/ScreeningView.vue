@@ -123,7 +123,8 @@ import { createScreeningTask } from '@/api/sdk.gen'
 import { ElMessage } from 'element-plus'
 
 // 类型导入
-import type { PositionData, HistoryTask } from '@/types'
+import type { PositionData } from '@/types'
+import type { ScreeningTaskResponse } from '@/api/types.gen'
 
 // ==================== Composables 初始化 ====================
 
@@ -205,7 +206,7 @@ const {
 // ==================== 事件处理 ====================
 
 // 处理重新检测任务
-const handleRetryTask = async (task: HistoryTask) => {
+const handleRetryTask = async (task: ScreeningTaskResponse) => {
   try {
     if (!task.application_id) {
       ElMessage.warning('无法获取申请信息')

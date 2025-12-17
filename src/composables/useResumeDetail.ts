@@ -8,7 +8,8 @@ import {
   getScreeningTask,
   downloadScreeningReport
 } from '@/api/sdk.gen'
-import type { ResumeData, ResumeFile, ProcessingTask, HistoryTask } from '@/types'
+import type { ResumeData, ResumeFile, ProcessingTask } from '@/types'
+import type { ScreeningTaskResponse } from '@/api/types.gen'
 import { useScreeningUtils } from './useScreeningUtils'
 
 export function useResumeDetail() {
@@ -80,7 +81,7 @@ export function useResumeDetail() {
   }
 
   // 显示历史任务详情
-  const showHistoryTaskDetail = async (task: HistoryTask) => {
+  const showHistoryTaskDetail = async (task: ScreeningTaskResponse) => {
     const resumeData: ResumeData = {
       id: task.id,
       candidate_name: task.candidate_name || getHistoryTaskName(task),

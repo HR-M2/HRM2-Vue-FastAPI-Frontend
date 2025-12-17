@@ -3,7 +3,8 @@
  * 提供状态转换、格式化等通用工具
  */
 import { marked } from 'marked'
-import type { ScreeningScore, ProcessingTask, HistoryTask } from '@/types'
+import type { ScreeningScore, ProcessingTask } from '@/types'
+import type { ScreeningTaskResponse } from '@/api/types.gen'
 
 export function useScreeningUtils() {
   // 渲染 Markdown 内容
@@ -104,7 +105,7 @@ export function useScreeningUtils() {
   }
 
   // 获取历史任务名称
-  const getHistoryTaskName = (task: HistoryTask): string => {
+  const getHistoryTaskName = (task: ScreeningTaskResponse): string => {
     // 1. 优先使用候选人名称
     if (task.candidate_name) return task.candidate_name
     
@@ -118,7 +119,7 @@ export function useScreeningUtils() {
   }
 
   // 获取历史任务评分
-  const getHistoryTaskScore = (task: HistoryTask): ScreeningScore | null => {
+  const getHistoryTaskScore = (task: ScreeningTaskResponse): ScreeningScore | null => {
     if (task.score !== null && task.score !== undefined) {
       const dimensionScores = task.dimension_scores || {}
       return {
