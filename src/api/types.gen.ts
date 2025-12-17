@@ -285,10 +285,14 @@ export type BigFiveScores = {
 
 /**
  * CandidateQuestionsRequest
- *
- * 候选问题生成请求
  */
 export type CandidateQuestionsRequest = {
+    /**
+     * Session Id
+     *
+     * 面试会话ID，用于查询上下文
+     */
+    session_id?: string | null;
     /**
      * Current Question
      *
@@ -743,6 +747,18 @@ export type MessageResponse = {
      * Data
      */
     data?: null;
+};
+
+/**
+ * MessagesSyncRequest
+ */
+export type MessagesSyncRequest = {
+    /**
+     * Messages
+     *
+     * 完整对话记录
+     */
+    messages: Array<QaMessageCreate>;
 };
 
 /**
@@ -1406,8 +1422,6 @@ export type QaMessage = {
 
 /**
  * QAMessageCreate
- *
- * 添加问答消息请求
  */
 export type QaMessageCreate = {
     /**
@@ -3408,8 +3422,8 @@ export type GenerateQuestionsResponses = {
 
 export type GenerateQuestionsResponse = GenerateQuestionsResponses[keyof GenerateQuestionsResponses];
 
-export type AddMessageData = {
-    body: QaMessageCreate;
+export type SyncMessagesData = {
+    body: MessagesSyncRequest;
     path: {
         /**
          * Session Id
@@ -3417,26 +3431,26 @@ export type AddMessageData = {
         session_id: string;
     };
     query?: never;
-    url: '/api/v1/interview/{session_id}/message';
+    url: '/api/v1/interview/{session_id}/sync';
 };
 
-export type AddMessageErrors = {
+export type SyncMessagesErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type AddMessageError = AddMessageErrors[keyof AddMessageErrors];
+export type SyncMessagesError = SyncMessagesErrors[keyof SyncMessagesErrors];
 
-export type AddMessageResponses = {
+export type SyncMessagesResponses = {
     /**
      * Successful Response
      */
     200: DictResponse;
 };
 
-export type AddMessageResponse = AddMessageResponses[keyof AddMessageResponses];
+export type SyncMessagesResponse = SyncMessagesResponses[keyof SyncMessagesResponses];
 
 export type CompleteSessionData = {
     body?: never;

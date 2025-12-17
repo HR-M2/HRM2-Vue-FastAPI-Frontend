@@ -8,7 +8,7 @@ import {
   createInterviewSession,
   getInterviewSession,
   deleteInterviewSession,
-  addMessage as addMessageApi,
+  syncMessages,
   completeSession,
   aiGenerateInitialQuestions,
   aiGenerateAdaptiveQuestions,
@@ -462,31 +462,23 @@ export function useInterviewAssist() {
     }
   }
 
-  // 记录问答并获取候选问题
-  const recordQAAndGetSuggestions = async (
-    question: string, 
+  const getConversationHistory = () => {
+    return messages.value
+      .filter(m => m.role === 'interviewer' || m.role === 'candidate')
+      .map(m => ({ role: m.role, content: m.content }))
+  }
+
+  const fetchAISuggestions = async (
+    question: string,
     answer: string
   ): Promise<SuggestedQuestion[]> => {
-    if (!sessionId.value) {
-      return generateLocalSuggestions(question, answer)
-    }
-
     try {
-      // 记录问答消息到后端
-      await addMessageApi({
-        path: { session_id: sessionId.value },
-        body: { role: 'interviewer', content: question }
-      })
-      await addMessageApi({
-        path: { session_id: sessionId.value },
-        body: { role: 'candidate', content: answer }
-      })
-
-      // 获取候选问题
       const result = await aiGenerateAdaptiveQuestions({
         body: {
+          session_id: sessionId.value || undefined,
           current_question: question,
           current_answer: answer,
+          conversation_history: getConversationHistory(),
           followup_count: config.followupCount,
           alternative_count: config.alternativeCount
         }
@@ -524,9 +516,37 @@ export function useInterviewAssist() {
       
       return generateLocalSuggestions(question, answer)
     } catch (error) {
-      console.error('记录问答失败:', error)
+      console.error('获取AI建议失败:', error)
       return generateLocalSuggestions(question, answer)
     }
+  }
+
+  const syncMessagesToBackend = async (): Promise<boolean> => {
+    if (!sessionId.value) return false
+    
+    const qaMessages = messages.value
+      .filter(m => m.role === 'interviewer' || m.role === 'candidate')
+      .map(m => ({ role: m.role as 'interviewer' | 'candidate', content: m.content }))
+    
+    if (qaMessages.length === 0) return true
+    
+    try {
+      await syncMessages({
+        path: { session_id: sessionId.value },
+        body: { messages: qaMessages }
+      })
+      return true
+    } catch (error) {
+      console.error('同步对话记录失败:', error)
+      return false
+    }
+  }
+
+  const recordQAAndGetSuggestions = async (
+    question: string, 
+    answer: string
+  ): Promise<SuggestedQuestion[]> => {
+    return await fetchAISuggestions(question, answer)
   }
 
   // 开始面试
@@ -595,7 +615,6 @@ export function useInterviewAssist() {
     ElMessage.warning('面试已放弃')
   }
 
-  // 结束面试并保存（生成报告）
   const endAndSaveInterview = async () => {
     if (stats.startTime) {
       stats.duration = Math.round((Date.now() - stats.startTime.getTime()) / 1000 / 60)
@@ -603,17 +622,19 @@ export function useInterviewAssist() {
     
     addMessage('system', `面试已结束。共进行了 ${stats.totalQuestions} 个问题，${stats.totalFollowups} 次追问，用时 ${stats.duration} 分钟。`)
     
-    // 生成报告
     if (sessionId.value) {
-      ElMessage.info('正在生成面试报告...')
+      ElMessage.info('正在保存面试记录...')
+      const synced = await syncMessagesToBackend()
+      if (!synced) {
+        ElMessage.warning('对话记录保存失败')
+      }
+      
       try {
-        await completeSession({
-          path: { session_id: sessionId.value }
-        })
+        await completeSession({ path: { session_id: sessionId.value } })
         ElMessage.success('面试报告已生成')
       } catch (error) {
         console.error('生成报告失败:', error)
-        ElMessage.warning('面试已结束，但报告生成失败')
+        ElMessage.warning('报告生成失败')
       }
     }
 
@@ -625,7 +646,6 @@ export function useInterviewAssist() {
     ElMessage.success('面试已结束并保存')
   }
 
-  // 结束面试（仅保存，不生成报告）
   const endAndSaveOnly = async () => {
     if (stats.startTime) {
       stats.duration = Math.round((Date.now() - stats.startTime.getTime()) / 1000 / 60)
@@ -633,15 +653,17 @@ export function useInterviewAssist() {
     
     addMessage('system', `面试已结束。共进行了 ${stats.totalQuestions} 个问题，${stats.totalFollowups} 次追问，用时 ${stats.duration} 分钟。`)
     
-    // 调用后端 API 保存面试数据（完成会话）
     if (sessionId.value) {
+      const synced = await syncMessagesToBackend()
+      if (!synced) {
+        ElMessage.warning('对话记录保存失败')
+      }
+      
       try {
-        await completeSession({
-          path: { session_id: sessionId.value }
-        })
+        await completeSession({ path: { session_id: sessionId.value } })
       } catch (error) {
         console.error('保存面试数据失败:', error)
-        ElMessage.warning('面试已结束，但数据保存失败')
+        ElMessage.warning('数据保存失败')
       }
     }
     
