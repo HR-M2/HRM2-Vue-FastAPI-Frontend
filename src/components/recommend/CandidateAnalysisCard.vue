@@ -89,7 +89,7 @@
             <div class="item-info">
               <span class="item-name">面试问答记录</span>
               <span class="item-status">
-                {{ hasInterviewRecords ? `${interviewQACount} 轮问答` : '无记录' }}
+                {{ hasInterviewRecords ? `${interviewMessageCount} 条消息` : '无记录' }}
               </span>
             </div>
             <el-button v-if="hasInterviewRecords" size="small" text type="primary" @click.stop="$emit('viewInterviewRecords')">
@@ -281,11 +281,11 @@ const screeningScore = computed(() => {
 })
 
 const hasInterviewRecords = computed(() => {
-  return interviewSession.value && (interviewSession.value.current_round ?? 0) > 0
+  return interviewSession.value && (interviewSession.value.message_count ?? 0) > 0
 })
 
-const interviewQACount = computed(() => {
-  return interviewSession.value?.current_round || 0
+const interviewMessageCount = computed(() => {
+  return interviewSession.value?.message_count || 0
 })
 
 const hasInterviewReport = computed(() => {

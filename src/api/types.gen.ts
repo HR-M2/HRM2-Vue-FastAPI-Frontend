@@ -285,10 +285,14 @@ export type BigFiveScores = {
 
 /**
  * CandidateQuestionsRequest
- *
- * 候选问题生成请求
  */
 export type CandidateQuestionsRequest = {
+    /**
+     * Session Id
+     *
+     * 面试会话ID，用于查询上下文
+     */
+    session_id?: string | null;
     /**
      * Current Question
      *
@@ -608,9 +612,9 @@ export type InterviewSessionBrief = {
      */
     final_score: number | null;
     /**
-     * Current Round
+     * Message Count
      */
-    current_round?: number;
+    message_count?: number;
     /**
      * Has Report
      */
@@ -682,9 +686,9 @@ export type InterviewSessionResponse = {
         [key: string]: unknown;
     };
     /**
-     * Qa Records
+     * Messages
      */
-    qa_records: Array<QaRecord>;
+    messages: Array<QaMessage>;
     /**
      * Question Pool
      */
@@ -708,9 +712,9 @@ export type InterviewSessionResponse = {
      */
     report_markdown: string | null;
     /**
-     * Current Round
+     * Message Count
      */
-    current_round?: number;
+    message_count?: number;
     /**
      * Candidate Name
      */
@@ -743,6 +747,18 @@ export type MessageResponse = {
      * Data
      */
     data?: null;
+};
+
+/**
+ * MessagesSyncRequest
+ */
+export type MessagesSyncRequest = {
+    /**
+     * Messages
+     *
+     * 完整对话记录
+     */
+    messages: Array<QaMessageCreate>;
 };
 
 /**
@@ -1373,73 +1389,53 @@ export type PositionUpdate = {
 };
 
 /**
- * QARecord
+ * QAMessage
  *
- * 问答记录
+ * 问答消息
  */
-export type QaRecord = {
+export type QaMessage = {
     /**
-     * Round
+     * Seq
      *
-     * 轮次
+     * 消息序号
      */
-    round: number;
+    seq: number;
     /**
-     * Question
+     * Role
      *
-     * 问题
+     * 角色
      */
-    question: string;
+    role: 'interviewer' | 'candidate';
     /**
-     * Answer
+     * Content
      *
-     * 回答
+     * 内容
      */
-    answer: string;
+    content: string;
     /**
-     * Score
+     * Timestamp
      *
-     * 评分
+     * 时间戳
      */
-    score?: number | null;
-    /**
-     * Evaluation
-     *
-     * 评价
-     */
-    evaluation?: string | null;
+    timestamp: string;
 };
 
 /**
- * QARecordCreate
- *
- * 添加问答记录请求
+ * QAMessageCreate
  */
-export type QaRecordCreate = {
+export type QaMessageCreate = {
     /**
-     * Question
+     * Role
      *
-     * 问题
+     * 角色
      */
-    question: string;
+    role: 'interviewer' | 'candidate';
     /**
-     * Answer
+     * Content
      *
-     * 回答
+     * 内容
      */
-    answer: string;
-    /**
-     * Score
-     *
-     * 评分
-     */
-    score?: number | null;
-    /**
-     * Evaluation
-     *
-     * 评价
-     */
-    evaluation?: string | null;
+    content: string;
 };
 
 /**
@@ -3426,8 +3422,8 @@ export type GenerateQuestionsResponses = {
 
 export type GenerateQuestionsResponse = GenerateQuestionsResponses[keyof GenerateQuestionsResponses];
 
-export type RecordQaData = {
-    body: QaRecordCreate;
+export type SyncMessagesData = {
+    body: MessagesSyncRequest;
     path: {
         /**
          * Session Id
@@ -3435,26 +3431,26 @@ export type RecordQaData = {
         session_id: string;
     };
     query?: never;
-    url: '/api/v1/interview/{session_id}/qa';
+    url: '/api/v1/interview/{session_id}/sync';
 };
 
-export type RecordQaErrors = {
+export type SyncMessagesErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type RecordQaError = RecordQaErrors[keyof RecordQaErrors];
+export type SyncMessagesError = SyncMessagesErrors[keyof SyncMessagesErrors];
 
-export type RecordQaResponses = {
+export type SyncMessagesResponses = {
     /**
      * Successful Response
      */
     200: DictResponse;
 };
 
-export type RecordQaResponse = RecordQaResponses[keyof RecordQaResponses];
+export type SyncMessagesResponse = SyncMessagesResponses[keyof SyncMessagesResponses];
 
 export type CompleteSessionData = {
     body?: never;

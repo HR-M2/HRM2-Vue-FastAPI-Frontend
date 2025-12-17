@@ -150,20 +150,15 @@
       destroy-on-close
     >
       <div v-if="selectedInterviewSession" class="interview-records">
-        <div v-if="selectedInterviewSession.qa_records?.length">
+        <div v-if="selectedInterviewSession.messages?.length">
           <div 
-            v-for="(qa, index) in selectedInterviewSession.qa_records" 
+            v-for="(msg, index) in selectedInterviewSession.messages" 
             :key="index"
-            class="qa-item"
+            class="message-item"
+            :class="msg.role"
           >
-            <div class="qa-question">
-              <span class="qa-label">Q{{ index + 1 }}:</span>
-              <span>{{ qa.question }}</span>
-            </div>
-            <div class="qa-answer">
-              <span class="qa-label">A:</span>
-              <span>{{ qa.answer }}</span>
-            </div>
+            <span class="message-label">{{ msg.role === 'interviewer' ? '面试官' : '候选人' }}:</span>
+            <span class="message-content">{{ msg.content }}</span>
           </div>
         </div>
         <el-empty v-else description="暂无问答记录" />
@@ -981,33 +976,35 @@ onMounted(async () => {
   max-height: 500px;
   overflow-y: auto;
   
-  .qa-item {
-    padding: 16px;
-    background: #f9fafb;
+  .message-item {
+    padding: 12px 16px;
     border-radius: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     
-    .qa-question {
-      margin-bottom: 12px;
-      font-weight: 500;
-      color: #374151;
+    &.interviewer {
+      background: #ede9fe;
       
-      .qa-label {
+      .message-label {
         color: #667eea;
-        font-weight: 600;
-        margin-right: 8px;
       }
     }
     
-    .qa-answer {
-      color: #6b7280;
-      line-height: 1.6;
+    &.candidate {
+      background: #ecfdf5;
       
-      .qa-label {
+      .message-label {
         color: #10b981;
-        font-weight: 600;
-        margin-right: 8px;
       }
+    }
+    
+    .message-label {
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    
+    .message-content {
+      color: #374151;
+      line-height: 1.6;
     }
   }
 }
