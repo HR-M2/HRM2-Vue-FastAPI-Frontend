@@ -260,7 +260,8 @@ import type { ResumeData } from '@/types'
 import type { 
   ApplicationDetailResponse,
   InterviewSessionResponse,
-  ComprehensiveAnalysisResponse
+  ComprehensiveAnalysisResponse,
+  DimensionScoreItem
 } from '@/api/types.gen'
 
 const router = useRouter()

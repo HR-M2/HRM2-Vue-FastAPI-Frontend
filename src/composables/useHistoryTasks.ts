@@ -34,7 +34,6 @@ export function useHistoryTasks() {
           task_id: task.id,
           application_id: task.application_id,
           status: task.status,
-          progress: task.progress,
           score: task.score,
           dimension_scores: task.dimension_scores,
           summary: task.summary,

@@ -201,7 +201,7 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { Microphone, VideoPlay, QuestionFilled, Grid, Check, User, Warning, Star, Loading } from '@element-plus/icons-vue'
 import { getPositions, getApplications } from '@/api/sdk.gen'
-import type { PositionListResponse, ApplicationListResponse } from '@/api/types.gen'
+import type { PositionListResponse, ApplicationDetailResponse } from '@/api/types.gen'
 import type { InterviewConfig } from '@/composables/useInterviewAssist'
 
 const props = defineProps<{
@@ -233,7 +233,7 @@ const positions = ref<PositionListResponse[]>([])
 const selectedPositionId = ref<string | null>(null)
 const selectedApplicationId = ref<string | null>(null)
 const selectedCandidateInfo = ref<{ name: string; position: string } | null>(null)
-const currentApplications = ref<ApplicationListResponse[]>([])
+const currentApplications = ref<ApplicationDetailResponse[]>([])
 const loadingApplications = ref(false)
 
 // 更新 canStart

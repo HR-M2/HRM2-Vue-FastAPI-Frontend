@@ -44,12 +44,7 @@
             <el-tag :type="getStatusType(task.status)" size="small">
               {{ getStatusText(task.status) }}
             </el-tag>
-            <span v-if="task.status === 'running'">进度: {{ task.progress }}%</span>
             <span class="history-time">{{ formatDate(task.created_at) }}</span>
-          </div>
-          <!-- 进度条 -->
-          <div v-if="task.status === 'running'" class="progress-container">
-            <el-progress :percentage="task.progress" :stroke-width="6" />
           </div>
           <!-- 评分显示 -->
           <div v-if="task.status === 'completed' && getHistoryTaskScore(task)" class="history-scores">

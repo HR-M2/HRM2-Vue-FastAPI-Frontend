@@ -2,21 +2,36 @@
  * 通用类型定义
  */
 
-// 从 API 类型重新导出
-export type {
+// 从 API 类型导入并重新导出
+import type {
   PositionResponse,
   PositionListResponse,
   ResumeResponse,
   ResumeListResponse,
   ApplicationResponse,
-  ApplicationListResponse,
   ApplicationDetailResponse,
   ScreeningTaskResponse,
   ScreeningTaskBrief,
   VideoAnalysisResponse,
   VideoAnalysisBrief,
   BigFiveScores,
+  ScreeningDimensionScores,
 } from '@/api/types.gen'
+
+export type {
+  PositionResponse,
+  PositionListResponse,
+  ResumeResponse,
+  ResumeListResponse,
+  ApplicationResponse,
+  ApplicationDetailResponse,
+  ScreeningTaskResponse,
+  ScreeningTaskBrief,
+  VideoAnalysisResponse,
+  VideoAnalysisBrief,
+  BigFiveScores,
+  ScreeningDimensionScores,
+}
 
 /**
  * 任务状态类型
@@ -112,9 +127,8 @@ export interface HistoryTask {
   task_id: string
   application_id: string
   status: string
-  progress: number
   score: number | null
-  dimension_scores: Record<string, unknown> | null
+  dimension_scores?: ScreeningDimensionScores | null
   summary: string | null
   recommendation: string | null
   report_content: string | null

@@ -402,9 +402,11 @@ export type ComprehensiveAnalysisResponse = {
     suggested_action: string | null;
     /**
      * Dimension Scores
+     *
+     * 各维度评分，key为维度ID
      */
-    dimension_scores: {
-        [key: string]: unknown;
+    dimension_scores?: {
+        [key: string]: DimensionScoreItem;
     };
     /**
      * Report
@@ -450,6 +452,60 @@ export type DictResponse = {
     data?: {
         [key: string]: unknown;
     } | null;
+};
+
+/**
+ * DimensionScoreItem
+ *
+ * 单个维度评分项
+ *
+ * 基于 evaluation_agents.py 中 _evaluate_dimension 方法的实际输出结构
+ */
+export type DimensionScoreItem = {
+    /**
+     * Dimension Score
+     *
+     * 维度评分(1-5)
+     */
+    dimension_score?: number | null;
+    /**
+     * Dimension Name
+     *
+     * 维度名称
+     */
+    dimension_name?: string | null;
+    /**
+     * Weight
+     *
+     * 权重
+     */
+    weight?: number | null;
+    /**
+     * Sub Scores
+     *
+     * 子维度评分
+     */
+    sub_scores?: {
+        [key: string]: number;
+    } | null;
+    /**
+     * Strengths
+     *
+     * 优势列表
+     */
+    strengths?: Array<string> | null;
+    /**
+     * Weaknesses
+     *
+     * 不足列表
+     */
+    weaknesses?: Array<string> | null;
+    /**
+     * Analysis
+     *
+     * 详细分析说明
+     */
+    analysis?: string | null;
 };
 
 /**
@@ -779,7 +835,33 @@ export type PagedDataApplicationDetailResponseOutput = {
 /**
  * PagedData[ComprehensiveAnalysisResponse]
  */
-export type PagedDataComprehensiveAnalysisResponse = {
+export type PagedDataComprehensiveAnalysisResponseInput = {
+    /**
+     * Items
+     */
+    items: Array<ComprehensiveAnalysisResponse>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Pages
+     */
+    pages: number;
+};
+
+/**
+ * PagedData[ComprehensiveAnalysisResponse]
+ */
+export type PagedDataComprehensiveAnalysisResponseOutput = {
     /**
      * Items
      */
@@ -909,7 +991,33 @@ export type PagedDataResumeListResponse = {
 /**
  * PagedData[ScreeningTaskResponse]
  */
-export type PagedDataScreeningTaskResponse = {
+export type PagedDataScreeningTaskResponseInput = {
+    /**
+     * Items
+     */
+    items: Array<ScreeningTaskResponse>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Pages
+     */
+    pages: number;
+};
+
+/**
+ * PagedData[ScreeningTaskResponse]
+ */
+export type PagedDataScreeningTaskResponseOutput = {
     /**
      * Items
      */
@@ -1019,7 +1127,7 @@ export type PagedResponseModelComprehensiveAnalysisResponse = {
      * Message
      */
     message?: string;
-    data: PagedDataComprehensiveAnalysisResponse;
+    data: PagedDataComprehensiveAnalysisResponseOutput;
 };
 
 /**
@@ -1095,7 +1203,7 @@ export type PagedResponseModelScreeningTaskResponse = {
      * Message
      */
     message?: string;
-    data: PagedDataScreeningTaskResponse;
+    data: PagedDataScreeningTaskResponseOutput;
 };
 
 /**
@@ -1825,6 +1933,34 @@ export type ResumeUpdate = {
 };
 
 /**
+ * ScreeningDimensionScores
+ *
+ * 筛选任务维度评分
+ *
+ * 基于 ai_services.py 中 _parse_screening_result 的实际输出结构
+ */
+export type ScreeningDimensionScores = {
+    /**
+     * Hr Score
+     *
+     * HR评分
+     */
+    hr_score?: number | null;
+    /**
+     * Technical Score
+     *
+     * 技术评分
+     */
+    technical_score?: number | null;
+    /**
+     * Manager Score
+     *
+     * 管理评分
+     */
+    manager_score?: number | null;
+};
+
+/**
  * ScreeningResultUpdate
  *
  * 更新筛选结果请求
@@ -1843,13 +1979,9 @@ export type ScreeningResultUpdate = {
      */
     score?: number | null;
     /**
-     * Dimension Scores
-     *
      * 各维度评分
      */
-    dimension_scores?: {
-        [key: string]: unknown;
-    } | null;
+    dimension_scores?: ScreeningDimensionScores | null;
     /**
      * Summary
      *
@@ -1963,11 +2095,9 @@ export type ScreeningTaskResponse = {
      */
     score: number | null;
     /**
-     * Dimension Scores
+     * 各维度评分
      */
-    dimension_scores: {
-        [key: string]: unknown;
-    } | null;
+    dimension_scores?: ScreeningDimensionScores | null;
     /**
      * Summary
      */

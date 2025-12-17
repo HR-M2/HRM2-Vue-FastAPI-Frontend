@@ -121,7 +121,7 @@ export function useResumeAssignment(
       task_id: task.task_id,
       application_id: task.application_id,
       status: task.status as 'pending' | 'running' | 'completed' | 'failed',
-      progress: task.progress,
+      progress: 0,
       created_at: task.created_at,
       score: task.score,
       dimension_scores: task.dimension_scores,
