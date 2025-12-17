@@ -4,20 +4,12 @@
  * 注意：API 自动生成的类型请直接从 '@/api/types.gen' 导入
  */
 
+import type { ScreeningScore } from '@/api/types.gen'
+
 /**
  * 任务状态类型
  */
 export type TaskStatus = 'pending' | 'running' | 'processing' | 'completed' | 'failed'
-
-/**
- * 筛选评分
- */
-export interface ScreeningScore {
-  hr_score?: number
-  technical_score?: number
-  manager_score?: number
-  comprehensive_score: number
-}
 
 /**
  * 岗位数据（前端扩展）
