@@ -325,39 +325,15 @@ const analyzedCount = computed(() => {
 const loadApplicationsForPosition = async (positionId: string) => {
   isLoadingApplications.value = true
   try {
-    const allApps: ApplicationDetailResponse[] = []
-    let page = 1
-    const pageSize = 100
-    let hasMore = true
-    
-    while (hasMore) {
-      const result = await getApplications({ 
-        query: { page, page_size: pageSize, position_id: positionId } 
-      })
-      if (result.data?.data?.items && result.data.data.items.length > 0) {
-        const apps = result.data.data.items
-        
-        // 获取每个申请的详情
-        for (const app of apps) {
-          try {
-            const detailResult = await getApplication({ path: { application_id: app.id } })
-            if (detailResult.data?.data) {
-              allApps.push(detailResult.data.data)
-            }
-          } catch {
-            // 忽略单个请求错误
-          }
-        }
-        
-        const total = result.data.data.total ?? 0
-        hasMore = page * pageSize < total
-        page++
-      } else {
-        hasMore = false
-      }
-    }
-    
-    currentApplications.value = allApps
+    const result = await getApplications({ 
+      query: { 
+        page: 1, 
+        page_size: 100, 
+        position_id: positionId,
+        include_details: true
+      } 
+    })
+    currentApplications.value = (result.data?.data?.items || []) as ApplicationDetailResponse[]
   } catch (err) {
     console.error('加载申请列表失败:', err)
     currentApplications.value = []

@@ -109,43 +109,6 @@ export type ApplicationDetailResponse = {
 };
 
 /**
- * ApplicationListResponse
- *
- * 应聘申请列表项响应
- */
-export type ApplicationListResponse = {
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
-     * Position Id
-     */
-    position_id: string;
-    /**
-     * Resume Id
-     */
-    resume_id: string;
-    /**
-     * Position Title
-     */
-    position_title?: string | null;
-    /**
-     * Candidate Name
-     */
-    candidate_name?: string | null;
-    screening_task?: ScreeningTaskBrief | null;
-};
-
-/**
  * ApplicationResponse
  *
  * 应聘申请响应
@@ -762,58 +725,6 @@ export type MessagesSyncRequest = {
 };
 
 /**
- * PagedData[ApplicationListResponse]
- */
-export type PagedDataApplicationListResponseInput = {
-    /**
-     * Items
-     */
-    items: Array<ApplicationListResponse>;
-    /**
-     * Total
-     */
-    total: number;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Pages
-     */
-    pages: number;
-};
-
-/**
- * PagedData[ApplicationListResponse]
- */
-export type PagedDataApplicationListResponseOutput = {
-    /**
-     * Items
-     */
-    items: Array<ApplicationListResponse>;
-    /**
-     * Total
-     */
-    total: number;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Pages
-     */
-    pages: number;
-};
-
-/**
  * PagedData[ComprehensiveAnalysisResponse]
  */
 export type PagedDataComprehensiveAnalysisResponse = {
@@ -1019,25 +930,6 @@ export type PagedDataVideoAnalysisResponseOutput = {
      * Pages
      */
     pages: number;
-};
-
-/**
- * PagedResponseModel[ApplicationListResponse]
- */
-export type PagedResponseModelApplicationListResponse = {
-    /**
-     * Success
-     */
-    success?: boolean;
-    /**
-     * Code
-     */
-    code?: number;
-    /**
-     * Message
-     */
-    message?: string;
-    data: PagedDataApplicationListResponseOutput;
 };
 
 /**
@@ -2692,6 +2584,12 @@ export type GetApplicationsData = {
          * 简历ID筛选
          */
         resume_id?: string | null;
+        /**
+         * Include Details
+         *
+         * 是否返回完整详情（含所有关联数据）
+         */
+        include_details?: boolean;
     };
     url: '/api/v1/applications';
 };
@@ -2709,10 +2607,8 @@ export type GetApplicationsResponses = {
     /**
      * Successful Response
      */
-    200: PagedResponseModelApplicationListResponse;
+    200: unknown;
 };
-
-export type GetApplicationsResponse = GetApplicationsResponses[keyof GetApplicationsResponses];
 
 export type CreateApplicationData = {
     body: ApplicationCreate;

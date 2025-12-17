@@ -155,6 +155,7 @@ export const checkHashes = <ThrowOnError extends boolean = false>(options: Optio
  * 获取应聘申请列表
  *
  * 获取应聘申请列表，支持多条件筛选
+ * 当 include_details=True 时返回完整详情（含面试、视频分析、综合分析等关联数据）
  */
 export const getApplications = <ThrowOnError extends boolean = false>(options?: Options<GetApplicationsData, ThrowOnError>) => (options?.client ?? client).get<GetApplicationsResponses, GetApplicationsErrors, ThrowOnError>({ url: '/api/v1/applications', ...options });
 
