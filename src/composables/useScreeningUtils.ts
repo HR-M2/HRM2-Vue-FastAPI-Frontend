@@ -3,8 +3,8 @@
  * 提供状态转换、格式化等通用工具
  */
 import { marked } from 'marked'
-import type { ScreeningScore, ProcessingTask } from '@/types'
-import type { ScreeningTaskResponse } from '@/api/types.gen'
+import type { ProcessingTask } from '@/types'
+import type { ScreeningScore, ScreeningTaskResponse } from '@/api/types.gen'
 
 export function useScreeningUtils() {
   // 渲染 Markdown 内容

@@ -1933,34 +1933,6 @@ export type ResumeUpdate = {
 };
 
 /**
- * ScreeningDimensionScores
- *
- * 筛选任务维度评分
- *
- * 基于 ai_services.py 中 _parse_screening_result 的实际输出结构
- */
-export type ScreeningDimensionScores = {
-    /**
-     * Hr Score
-     *
-     * HR评分
-     */
-    hr_score?: number | null;
-    /**
-     * Technical Score
-     *
-     * 技术评分
-     */
-    technical_score?: number | null;
-    /**
-     * Manager Score
-     *
-     * 管理评分
-     */
-    manager_score?: number | null;
-};
-
-/**
  * ScreeningResultUpdate
  *
  * 更新筛选结果请求
@@ -1981,7 +1953,7 @@ export type ScreeningResultUpdate = {
     /**
      * 各维度评分
      */
-    dimension_scores?: ScreeningDimensionScores | null;
+    dimension_scores?: ScreeningScore | null;
     /**
      * Summary
      *
@@ -2006,6 +1978,40 @@ export type ScreeningResultUpdate = {
      * 错误信息
      */
     error_message?: string | null;
+};
+
+/**
+ * ScreeningScore
+ *
+ * 筛选评分
+ *
+ * 包含综合评分和各维度评分
+ */
+export type ScreeningScore = {
+    /**
+     * Comprehensive Score
+     *
+     * 综合评分
+     */
+    comprehensive_score?: number | null;
+    /**
+     * Hr Score
+     *
+     * HR评分
+     */
+    hr_score?: number | null;
+    /**
+     * Technical Score
+     *
+     * 技术评分
+     */
+    technical_score?: number | null;
+    /**
+     * Manager Score
+     *
+     * 管理评分
+     */
+    manager_score?: number | null;
 };
 
 /**
@@ -2097,7 +2103,7 @@ export type ScreeningTaskResponse = {
     /**
      * 各维度评分
      */
-    dimension_scores?: ScreeningDimensionScores | null;
+    dimension_scores?: ScreeningScore | null;
     /**
      * Summary
      */
