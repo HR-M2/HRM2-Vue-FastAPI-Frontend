@@ -1,127 +1,17 @@
 /**
- * 前端特有类型定义
+ * 前端特有类型定义 - 桶文件
  * 
  * 注意：API 自动生成的类型请直接从 '@/api/types.gen' 导入
  */
 
-import type { ScreeningScore } from '@/api/types.gen'
+// 简历相关
+export type { ResumeData, ResumeFile } from './resume'
 
-/**
- * 任务状态类型
- */
-export type TaskStatus = 'pending' | 'running' | 'processing' | 'completed' | 'failed'
+// 岗位相关
+export type { PositionData } from './position'
 
-/**
- * 岗位数据（前端扩展）
- */
-export interface PositionData {
-  id: string
-  title: string
-  department?: string
-  description?: string
-  requirements?: string
-  required_skills?: string[]
-  optional_skills?: string[]
-  min_experience?: number
-  education?: string[]
-  salary_min?: number
-  salary_max?: number
-  is_active?: boolean
-  resume_count?: number
-  resumes?: ResumeData[]
-  created_at?: string
-  updated_at?: string
-}
+// 任务相关
+export type { TaskStatus, ProcessingTask } from './task'
 
-/**
- * 简历数据（前端扩展）
- */
-export interface ResumeData {
-  id: string
-  candidate_name: string
-  position_title?: string
-  content?: string
-  resume_content?: string
-  screening_score?: ScreeningScore
-  screening_summary?: string
-  file_hash?: string
-  created_at?: string
-}
-
-/**
- * 简历文件类型
- */
-export interface ResumeFile {
-  id: string
-  file: File
-  name: string
-  size: number
-  type: string
-  content: string
-  status: 'pending' | 'parsing' | 'parsed' | 'error'
-  error?: string
-}
-
-/**
- * 处理队列项类型
- */
-export interface ProcessingTask {
-  name: string
-  task_id: string | null
-  application_id?: string
-  status: TaskStatus
-  progress: number
-  created_at: string
-  applied_position?: string
-  error_message?: string
-  current_speaker?: string
-  score?: number | null
-  dimension_scores?: Record<string, unknown> | null
-  summary?: string | null
-  recommendation?: string | null
-  report_content?: string | null
-}
-
-/**
- * 导航项类型
- */
-export interface NavItem {
-  key: string
-  label: string
-  icon?: string
-  path: string
-}
-
-/**
- * 视频分析应用数据（用于视频分析页面）
- */
-export interface VideoApplicationData {
-  id: string
-  position_id: string
-  resume_id: string
-  candidate_name?: string | null
-  position_title?: string | null
-  created_at: string
-  screening_task?: {
-    id: string
-    status: string
-    score: number | null
-    dimension_scores: Record<string, unknown> | null
-    recommendation: string | null
-  } | null
-  video_analysis?: {
-    id: string
-    video_name: string
-    status: string
-    fraud_score: number | null
-    confidence_score: number | null
-    big_five_scores?: {
-      openness?: number | null
-      conscientiousness?: number | null
-      extraversion?: number | null
-      agreeableness?: number | null
-      neuroticism?: number | null
-    } | null
-    summary: string | null
-  } | null
-}
+// 视频分析相关
+export type { VideoApplicationData } from './video'
