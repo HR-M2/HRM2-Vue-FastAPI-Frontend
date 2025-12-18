@@ -32,6 +32,7 @@ const pageTitles: Record<string, string> = {
   '/screening': '简历筛选',
   '/video': '视频分析',
   '/interview': '面试辅助',
+  '/immersive': '沉浸式面试',
   '/recommend': '最终推荐',
   '/dev-tools': '开发测试',
   '/settings': '系统设置'

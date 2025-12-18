@@ -51,7 +51,8 @@ import {
   ChatDotRound,
   Trophy,
   Setting,
-  Promotion
+  Promotion,
+  Monitor
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -65,6 +66,7 @@ const navItems = [
   { path: '/screening', label: '简历筛选', icon: Document },
   { path: '/video', label: '视频分析', icon: VideoCamera },
   { path: '/interview', label: '面试辅助', icon: ChatDotRound },
+  { path: '/immersive', label: '沉浸式面试', icon: Monitor },
   { path: '/recommend', label: '最终推荐', icon: Trophy }
 ]
 

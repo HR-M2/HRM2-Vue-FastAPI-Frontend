@@ -67,6 +67,12 @@ const router = createRouter({
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
           meta: { title: '系统设置 - HRM2招聘管理系统' }
+        },
+        {
+          path: 'immersive',
+          name: 'immersive',
+          component: () => import('@/views/ImmersiveInterviewView.vue'),
+          meta: { title: '沉浸式面试 - HRM2招聘管理系统' }
         }
       ]
     }
