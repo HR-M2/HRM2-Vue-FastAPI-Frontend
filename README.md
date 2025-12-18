@@ -172,6 +172,16 @@ npm run api:gen
 
 ![真人面试截图](./screenshots/interview-live.png)
 
+#### 面试进行中
+面试过程中的实时界面，展示对话记录、智能追问推荐等功能。
+
+![面试进行中截图](./screenshots/interview-running.png)
+
+#### 实验性沉浸式面试
+实时视频演示界面，提供更身临其境的面试体验。（仍在开发中）
+
+![沉浸式面试截图](./screenshots/immersive-interview.png)
+
 ---
 
 ### 综合分析决策平台
@@ -182,12 +192,15 @@ npm run api:gen
 
 ---
 
-### 系统设置
+### 系统设置与开发测试
 
 配置 API 连接、系统偏好、数据管理等。
 
 ![系统设置截图](./screenshots/settings.png)
-<!-- 请截取系统设置页面，展示各配置选项 -->
+
+开发测试工具、AI生成测试。
+
+![开发测试截图](./screenshots/dev-tools.png)
 
 ---
 
