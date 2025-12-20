@@ -21,7 +21,7 @@
           </div>
         </div>
         
-        <!-- 状态指示器 -->
+        <!-- 状态指示器（暂时隐藏）
         <div v-if="candidateState" class="state-indicators">
           <div class="indicator" :class="getEngagementClass(candidateState.engagement)">
             <span class="indicator-label">参与度</span>
@@ -36,6 +36,7 @@
             </div>
           </div>
         </div>
+        -->
 
         <!-- 情绪标签 -->
         <transition name="fade">
@@ -43,6 +44,25 @@
             {{ emotionLabel }}
           </div>
         </transition>
+
+        <!-- 警告横幅区域 -->
+        <div class="warning-banners">
+          <!-- 读稿检测警告 -->
+          <transition name="slide-down">
+            <div v-if="showDeceptionWarning" class="warning-banner deception-warning">
+              <span class="warning-icon">⚠️</span>
+              <span class="warning-text">检测到候选人可能正在读稿</span>
+            </div>
+          </transition>
+          
+          <!-- 面部离框警告 -->
+          <transition name="slide-down">
+            <div v-if="faceOutOfFrame" class="warning-banner face-warning">
+              <span class="warning-icon">⚠️</span>
+              <span class="warning-text">候选人面部不在画面中</span>
+            </div>
+          </transition>
+        </div>
       </div>
     </div>
 
@@ -100,6 +120,8 @@ interface Props {
   candidateState?: CandidateState | null
   emotionLabel?: string
   localStream?: MediaStream | null
+  deceptionScore?: number
+  faceOutOfFrame?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -108,8 +130,13 @@ const props = withDefaults(defineProps<Props>(), {
   isRecording: false,
   candidateState: null,
   emotionLabel: '',
-  localStream: null
+  localStream: null,
+  deceptionScore: 0,
+  faceOutOfFrame: false
 })
+
+// 欺骗警告显示（分数 > 0.5）
+const showDeceptionWarning = computed(() => props.deceptionScore > 0.5)
 
 const emit = defineEmits<{
   (e: 'init-camera'): void
@@ -431,5 +458,65 @@ defineExpose({
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+// 警告横幅
+.warning-banners {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+  z-index: 20;
+}
+
+.warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  
+  .warning-icon {
+    font-size: 18px;
+  }
+  
+  .warning-text {
+    flex: 1;
+  }
+  
+  &.deception-warning {
+    background: rgba(245, 158, 11, 0.95);
+    color: #1a1a2e;
+    border: 1px solid rgba(255, 193, 7, 0.5);
+  }
+  
+  &.face-warning {
+    background: rgba(239, 68, 68, 0.95);
+    color: white;
+    border: 1px solid rgba(248, 113, 113, 0.5);
+  }
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-down-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 </style>

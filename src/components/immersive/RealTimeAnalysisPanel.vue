@@ -1,10 +1,10 @@
 <template>
-  <div class="realtime-analysis-panel">
+  <div class="cockpit-panel">
     <!-- 面板头部 -->
     <div class="panel-header">
       <div class="header-title">
         <el-icon class="title-icon"><DataAnalysis /></el-icon>
-        <span>实时分析</span>
+        <span>驾驶舱</span>
       </div>
       <div class="header-actions">
         <el-tag :type="isAnalyzing ? 'success' : 'info'" size="small" effect="plain">
@@ -13,144 +13,123 @@
       </div>
     </div>
 
-    <!-- 当前状态概览 -->
-    <div class="state-overview" v-if="currentState">
-      <div class="overview-grid">
-        <div class="state-card emotion-card">
-          <div class="card-icon" :class="emotionColorClass">
-            {{ emotionEmoji }}
+    <!-- 综合评分卡片 -->
+    <div class="overall-score-card">
+      <div class="score-content">
+        <div class="score-value">{{ cockpitData.overallScore }}</div>
+        <div class="score-label">综合评分</div>
+      </div>
+      <div class="score-indicator">
+        <div class="score-ring" :style="scoreRingStyle"></div>
+      </div>
+    </div>
+
+    <!-- 大五人格分析 -->
+    <div class="section-card">
+      <h4 class="section-title">
+        <span class="title-icon">🧠</span>
+        大五人格分析
+      </h4>
+      <div class="personality-list">
+        <div class="personality-item">
+          <span class="trait-label">开放性</span>
+          <div class="trait-bar-container">
+            <div class="trait-bar openness" :style="{ width: `${cockpitData.bigFive.openness * 100}%` }"></div>
           </div>
-          <div class="card-content">
-            <span class="card-label">情绪状态</span>
-            <span class="card-value">{{ emotionLabel }}</span>
-          </div>
+          <span class="trait-value">{{ formatPercent(cockpitData.bigFive.openness) }}</span>
         </div>
-        
-        <div class="state-card">
-          <div class="card-icon engagement">📊</div>
-          <div class="card-content">
-            <span class="card-label">参与度</span>
-            <span class="card-value">{{ formatPercent(currentState.engagement) }}</span>
+        <div class="personality-item">
+          <span class="trait-label">尽责性</span>
+          <div class="trait-bar-container">
+            <div class="trait-bar conscientiousness" :style="{ width: `${cockpitData.bigFive.conscientiousness * 100}%` }"></div>
           </div>
-          <div class="mini-progress">
-            <div class="progress-fill" :style="{ width: `${currentState.engagement * 100}%` }"></div>
-          </div>
+          <span class="trait-value">{{ formatPercent(cockpitData.bigFive.conscientiousness) }}</span>
         </div>
-        
-        <div class="state-card">
-          <div class="card-icon confidence">💪</div>
-          <div class="card-content">
-            <span class="card-label">自信程度</span>
-            <span class="card-value">{{ formatPercent(currentState.confidence_level) }}</span>
+        <div class="personality-item">
+          <span class="trait-label">外向性</span>
+          <div class="trait-bar-container">
+            <div class="trait-bar extraversion" :style="{ width: `${cockpitData.bigFive.extraversion * 100}%` }"></div>
           </div>
-          <div class="mini-progress">
-            <div class="progress-fill confidence" :style="{ width: `${currentState.confidence_level * 100}%` }"></div>
-          </div>
+          <span class="trait-value">{{ formatPercent(cockpitData.bigFive.extraversion) }}</span>
         </div>
-        
-        <div class="state-card">
-          <div class="card-icon nervousness">😰</div>
-          <div class="card-content">
-            <span class="card-label">紧张程度</span>
-            <span class="card-value">{{ formatPercent(currentState.nervousness) }}</span>
+        <div class="personality-item">
+          <span class="trait-label">宜人性</span>
+          <div class="trait-bar-container">
+            <div class="trait-bar agreeableness" :style="{ width: `${cockpitData.bigFive.agreeableness * 100}%` }"></div>
           </div>
-          <div class="mini-progress warning">
-            <div class="progress-fill" :style="{ width: `${currentState.nervousness * 100}%` }"></div>
+          <span class="trait-value">{{ formatPercent(cockpitData.bigFive.agreeableness) }}</span>
+        </div>
+        <div class="personality-item">
+          <span class="trait-label">神经质</span>
+          <div class="trait-bar-container">
+            <div class="trait-bar neuroticism" :style="{ width: `${cockpitData.bigFive.neuroticism * 100}%` }"></div>
           </div>
+          <span class="trait-value">{{ formatPercent(cockpitData.bigFive.neuroticism) }}</span>
         </div>
       </div>
     </div>
 
-    <!-- 详细指标 -->
-    <div class="metrics-section">
-      <h4 class="section-title">行为指标</h4>
-      <div class="metrics-list">
-        <div class="metric-item">
-          <span class="metric-icon">👁️</span>
-          <span class="metric-label">眼神接触</span>
-          <div class="metric-bar-container">
-            <div class="metric-bar" :style="{ width: `${(currentState?.eye_contact || 0) * 100}%` }"></div>
-          </div>
-          <span class="metric-value">{{ formatPercent(currentState?.eye_contact || 0) }}</span>
+    <!-- 欺骗检测 -->
+    <div class="section-card" :class="{ 'warning-state': cockpitData.deceptionScore > 0.5 }">
+      <h4 class="section-title">
+        <span class="title-icon">🔍</span>
+        欺骗检测
+        <el-tag v-if="cockpitData.deceptionScore > 0.5" type="warning" size="small" effect="dark" class="warning-tag">
+          警告
+        </el-tag>
+      </h4>
+      <div class="deception-meter">
+        <div class="meter-bar-container">
+          <div 
+            class="meter-bar" 
+            :class="deceptionLevelClass"
+            :style="{ width: `${cockpitData.deceptionScore * 100}%` }"
+          ></div>
         </div>
-        
-        <div class="metric-item">
-          <span class="metric-icon">🧍</span>
-          <span class="metric-label">姿态评分</span>
-          <div class="metric-bar-container">
-            <div class="metric-bar" :style="{ width: `${(currentState?.posture_score || 0) * 100}%` }"></div>
-          </div>
-          <span class="metric-value">{{ formatPercent(currentState?.posture_score || 0) }}</span>
-        </div>
-        
-        <div class="metric-item">
-          <span class="metric-icon">🗣️</span>
-          <span class="metric-label">语言清晰度</span>
-          <div class="metric-bar-container">
-            <div class="metric-bar" :style="{ width: `${(currentState?.speech_clarity || 0) * 100}%` }"></div>
-          </div>
-          <span class="metric-value">{{ formatPercent(currentState?.speech_clarity || 0) }}</span>
-        </div>
-        
-        <div class="metric-item">
-          <span class="metric-icon">⏱️</span>
-          <span class="metric-label">语速</span>
-          <div class="speech-pace">
-            <span 
-              v-for="pace in ['slow', 'normal', 'fast']"
-              :key="pace"
-              class="pace-option"
-              :class="{ active: currentState?.speech_pace === pace }"
-            >
-              {{ paceLabels[pace] }}
-            </span>
-          </div>
+        <div class="meter-labels">
+          <span>低</span>
+          <span class="meter-value" :class="deceptionLevelClass">{{ formatPercent(cockpitData.deceptionScore) }}</span>
+          <span>高</span>
         </div>
       </div>
     </div>
 
-    <!-- 说话比例 -->
-    <div class="speak-ratio-section">
-      <h4 class="section-title">对话比例</h4>
-      <div class="ratio-bar">
+    <!-- 候选提问建议 -->
+    <div class="section-card suggestions-section">
+      <h4 class="section-title">
+        <span class="title-icon">💡</span>
+        候选提问建议
+        <el-button type="primary" link size="small" @click="$emit('refresh-suggestions')">
+          <el-icon><Refresh /></el-icon>
+        </el-button>
+      </h4>
+      <div class="suggestions-list" v-if="suggestions.length > 0">
         <div 
-          class="ratio-segment interviewer" 
-          :style="{ width: `${stats.interviewerRatio * 100}%` }"
+          v-for="suggestion in suggestions.slice(0, 3)" 
+          :key="suggestion.question"
+          class="suggestion-item"
+          @click="$emit('use-suggestion', suggestion)"
         >
-          <span v-if="stats.interviewerRatio > 0.15">面试官 {{ formatPercent(stats.interviewerRatio) }}</span>
-        </div>
-        <div 
-          class="ratio-segment candidate" 
-          :style="{ width: `${stats.candidateRatio * 100}%` }"
-        >
-          <span v-if="stats.candidateRatio > 0.15">候选人 {{ formatPercent(stats.candidateRatio) }}</span>
+          <span class="suggestion-type" :class="suggestion.type">{{ typeLabels[suggestion.type] }}</span>
+          <span class="suggestion-text">{{ suggestion.question }}</span>
         </div>
       </div>
-      <div class="ratio-legend">
-        <div class="legend-item">
-          <span class="legend-dot interviewer"></span>
-          <span>面试官</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot candidate"></span>
-          <span>候选人</span>
-        </div>
+      <div v-else class="no-suggestions">
+        <span>开始面试后自动推荐问题</span>
       </div>
     </div>
 
-    <!-- 统计摘要 -->
-    <div class="stats-summary">
-      <div class="stat-item">
+    <!-- 底部统计 -->
+    <div class="stats-footer">
+      <div class="stat-item duration">
+        <el-icon><Timer /></el-icon>
         <span class="stat-value">{{ formatTime(stats.duration) }}</span>
         <span class="stat-label">面试时长</span>
       </div>
-      <div class="stat-item">
-        <span class="stat-value">{{ formatPercent(stats.avgEngagement) }}</span>
-        <span class="stat-label">平均参与度</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-value">{{ formatPercent(stats.avgConfidence) }}</span>
-        <span class="stat-label">平均自信度</span>
+      <div class="stat-item score">
+        <el-icon><TrendCharts /></el-icon>
+        <span class="stat-value">{{ cockpitData.overallScore }}</span>
+        <span class="stat-label">综合评分</span>
       </div>
     </div>
   </div>
@@ -158,11 +137,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { DataAnalysis } from '@element-plus/icons-vue'
-import type { CandidateState } from '@/composables/useImmersiveInterview'
+import { DataAnalysis, Refresh, Timer, TrendCharts } from '@element-plus/icons-vue'
+import type { BigFivePersonality, CockpitData, QuestionSuggestion } from '@/composables/useImmersiveInterview'
 
 interface Props {
-  currentState?: CandidateState | null
   isAnalyzing?: boolean
   stats: {
     duration: number
@@ -171,41 +149,40 @@ interface Props {
     avgEngagement: number
     avgConfidence: number
   }
+  cockpitData: CockpitData
+  suggestions: QuestionSuggestion[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  currentState: null,
-  isAnalyzing: false
+  isAnalyzing: false,
+  suggestions: () => []
 })
 
-const paceLabels: Record<string, string> = {
-  slow: '较慢',
-  normal: '正常',
-  fast: '较快'
+defineEmits<{
+  (e: 'refresh-suggestions'): void
+  (e: 'use-suggestion', suggestion: QuestionSuggestion): void
+}>()
+
+const typeLabels: Record<string, string> = {
+  followup: '追问',
+  alternative: '备选',
+  probe: '深挖'
 }
 
-const emotionMap: Record<string, { label: string; emoji: string; color: string }> = {
-  neutral: { label: '平静', emoji: '😐', color: 'neutral' },
-  happy: { label: '愉悦', emoji: '😊', color: 'positive' },
-  focused: { label: '专注', emoji: '🎯', color: 'positive' },
-  thinking: { label: '思考', emoji: '🤔', color: 'neutral' },
-  nervous: { label: '紧张', emoji: '😰', color: 'warning' },
-  confident: { label: '自信', emoji: '💪', color: 'positive' }
-}
-
-const emotionLabel = computed(() => {
-  const emotion = props.currentState?.emotion?.emotion || 'neutral'
-  return emotionMap[emotion]?.label || '未知'
+const scoreRingStyle = computed(() => {
+  const score = props.cockpitData.overallScore
+  const percentage = score / 100
+  const color = score >= 80 ? '#10b981' : score >= 60 ? '#667eea' : '#f59e0b'
+  return {
+    background: `conic-gradient(${color} ${percentage * 360}deg, #e5e7eb ${percentage * 360}deg)`
+  }
 })
 
-const emotionEmoji = computed(() => {
-  const emotion = props.currentState?.emotion?.emotion || 'neutral'
-  return emotionMap[emotion]?.emoji || '😐'
-})
-
-const emotionColorClass = computed(() => {
-  const emotion = props.currentState?.emotion?.emotion || 'neutral'
-  return `emotion-${emotionMap[emotion]?.color || 'neutral'}`
+const deceptionLevelClass = computed(() => {
+  const score = props.cockpitData.deceptionScore
+  if (score > 0.7) return 'level-danger'
+  if (score > 0.5) return 'level-warning'
+  return 'level-normal'
 })
 
 const formatPercent = (value: number) => {
@@ -220,14 +197,14 @@ const formatTime = (seconds: number) => {
 </script>
 
 <style scoped lang="scss">
-.realtime-analysis-panel {
+.cockpit-panel {
   background: white;
   border-radius: 16px;
   padding: 20px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   overflow-y: auto;
 }
 
@@ -250,136 +227,135 @@ const formatTime = (seconds: number) => {
   }
 }
 
-.state-overview {
-  .overview-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-}
-
-.state-card {
-  padding: 14px;
-  background: #f8fafc;
-  border-radius: 12px;
+// 综合评分卡片
+.overall-score-card {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  position: relative;
+  justify-content: space-between;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  color: white;
   
-  .card-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    background: #e5e7eb;
-    
-    &.emotion-positive {
-      background: linear-gradient(135deg, #10b981, #34d399);
+  .score-content {
+    .score-value {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1;
     }
     
-    &.emotion-neutral {
-      background: linear-gradient(135deg, #6b7280, #9ca3af);
-    }
-    
-    &.emotion-warning {
-      background: linear-gradient(135deg, #f59e0b, #fbbf24);
-    }
-  }
-  
-  .card-content {
-    flex: 1;
-    min-width: 60px;
-    
-    .card-label {
-      display: block;
-      font-size: 11px;
-      color: #6b7280;
-    }
-    
-    .card-value {
+    .score-label {
       font-size: 14px;
-      font-weight: 600;
-      color: #1a1a2e;
+      opacity: 0.9;
+      margin-top: 4px;
     }
   }
   
-  .mini-progress {
-    width: 100%;
-    height: 4px;
-    background: #e5e7eb;
-    border-radius: 2px;
-    overflow: hidden;
-    
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #667eea, #764ba2);
-      border-radius: 2px;
-      transition: width 0.5s ease;
+  .score-indicator {
+    .score-ring {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      position: relative;
       
-      &.confidence {
-        background: linear-gradient(90deg, #10b981, #34d399);
+      &::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        background: white;
+        border-radius: 50%;
       }
     }
+  }
+}
+
+// 区块卡片
+.section-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  
+  &.warning-state {
+    background: #fef3cd;
+    border: 1px solid #ffc107;
+  }
+  
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 0 0 12px;
     
-    &.warning .progress-fill {
-      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    .title-icon {
+      font-size: 16px;
+    }
+    
+    .warning-tag {
+      margin-left: auto;
     }
   }
 }
 
-.metrics-section {
-  .section-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #6b7280;
-    margin: 0 0 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-}
-
-.metrics-list {
+// 大五人格
+.personality-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.metric-item {
+.personality-item {
   display: flex;
   align-items: center;
   gap: 10px;
   
-  .metric-icon {
-    font-size: 16px;
-  }
-  
-  .metric-label {
-    font-size: 13px;
+  .trait-label {
+    font-size: 12px;
     color: #4b5563;
-    min-width: 70px;
+    min-width: 50px;
   }
   
-  .metric-bar-container {
+  .trait-bar-container {
     flex: 1;
-    height: 6px;
+    height: 8px;
     background: #e5e7eb;
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
+  }
+  
+  .trait-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
     
-    .metric-bar {
-      height: 100%;
+    &.openness {
       background: linear-gradient(90deg, #667eea, #764ba2);
-      border-radius: 3px;
-      transition: width 0.5s ease;
+    }
+    
+    &.conscientiousness {
+      background: linear-gradient(90deg, #10b981, #34d399);
+    }
+    
+    &.extraversion {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+    
+    &.agreeableness {
+      background: linear-gradient(90deg, #06b6d4, #22d3ee);
+    }
+    
+    &.neuroticism {
+      background: linear-gradient(90deg, #ef4444, #f87171);
     }
   }
   
-  .metric-value {
+  .trait-value {
     font-size: 12px;
     font-weight: 600;
     color: #1a1a2e;
@@ -388,95 +364,138 @@ const formatTime = (seconds: number) => {
   }
 }
 
-.speech-pace {
-  display: flex;
-  gap: 6px;
-  
-  .pace-option {
-    padding: 4px 10px;
-    font-size: 11px;
-    border-radius: 12px;
+// 欺骗检测
+.deception-meter {
+  .meter-bar-container {
+    height: 12px;
     background: #e5e7eb;
-    color: #6b7280;
-    
-    &.active {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-    }
+    border-radius: 6px;
+    overflow: hidden;
   }
-}
-
-.speak-ratio-section {
-  .section-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #6b7280;
-    margin: 0 0 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-}
-
-.ratio-bar {
-  display: flex;
-  height: 28px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #e5e7eb;
   
-  .ratio-segment {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .meter-bar {
+    height: 100%;
+    border-radius: 6px;
     transition: width 0.5s ease;
     
-    span {
-      font-size: 11px;
-      font-weight: 600;
-      color: white;
-      white-space: nowrap;
-    }
-    
-    &.interviewer {
-      background: linear-gradient(90deg, #667eea, #764ba2);
-    }
-    
-    &.candidate {
+    &.level-normal {
       background: linear-gradient(90deg, #10b981, #34d399);
     }
+    
+    &.level-warning {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+    
+    &.level-danger {
+      background: linear-gradient(90deg, #ef4444, #f87171);
+    }
   }
-}
-
-.ratio-legend {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 10px;
   
-  .legend-item {
+  .meter-labels {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
+    margin-top: 6px;
+    font-size: 11px;
     color: #6b7280;
     
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+    .meter-value {
+      font-weight: 700;
+      font-size: 14px;
       
-      &.interviewer {
-        background: #667eea;
+      &.level-normal {
+        color: #10b981;
       }
       
-      &.candidate {
-        background: #10b981;
+      &.level-warning {
+        color: #f59e0b;
+      }
+      
+      &.level-danger {
+        color: #ef4444;
       }
     }
   }
 }
 
-.stats-summary {
+// 提问建议
+.suggestions-section {
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  
+  .section-title {
+    .el-button {
+      margin-left: auto;
+    }
+  }
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #667eea;
+    transform: translateX(4px);
+  }
+  
+  .suggestion-type {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    
+    &.followup {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+    }
+    
+    &.alternative {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+    }
+    
+    &.probe {
+      background: rgba(102, 126, 234, 0.15);
+      color: #667eea;
+    }
+  }
+  
+  .suggestion-text {
+    font-size: 12px;
+    color: #1a1a2e;
+    line-height: 1.4;
+  }
+}
+
+.no-suggestions {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+// 底部统计
+.stats-footer {
   display: flex;
   justify-content: space-around;
   padding-top: 16px;
@@ -484,10 +503,17 @@ const formatTime = (seconds: number) => {
   margin-top: auto;
   
   .stat-item {
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    
+    .el-icon {
+      font-size: 20px;
+      color: #667eea;
+    }
     
     .stat-value {
-      display: block;
       font-size: 20px;
       font-weight: 700;
       color: #1a1a2e;

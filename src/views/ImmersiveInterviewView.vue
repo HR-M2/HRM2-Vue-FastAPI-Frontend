@@ -152,10 +152,6 @@
               <el-icon><MagicStick /></el-icon>
               获取建议
             </el-button>
-            <el-button @click="handleFetchInsights">
-              <el-icon><DataAnalysis /></el-icon>
-              更新洞察
-            </el-button>
             <el-button type="danger" plain @click="handleEndSession">
               <el-icon><Close /></el-icon>
               退出会话
@@ -174,44 +170,22 @@
               :candidate-state="currentState"
               :emotion-label="emotionLabel"
               :local-stream="localStream"
+              :deception-score="cockpitData.deceptionScore"
+              :face-out-of-frame="cockpitData.faceOutOfFrame"
               @init-camera="handleInitCamera"
             />
           </div>
 
-          <!-- 右侧：分析面板 -->
+          <!-- 右侧：驾驶舱面板 -->
           <div class="analysis-section">
-            <el-tabs v-model="activeTab" class="analysis-tabs">
-              <el-tab-pane label="实时分析" name="analysis">
-                <RealTimeAnalysisPanel
-                  :current-state="currentState"
-                  :is-analyzing="isAnalyzing"
-                  :stats="stats"
-                />
-              </el-tab-pane>
-              <el-tab-pane label="提问建议" name="suggestions">
-                <QuestionSuggestionsPanel
-                  :suggestions="suggestions"
-                  :is-loading="isAnalyzing"
-                  @refresh="handleFetchSuggestions"
-                  @use-suggestion="handleUseSuggestion"
-                  @use-quick="handleUseQuickQuestion"
-                />
-              </el-tab-pane>
-              <el-tab-pane label="实时转录" name="transcript">
-                <TranscriptPanel
-                  :transcripts="transcripts"
-                  @add-transcript="handleAddTranscript"
-                />
-              </el-tab-pane>
-              <el-tab-pane label="面试洞察" name="insights">
-                <InsightsPanel
-                  :insights="insights"
-                  @refresh="handleFetchInsights"
-                  @generate-report="handleGenerateReport"
-                  @export="handleExportData"
-                />
-              </el-tab-pane>
-            </el-tabs>
+            <RealTimeAnalysisPanel
+              :is-analyzing="isAnalyzing"
+              :stats="stats"
+              :cockpit-data="cockpitData"
+              :suggestions="suggestions"
+              @refresh-suggestions="handleFetchSuggestions"
+              @use-suggestion="handleUseSuggestion"
+            />
           </div>
         </div>
       </div>
@@ -298,10 +272,7 @@ import {
 } from '@element-plus/icons-vue'
 import {
   DualCameraView,
-  RealTimeAnalysisPanel,
-  QuestionSuggestionsPanel,
-  TranscriptPanel,
-  InsightsPanel
+  RealTimeAnalysisPanel
 } from '@/components/immersive'
 import { useImmersiveInterview } from '@/composables/useImmersiveInterview'
 import type { QuestionSuggestion } from '@/composables/useImmersiveInterview'
@@ -345,6 +316,7 @@ const {
   suggestions,
   insights,
   stats,
+  cockpitData,
   createSession,
   initLocalCamera,
   startInterview,
@@ -365,7 +337,6 @@ const applications = ref<Array<{
   position_title: string
 }>>([])
 const isLoadingCandidates = ref(false)
-const activeTab = ref('analysis')
 const showReportDialog = ref(false)
 const reportData = ref<ReportData | null>(null)
 
@@ -464,16 +435,6 @@ const handleFetchInsights = async () => {
 const handleUseSuggestion = (suggestion: QuestionSuggestion) => {
   addTranscript('interviewer', suggestion.question)
   ElMessage.success('问题已添加到转录')
-}
-
-// 使用快捷问题
-const handleUseQuickQuestion = (question: string) => {
-  addTranscript('interviewer', question)
-}
-
-// 添加转录
-const handleAddTranscript = (speaker: 'interviewer' | 'candidate', text: string) => {
-  addTranscript(speaker, text)
 }
 
 // 生成报告
@@ -759,18 +720,7 @@ onUnmounted(() => {
 .analysis-section {
   display: flex;
   flex-direction: column;
-  
-  .analysis-tabs {
-    height: 100%;
-    
-    :deep(.el-tabs__content) {
-      height: calc(100% - 50px);
-      
-      .el-tab-pane {
-        height: 100%;
-      }
-    }
-  }
+  height: 100%;
 }
 
 // 报告对话框

@@ -52,6 +52,23 @@ export interface InterviewInsight {
   timestamp: string
 }
 
+// 大五人格类型
+export interface BigFivePersonality {
+  openness: number        // 开放性 0-1
+  conscientiousness: number // 尽责性 0-1
+  extraversion: number     // 外向性 0-1
+  agreeableness: number    // 宜人性 0-1
+  neuroticism: number      // 神经质 0-1
+}
+
+// 驾驶舱数据类型
+export interface CockpitData {
+  bigFive: BigFivePersonality
+  deceptionScore: number   // 欺骗检测分数 0-1
+  overallScore: number     // 综合评分 0-100
+  faceOutOfFrame: boolean  // 面部是否离框
+}
+
 export interface ImmersiveSession {
   id: string
   application_id: string
@@ -121,10 +138,127 @@ export function useImmersiveInterview() {
     avgConfidence: 0
   })
 
+  // 驾驶舱模拟数据
+  const cockpitData = reactive<CockpitData>({
+    bigFive: {
+      openness: 0.65,
+      conscientiousness: 0.60,
+      extraversion: 0.70,
+      agreeableness: 0.55,
+      neuroticism: 0.30
+    },
+    deceptionScore: 0.2,
+    overallScore: 68,
+    faceOutOfFrame: false
+  })
+
+  // 驾驶舱定时器
+  let cockpitTimer: number | null = null
+  let overallScoreTimer: number | null = null
+  let faceDetectionTimer: number | null = null
+
   // 定时器
   let analyzeTimer: number | null = null
   let durationTimer: number | null = null
   let startTime: Date | null = null
+
+  // ========== 驾驶舱模拟数据生成函数 ==========
+  
+  // 带记忆性的随机数生成（平滑过渡）
+  const smoothRandom = (currentValue: number, min: number, max: number, volatility: number = 0.3): number => {
+    const randomComponent = min + Math.random() * (max - min)
+    const newValue = currentValue * (1 - volatility) + randomComponent * volatility
+    return Math.max(min, Math.min(max, newValue))
+  }
+
+  // 生成大五人格数据
+  const generateBigFiveData = (): BigFivePersonality => {
+    return {
+      openness: smoothRandom(cockpitData.bigFive.openness, 0.5, 0.85, 0.3),
+      conscientiousness: smoothRandom(cockpitData.bigFive.conscientiousness, 0.45, 0.75, 0.3),
+      extraversion: smoothRandom(cockpitData.bigFive.extraversion, 0.5, 0.85, 0.3),
+      agreeableness: smoothRandom(cockpitData.bigFive.agreeableness, 0.45, 0.75, 0.3),
+      neuroticism: smoothRandom(cockpitData.bigFive.neuroticism, 0.15, 0.45, 0.3)
+    }
+  }
+
+  // 生成欺骗检测分数
+  const generateDeceptionScore = (): number => {
+    const random = Math.random()
+    let targetRange: [number, number]
+    
+    if (random < 0.85) {
+      // 85% 概率: 正常范围 0.1-0.4
+      targetRange = [0.1, 0.4]
+    } else if (random < 0.97) {
+      // 12% 概率: 偶尔峰值 0.5-0.7
+      targetRange = [0.5, 0.7]
+    } else {
+      // 3% 概率: 极少异常 >0.7
+      targetRange = [0.7, 0.85]
+    }
+    
+    return smoothRandom(cockpitData.deceptionScore, targetRange[0], targetRange[1], 0.4)
+  }
+
+  // 生成综合评分
+  const generateOverallScore = (): number => {
+    const fluctuation = (Math.random() - 0.5) * 2 * 8 // ±3-8分波动
+    let newScore = cockpitData.overallScore + fluctuation
+    // 限制在45-95区间
+    newScore = Math.max(45, Math.min(95, newScore))
+    return Math.round(newScore)
+  }
+
+  // 生成面部离框状态
+  const generateFaceOutOfFrame = (): boolean => {
+    // 5%概率触发离框，离框后80%概率保持离框状态
+    if (cockpitData.faceOutOfFrame) {
+      return Math.random() < 0.2 // 20%概率回到画面
+    } else {
+      return Math.random() < 0.05 // 5%概率离框
+    }
+  }
+
+  // 启动驾驶舱数据更新定时器
+  const startCockpitTimers = () => {
+    // 大五人格 + 欺骗检测: 每10秒更新
+    cockpitTimer = window.setInterval(() => {
+      cockpitData.bigFive = generateBigFiveData()
+      cockpitData.deceptionScore = generateDeceptionScore()
+    }, 10000)
+
+    // 综合评分: 每60秒更新
+    overallScoreTimer = window.setInterval(() => {
+      cockpitData.overallScore = generateOverallScore()
+    }, 60000)
+
+    // 面部检测: 每5秒检查
+    faceDetectionTimer = window.setInterval(() => {
+      cockpitData.faceOutOfFrame = generateFaceOutOfFrame()
+    }, 5000)
+
+    // 立即生成初始数据
+    cockpitData.bigFive = generateBigFiveData()
+    cockpitData.deceptionScore = generateDeceptionScore()
+    cockpitData.overallScore = Math.round(60 + Math.random() * 15) // 初始值60-75
+  }
+
+  // 停止驾驶舱定时器
+  const stopCockpitTimers = () => {
+    if (cockpitTimer) {
+      clearInterval(cockpitTimer)
+      cockpitTimer = null
+    }
+    if (overallScoreTimer) {
+      clearInterval(overallScoreTimer)
+      overallScoreTimer = null
+    }
+    if (faceDetectionTimer) {
+      clearInterval(faceDetectionTimer)
+      faceDetectionTimer = null
+    }
+  }
 
   // 计算属性
   const isSessionActive = computed(() => sessionId.value !== null && !session.value?.is_completed)
@@ -281,6 +415,9 @@ export function useImmersiveInterview() {
         startAutoAnalyze()
       }
 
+      // 启动驾驶舱数据模拟
+      startCockpitTimers()
+
       ElMessage.success('面试已开始')
       return true
     }
@@ -299,6 +436,7 @@ export function useImmersiveInterview() {
     if (result.success) {
       isRecording.value = false
       stopAutoAnalyze()
+      stopCockpitTimers()
       
       if (durationTimer) {
         clearInterval(durationTimer)
@@ -457,6 +595,7 @@ export function useImmersiveInterview() {
   // 清理资源
   const cleanup = () => {
     stopAutoAnalyze()
+    stopCockpitTimers()
     stopLocalCamera()
     
     if (durationTimer) {
@@ -532,6 +671,7 @@ export function useImmersiveInterview() {
     insights,
     speakerSegments,
     stats,
+    cockpitData,
 
     // 操作
     createSession,
