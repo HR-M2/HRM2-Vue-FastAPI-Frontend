@@ -4,7 +4,7 @@
     <AppSidebar />
 
     <!-- 主内容区域 -->
-    <div class="main-container">
+    <div class="main-container" :class="{ 'sidebar-collapsed': isCollapsed }">
       <!-- 顶部标题栏 -->
       <AppHeader :title="pageTitle" />
 
@@ -21,7 +21,9 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
+import { useSidebar } from '@/composables/useSidebar'
 
+const { isCollapsed } = useSidebar()
 const route = useRoute()
 
 // 页面标题映射
@@ -57,6 +59,11 @@ const pageTitle = computed(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: margin-left 0.3s ease;
+
+  &.sidebar-collapsed {
+    margin-left: 64px;
+  }
 }
 
 .main-content {
