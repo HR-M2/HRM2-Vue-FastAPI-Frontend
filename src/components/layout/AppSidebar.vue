@@ -1,13 +1,21 @@
 <template>
-  <aside class="app-sidebar">
+  <aside class="app-sidebar" :class="{ collapsed: isCollapsed }">
     <!-- Logo区域 -->
     <div class="sidebar-header">
       <div class="logo" @click="handleLogoClick">
         <div class="logo-icon">
           <el-icon :size="24"><Briefcase /></el-icon>
         </div>
-        <span class="system-name">招聘管理系统</span>
+        <span v-show="!isCollapsed" class="system-name">招聘管理系统</span>
       </div>
+      <el-icon 
+        class="collapse-btn" 
+        :size="18" 
+        @click.stop="toggleSidebar"
+      >
+        <Fold v-if="!isCollapsed" />
+        <Expand v-else />
+      </el-icon>
     </div>
 
     <!-- 导航菜单 -->
@@ -22,7 +30,7 @@
         <el-icon :size="20">
           <component :is="item.icon" />
         </el-icon>
-        <span class="nav-label">{{ item.label }}</span>
+        <span v-show="!isCollapsed" class="nav-label">{{ item.label }}</span>
       </router-link>
     </nav>
 
@@ -30,11 +38,11 @@
     <div class="sidebar-footer">
       <router-link to="/dev-tools" class="nav-item" :class="{ active: isActive('/dev-tools') }">
         <el-icon :size="20"><Promotion /></el-icon>
-        <span class="nav-label">开发测试</span>
+        <span v-show="!isCollapsed" class="nav-label">开发测试</span>
       </router-link>
       <router-link to="/settings" class="nav-item" :class="{ active: isActive('/settings') }">
         <el-icon :size="20"><Setting /></el-icon>
-        <span class="nav-label">系统设置</span>
+        <span v-show="!isCollapsed" class="nav-label">系统设置</span>
       </router-link>
     </div>
   </aside>
@@ -51,8 +59,13 @@ import {
   ChatDotRound,
   Trophy,
   Setting,
-  Promotion
+  Promotion,
+  Fold,
+  Expand
 } from '@element-plus/icons-vue'
+import { useSidebar } from '@/composables/useSidebar'
+
+const { isCollapsed, toggleSidebar } = useSidebar()
 
 const route = useRoute()
 const router = useRouter()
@@ -167,5 +180,59 @@ const handleLogoClick = () => {
 .sidebar-footer {
   padding: 12px;
   border-top: 1px solid #e4e7ed;
+}
+
+.collapse-btn {
+  margin-left: auto;
+  cursor: pointer;
+  color: #909399;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #409eff;
+  }
+}
+
+// 折叠状态样式
+.app-sidebar.collapsed {
+  width: 64px;
+  transition: width 0.3s ease;
+
+  .sidebar-header {
+    padding: 0 12px;
+    justify-content: center;
+  }
+
+  .logo {
+    justify-content: center;
+  }
+
+  .collapse-btn {
+    position: absolute;
+    right: 12px;
+  }
+
+  .sidebar-nav {
+    padding: 16px 8px;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .sidebar-footer {
+    padding: 12px 8px;
+
+    .nav-item {
+      justify-content: center;
+      padding: 12px;
+    }
+  }
+}
+
+// 展开状态过渡
+.app-sidebar {
+  transition: width 0.3s ease;
 }
 </style>
