@@ -13,14 +13,33 @@
       </div>
     </div>
 
-    <!-- 综合评分卡片 -->
-    <div class="overall-score-card">
-      <div class="score-content">
-        <div class="score-value">{{ cockpitData.overallScore }}</div>
-        <div class="score-label">综合评分</div>
+    <!-- 候选人信息卡片 -->
+    <div class="candidate-info-card">
+      <div class="candidate-header">
+        <div class="candidate-avatar">
+          <img v-if="candidateInfo.avatarUrl" :src="candidateInfo.avatarUrl" alt="候选人照片" />
+          <div v-else class="avatar-placeholder">
+            <el-icon :size="28"><User /></el-icon>
+          </div>
+        </div>
+        <div class="candidate-details">
+          <div class="candidate-name">{{ candidateInfo.name || '未知候选人' }}</div>
+          <div class="candidate-position">{{ candidateInfo.position || '暂无岗位' }}</div>
+        </div>
       </div>
-      <div class="score-indicator">
-        <div class="score-ring" :style="scoreRingStyle"></div>
+      <div class="candidate-actions">
+        <div class="action-btn" @click="showBasicInfoDialog = true">
+          <el-icon :size="16"><InfoFilled /></el-icon>
+          <span>基本信息</span>
+        </div>
+        <div class="action-btn" @click="handleViewResume">
+          <el-icon :size="16"><Document /></el-icon>
+          <span>简历</span>
+        </div>
+        <div class="action-btn" @click="handleViewScreeningReport">
+          <el-icon :size="16"><DataLine /></el-icon>
+          <span>初筛报告</span>
+        </div>
       </div>
     </div>
 
@@ -132,13 +151,52 @@
         <span class="stat-label">综合评分</span>
       </div>
     </div>
+    <!-- 基本信息弹窗 -->
+    <el-dialog v-model="showBasicInfoDialog" title="候选人基本信息" width="500px">
+      <div class="basic-info-content">
+        <div class="info-row">
+          <span class="info-label">姓名：</span>
+          <span class="info-value">{{ candidateInfo.name || '未知' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">应聘岗位：</span>
+          <span class="info-value">{{ candidateInfo.position || '暂无' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">申请ID：</span>
+          <span class="info-value">{{ candidateInfo.applicationId || '-' }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showBasicInfoDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 简历详情弹窗 -->
+    <ResumeDetailDialog
+      v-model="showResumeDialog"
+      :resume="resumeDetailData"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { DataAnalysis, Refresh, Timer, TrendCharts } from '@element-plus/icons-vue'
-import type { BigFivePersonality, CockpitData, QuestionSuggestion } from '@/composables/useImmersiveInterview'
+import { ref, computed } from 'vue'
+import { DataAnalysis, Refresh, Timer, TrendCharts, User, InfoFilled, Document, DataLine } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { ResumeDetailDialog } from '@/components/common'
+import { getResume, getScreeningTask } from '@/api/sdk.gen'
+import type { CockpitData, QuestionSuggestion } from '@/composables/useImmersiveInterview'
+import type { ResumeData } from '@/types'
+
+interface CandidateInfo {
+  name: string
+  position: string
+  avatarUrl?: string
+  applicationId?: string
+  resumeId?: string
+  screeningTaskId?: string
+}
 
 interface Props {
   isAnalyzing?: boolean
@@ -151,12 +209,75 @@ interface Props {
   }
   cockpitData: CockpitData
   suggestions: QuestionSuggestion[]
+  candidateInfo: CandidateInfo
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isAnalyzing: false,
-  suggestions: () => []
+  suggestions: () => [],
+  candidateInfo: () => ({ name: '', position: '' })
 })
+
+// 弹窗状态
+const showBasicInfoDialog = ref(false)
+const showResumeDialog = ref(false)
+const resumeDetailData = ref<ResumeData | null>(null)
+
+// 查看简历
+const handleViewResume = async () => {
+  if (!props.candidateInfo.resumeId) {
+    ElMessage.warning('暂无简历信息')
+    return
+  }
+  
+  try {
+    const result = await getResume({ path: { resume_id: props.candidateInfo.resumeId } })
+    if (result.data?.data) {
+      const resume = result.data.data
+      resumeDetailData.value = {
+        id: resume.id,
+        candidate_name: resume.candidate_name,
+        position_title: props.candidateInfo.position,
+        content: resume.content,
+        resume_content: resume.content
+      }
+      showResumeDialog.value = true
+    }
+  } catch {
+    ElMessage.error('获取简历失败')
+  }
+}
+
+// 查看初筛报告
+const handleViewScreeningReport = async () => {
+  if (!props.candidateInfo.screeningTaskId) {
+    ElMessage.warning('暂无初筛报告')
+    return
+  }
+  
+  try {
+    const result = await getScreeningTask({ path: { task_id: props.candidateInfo.screeningTaskId } })
+    if (result.data?.data) {
+      const task = result.data.data
+      resumeDetailData.value = {
+        id: task.id,
+        candidate_name: task.candidate_name || props.candidateInfo.name,
+        position_title: task.position_title || props.candidateInfo.position,
+        screening_score: task.score !== null ? {
+          comprehensive_score: task.score,
+          hr_score: (task.dimension_scores?.hr_score as number) || undefined,
+          technical_score: (task.dimension_scores?.technical_score as number) || undefined,
+          manager_score: (task.dimension_scores?.manager_score as number) || undefined
+        } : undefined,
+        screening_summary: task.summary || undefined,
+        resume_content: task.resume_content || undefined
+      }
+      showResumeDialog.value = true
+    }
+  } catch {
+    ElMessage.error('获取初筛报告失败')
+  }
+}
 
 defineEmits<{
   (e: 'refresh-suggestions'): void
@@ -168,15 +289,6 @@ const typeLabels: Record<string, string> = {
   alternative: '备选',
   probe: '深挖'
 }
-
-const scoreRingStyle = computed(() => {
-  const score = props.cockpitData.overallScore
-  const percentage = score / 100
-  const color = score >= 80 ? '#10b981' : score >= 60 ? '#667eea' : '#f59e0b'
-  return {
-    background: `conic-gradient(${color} ${percentage * 360}deg, #e5e7eb ${percentage * 360}deg)`
-  }
-})
 
 const deceptionLevelClass = computed(() => {
   const score = props.cockpitData.deceptionScore
@@ -227,47 +339,130 @@ const formatTime = (seconds: number) => {
   }
 }
 
-// 综合评分卡片
-.overall-score-card {
+// 候选人信息卡片
+.candidate-info-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 16px;
   color: white;
   
-  .score-content {
-    .score-value {
-      font-size: 48px;
-      font-weight: 700;
-      line-height: 1;
+  .candidate-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .candidate-avatar {
+    flex-shrink: 0;
+    
+    img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.3);
     }
     
-    .score-label {
-      font-size: 14px;
-      opacity: 0.9;
-      margin-top: 4px;
+    .avatar-placeholder {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      
+      .el-icon {
+        color: rgba(255, 255, 255, 0.8);
+      }
     }
   }
   
-  .score-indicator {
-    .score-ring {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      position: relative;
+  .candidate-details {
+    flex: 1;
+    min-width: 0;
+    
+    .candidate-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .candidate-position {
+      font-size: 12px;
+      opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  
+  .candidate-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    
+    .action-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
       
-      &::after {
-        content: '';
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        right: 8px;
-        bottom: 8px;
-        background: white;
-        border-radius: 50%;
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
       }
+      
+      .el-icon {
+        opacity: 0.9;
+      }
+      
+      span {
+        font-size: 11px;
+        opacity: 0.9;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+// 基本信息弹窗
+.basic-info-content {
+  .info-row {
+    display: flex;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      width: 100px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    .info-value {
+      flex: 1;
+      color: #1a1a2e;
+      font-size: 14px;
+      font-weight: 500;
     }
   }
 }

@@ -183,6 +183,7 @@
               :stats="stats"
               :cockpit-data="cockpitData"
               :suggestions="suggestions"
+              :candidate-info="candidateInfo"
               @refresh-suggestions="handleFetchSuggestions"
               @use-suggestion="handleUseSuggestion"
             />
@@ -258,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Setting,
@@ -335,6 +336,8 @@ const applications = ref<Array<{
   id: string
   candidate_name: string
   position_title: string
+  resume_id?: string
+  screening_task_id?: string
 }>>([])
 const isLoadingCandidates = ref(false)
 const showReportDialog = ref(false)
@@ -348,9 +351,11 @@ const fetchApplications = async () => {
     const result = await response.json()
     if (result.success && result.data?.items) {
       applications.value = result.data.items.map((item: Record<string, unknown>) => ({
-        id: item.id,
-        candidate_name: item.candidate_name || '未知',
-        position_title: item.position_title || '未知岗位'
+        id: item.id as string,
+        candidate_name: (item.candidate_name as string) || '未知',
+        position_title: (item.position_title as string) || '未知岗位',
+        resume_id: (item.resume as Record<string, unknown>)?.id as string || undefined,
+        screening_task_id: (item.screening_task as Record<string, unknown>)?.id as string || undefined
       }))
     }
   } catch (error) {
@@ -360,6 +365,18 @@ const fetchApplications = async () => {
     isLoadingCandidates.value = false
   }
 }
+
+// 候选人信息计算属性
+const candidateInfo = computed(() => {
+  const selectedApp = applications.value.find(app => app.id === selectedApplicationId.value)
+  return {
+    name: session.value?.candidate_name || selectedApp?.candidate_name || '',
+    position: session.value?.position_title || selectedApp?.position_title || '',
+    applicationId: selectedApplicationId.value,
+    resumeId: selectedApp?.resume_id,
+    screeningTaskId: selectedApp?.screening_task_id
+  }
+})
 
 // 创建会话
 const handleCreateSession = async () => {
