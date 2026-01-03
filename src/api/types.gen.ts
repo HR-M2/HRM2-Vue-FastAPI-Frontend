@@ -3932,8 +3932,10 @@ export type HealthCheckResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: DictResponse;
 };
+
+export type HealthCheckResponse = HealthCheckResponses[keyof HealthCheckResponses];
 
 export type RootData = {
     body?: never;
@@ -3946,5 +3948,7 @@ export type RootResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: DictResponse;
 };
+
+export type RootResponse = RootResponses[keyof RootResponses];

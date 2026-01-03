@@ -12,7 +12,9 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "api:gen": "openapi-ts"
+    "api:gen": "openapi-ts",
+    "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -40,6 +42,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.1.11",
     "vite-plugin-vue-devtools": "^8.0.3",
+    "vitest": "^4.0.16",
     "vue-tsc": "^3.1.1"
   }
 }
