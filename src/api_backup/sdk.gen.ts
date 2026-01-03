@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AiComprehensiveAnalysisData, AiComprehensiveAnalysisErrors, AiComprehensiveAnalysisResponses, AiGenerateAdaptiveQuestionsData, AiGenerateAdaptiveQuestionsErrors, AiGenerateAdaptiveQuestionsResponses, AiGenerateInitialQuestionsData, AiGenerateInitialQuestionsErrors, AiGenerateInitialQuestionsResponses, AiGeneratePositionData, AiGeneratePositionErrors, AiGeneratePositionResponses, AiGenerateReportData, AiGenerateReportErrors, AiGenerateReportResponses, AiSimulateCandidateAnswerData, AiSimulateCandidateAnswerErrors, AiSimulateCandidateAnswerResponses, BatchDeleteResumesData, BatchDeleteResumesErrors, BatchDeleteResumesResponses, CheckHashData, CheckHashErrors, CheckHashesData, CheckHashesErrors, CheckHashesResponses, CheckHashResponses, CompleteSessionData, CompleteSessionErrors, CompleteSessionResponses, CreateAnalysisData, CreateAnalysisErrors, CreateAnalysisResponses, CreateApplicationData, CreateApplicationErrors, CreateApplicationResponses, CreateInterviewSessionData, CreateInterviewSessionErrors, CreateInterviewSessionResponses, CreatePositionData, CreatePositionErrors, CreatePositionResponses, CreateResumeData, CreateResumeErrors, CreateResumeResponses, CreateScreeningTaskData, CreateScreeningTaskErrors, CreateScreeningTaskResponses, CreateVideoAnalysisData, CreateVideoAnalysisErrors, CreateVideoAnalysisResponses, DeleteAnalysisData, DeleteAnalysisErrors, DeleteAnalysisResponses, DeleteApplicationData, DeleteApplicationErrors, DeleteApplicationResponses, DeleteInterviewSessionData, DeleteInterviewSessionErrors, DeleteInterviewSessionResponses, DeletePositionData, DeletePositionErrors, DeletePositionResponses, DeleteResumeData, DeleteResumeErrors, DeleteResumeResponses, DeleteScreeningTaskData, DeleteScreeningTaskErrors, DeleteScreeningTaskResponses, DeleteVideoAnalysisData, DeleteVideoAnalysisErrors, DeleteVideoAnalysisResponses, DownloadScreeningReportData, DownloadScreeningReportErrors, DownloadScreeningReportResponses, GenerateQuestionsData, GenerateQuestionsErrors, GenerateQuestionsResponses, GenerateRandomResumeData, GenerateRandomResumeErrors, GenerateRandomResumeResponses, GetAiStatusData, GetAiStatusResponses, GetAnalysesData, GetAnalysesErrors, GetAnalysesResponses, GetAnalysisData, GetAnalysisErrors, GetAnalysisResponses, GetApplicationData, GetApplicationErrors, GetApplicationResponses, GetApplicationsData, GetApplicationsErrors, GetApplicationsResponses, GetInterviewSessionData, GetInterviewSessionErrors, GetInterviewSessionResponses, GetInterviewSessionsData, GetInterviewSessionsErrors, GetInterviewSessionsResponses, GetPositionData, GetPositionErrors, GetPositionResponses, GetPositionsData, GetPositionsErrors, GetPositionsResponses, GetResumeData, GetResumeErrors, GetResumeResponses, GetResumesData, GetResumesErrors, GetResumesResponses, GetScreeningStatusData, GetScreeningStatusErrors, GetScreeningStatusResponses, GetScreeningTaskData, GetScreeningTaskErrors, GetScreeningTaskResponses, GetScreeningTasksData, GetScreeningTasksErrors, GetScreeningTasksResponses, GetStatsOverviewData, GetStatsOverviewResponses, GetVideoAnalysesData, GetVideoAnalysesErrors, GetVideoAnalysesResponses, GetVideoAnalysisData, GetVideoAnalysisErrors, GetVideoAnalysisResponses, GetVideoStatusData, GetVideoStatusErrors, GetVideoStatusResponses, HealthCheckData, HealthCheckResponses, RootData, RootResponses, StartAiScreeningData, StartAiScreeningErrors, StartAiScreeningResponses, SyncMessagesData, SyncMessagesErrors, SyncMessagesResponses, UpdateApplicationData, UpdateApplicationErrors, UpdateApplicationResponses, UpdatePositionData, UpdatePositionErrors, UpdatePositionResponses, UpdateResumeData, UpdateResumeErrors, UpdateResumeResponses, UpdateScreeningResultData, UpdateScreeningResultErrors, UpdateScreeningResultResponses, UpdateVideoResultData, UpdateVideoResultErrors, UpdateVideoResultResponses } from './types.gen';
+import type { AiComprehensiveAnalysisData, AiComprehensiveAnalysisErrors, AiComprehensiveAnalysisResponses, AiEvaluateAnswerData, AiEvaluateAnswerErrors, AiEvaluateAnswerResponses, AiGenerateAdaptiveQuestionsData, AiGenerateAdaptiveQuestionsErrors, AiGenerateAdaptiveQuestionsResponses, AiGenerateInitialQuestionsData, AiGenerateInitialQuestionsErrors, AiGenerateInitialQuestionsResponses, AiGeneratePositionData, AiGeneratePositionErrors, AiGeneratePositionResponses, AiGenerateReportData, AiGenerateReportErrors, AiGenerateReportResponses, AiSimulateCandidateAnswerData, AiSimulateCandidateAnswerErrors, AiSimulateCandidateAnswerResponses, BatchDeleteResumesData, BatchDeleteResumesErrors, BatchDeleteResumesResponses, CheckHashData, CheckHashErrors, CheckHashesData, CheckHashesErrors, CheckHashesResponses, CheckHashResponses, CompleteSessionData, CompleteSessionErrors, CompleteSessionResponses, CreateAnalysisData, CreateAnalysisErrors, CreateAnalysisResponses, CreateApplicationData, CreateApplicationErrors, CreateApplicationResponses, CreateInterviewSessionData, CreateInterviewSessionErrors, CreateInterviewSessionResponses, CreatePositionData, CreatePositionErrors, CreatePositionResponses, CreateResumeData, CreateResumeErrors, CreateResumeResponses, CreateScreeningTaskData, CreateScreeningTaskErrors, CreateScreeningTaskResponses, CreateVideoAnalysisData, CreateVideoAnalysisErrors, CreateVideoAnalysisResponses, DeleteAnalysisData, DeleteAnalysisErrors, DeleteAnalysisResponses, DeleteApplicationData, DeleteApplicationErrors, DeleteApplicationResponses, DeleteInterviewSessionData, DeleteInterviewSessionErrors, DeleteInterviewSessionResponses, DeletePositionData, DeletePositionErrors, DeletePositionResponses, DeleteResumeData, DeleteResumeErrors, DeleteResumeResponses, DeleteScreeningTaskData, DeleteScreeningTaskErrors, DeleteScreeningTaskResponses, DeleteVideoAnalysisData, DeleteVideoAnalysisErrors, DeleteVideoAnalysisResponses, DownloadScreeningReportData, DownloadScreeningReportErrors, DownloadScreeningReportResponses, GenerateQuestionsData, GenerateQuestionsErrors, GenerateQuestionsResponses, GenerateRandomResumeData, GenerateRandomResumeErrors, GenerateRandomResumeResponses, GetAiStatusData, GetAiStatusResponses, GetAnalysesData, GetAnalysesErrors, GetAnalysesResponses, GetAnalysisData, GetAnalysisErrors, GetAnalysisResponses, GetApplicationData, GetApplicationErrors, GetApplicationResponses, GetApplicationsData, GetApplicationsErrors, GetApplicationsResponses, GetInterviewSessionData, GetInterviewSessionErrors, GetInterviewSessionResponses, GetInterviewSessionsData, GetInterviewSessionsErrors, GetInterviewSessionsResponses, GetPositionData, GetPositionErrors, GetPositionResponses, GetPositionsData, GetPositionsErrors, GetPositionsResponses, GetResumeData, GetResumeErrors, GetResumeResponses, GetResumesData, GetResumesErrors, GetResumesResponses, GetScreeningStatusData, GetScreeningStatusErrors, GetScreeningStatusResponses, GetScreeningTaskData, GetScreeningTaskErrors, GetScreeningTaskResponses, GetScreeningTasksData, GetScreeningTasksErrors, GetScreeningTasksResponses, GetStatsOverviewData, GetStatsOverviewResponses, GetVideoAnalysesData, GetVideoAnalysesErrors, GetVideoAnalysesResponses, GetVideoAnalysisData, GetVideoAnalysisErrors, GetVideoAnalysisResponses, GetVideoStatusData, GetVideoStatusErrors, GetVideoStatusResponses, HealthCheckData, HealthCheckResponses, RootData, RootResponses, StartAiScreeningData, StartAiScreeningErrors, StartAiScreeningResponses, SyncMessagesData, SyncMessagesErrors, SyncMessagesResponses, UpdateApplicationData, UpdateApplicationErrors, UpdateApplicationResponses, UpdatePositionData, UpdatePositionErrors, UpdatePositionResponses, UpdateResumeData, UpdateResumeErrors, UpdateResumeResponses, UpdateScreeningResultData, UpdateScreeningResultErrors, UpdateScreeningResultResponses, UpdateVideoResultData, UpdateVideoResultErrors, UpdateVideoResultResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -175,13 +175,6 @@ export const createApplication = <ThrowOnError extends boolean = false>(options:
 });
 
 /**
- * 获取申请统计概览
- *
- * 获取申请统计概览
- */
-export const getStatsOverview = <ThrowOnError extends boolean = false>(options?: Options<GetStatsOverviewData, ThrowOnError>) => (options?.client ?? client).get<GetStatsOverviewResponses, unknown, ThrowOnError>({ url: '/api/v1/applications/stats/overview', ...options });
-
-/**
  * 删除应聘申请
  *
  * 删除应聘申请（软删除，保留关联的筛选/分析数据）
@@ -208,6 +201,13 @@ export const updateApplication = <ThrowOnError extends boolean = false>(options:
         ...options.headers
     }
 });
+
+/**
+ * 获取申请统计概览
+ *
+ * 获取申请统计概览
+ */
+export const getStatsOverview = <ThrowOnError extends boolean = false>(options?: Options<GetStatsOverviewData, ThrowOnError>) => (options?.client ?? client).get<GetStatsOverviewResponses, unknown, ThrowOnError>({ url: '/api/v1/applications/stats/overview', ...options });
 
 /**
  * 获取筛选任务列表
@@ -494,6 +494,25 @@ export const startAiScreening = <ThrowOnError extends boolean = false>(options: 
  */
 export const aiGenerateInitialQuestions = <ThrowOnError extends boolean = false>(options: Options<AiGenerateInitialQuestionsData, ThrowOnError>) => (options.client ?? client).post<AiGenerateInitialQuestionsResponses, AiGenerateInitialQuestionsErrors, ThrowOnError>({
     url: '/api/v1/ai/interview/initial-questions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * AI评估回答
+ *
+ * AI评估候选人的回答质量
+ *
+ * 返回多维度评分：
+ * - 技术深度、实践经验、回答具体性
+ * - 逻辑清晰度、诚实度、沟通能力
+ * - 是否需要追问及建议
+ */
+export const aiEvaluateAnswer = <ThrowOnError extends boolean = false>(options: Options<AiEvaluateAnswerData, ThrowOnError>) => (options.client ?? client).post<AiEvaluateAnswerResponses, AiEvaluateAnswerErrors, ThrowOnError>({
+    url: '/api/v1/ai/interview/evaluate',
     ...options,
     headers: {
         'Content-Type': 'application/json',
