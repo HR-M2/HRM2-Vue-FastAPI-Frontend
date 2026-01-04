@@ -14,7 +14,8 @@
     "type-check": "vue-tsc --build",
     "api:gen": "openapi-ts",
     "test": "vitest run",
-    "test:e2e": "vitest run --config vitest.e2e.config.ts"
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:ai": "vitest run --config vitest.ai.config.ts"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
