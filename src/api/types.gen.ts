@@ -5,38 +5,6 @@ export type ClientOptions = {
 };
 
 /**
- * AnswerEvaluateRequest
- *
- * 回答评估请求
- */
-export type AnswerEvaluateRequest = {
-    /**
-     * Question
-     *
-     * 面试问题
-     */
-    question: string;
-    /**
-     * Answer
-     *
-     * 候选人回答
-     */
-    answer: string;
-    /**
-     * Target Skills
-     *
-     * 目标技能
-     */
-    target_skills?: Array<string> | null;
-    /**
-     * Difficulty
-     *
-     * 问题难度
-     */
-    difficulty?: number;
-};
-
-/**
  * ApplicationCreate
  *
  * 创建应聘申请请求
@@ -402,8 +370,6 @@ export type ComprehensiveAnalysisResponse = {
     suggested_action: string | null;
     /**
      * Dimension Scores
-     *
-     * 各维度评分，key为维度ID
      */
     dimension_scores?: {
         [key: string]: DimensionScoreItem;
@@ -458,8 +424,6 @@ export type DictResponse = {
  * DimensionScoreItem
  *
  * 单个维度评分项
- *
- * 基于 evaluation_agents.py 中 _evaluate_dimension 方法的实际输出结构
  */
 export type DimensionScoreItem = {
     /**
@@ -735,6 +699,10 @@ export type InterviewSessionResponse = {
      */
     message_count?: number;
     /**
+     * Has Report
+     */
+    has_report?: boolean;
+    /**
      * Candidate Name
      */
     candidate_name?: string | null;
@@ -770,6 +738,8 @@ export type MessageResponse = {
 
 /**
  * MessagesSyncRequest
+ *
+ * 同步消息请求
  */
 export type MessagesSyncRequest = {
     /**
@@ -1254,13 +1224,13 @@ export type PositionCreate = {
      *
      * 必备技能
      */
-    required_skills?: Array<string> | null;
+    required_skills?: Array<string>;
     /**
      * Optional Skills
      *
      * 可选技能
      */
-    optional_skills?: Array<string> | null;
+    optional_skills?: Array<string>;
     /**
      * Min Experience
      *
@@ -1272,7 +1242,7 @@ export type PositionCreate = {
      *
      * 学历要求
      */
-    education?: Array<string> | null;
+    education?: Array<string>;
     /**
      * Salary Min
      *
@@ -1348,7 +1318,7 @@ export type PositionListResponse = {
 /**
  * PositionResponse
  *
- * 岗位响应
+ * 岗位详情响应
  */
 export type PositionResponse = {
     /**
@@ -1414,7 +1384,7 @@ export type PositionResponse = {
 /**
  * PositionUpdate
  *
- * 更新岗位请求
+ * 更新岗位请求 - 所有字段可选
  */
 export type PositionUpdate = {
     /**
@@ -1493,6 +1463,8 @@ export type QaMessage = {
 
 /**
  * QAMessageCreate
+ *
+ * 创建问答消息
  */
 export type QaMessageCreate = {
     /**
@@ -1841,7 +1813,7 @@ export type ResumeListResponse = {
 /**
  * ResumeResponse
  *
- * 简历响应
+ * 简历详情响应
  */
 export type ResumeResponse = {
     /**
@@ -1983,9 +1955,7 @@ export type ScreeningResultUpdate = {
 /**
  * ScreeningScore
  *
- * 筛选评分
- *
- * 包含综合评分和各维度评分
+ * 筛选评分详情
  */
 export type ScreeningScore = {
     /**
@@ -2100,9 +2070,6 @@ export type ScreeningTaskResponse = {
      * Score
      */
     score: number | null;
-    /**
-     * 各维度评分
-     */
     dimension_scores?: ScreeningScore | null;
     /**
      * Summary
@@ -2341,56 +2308,38 @@ export type VideoResultUpdate = {
     error_message?: string | null;
     /**
      * Openness
-     *
-     * 开放性
      */
     openness?: number | null;
     /**
      * Conscientiousness
-     *
-     * 尽责性
      */
     conscientiousness?: number | null;
     /**
      * Extraversion
-     *
-     * 外向性
      */
     extraversion?: number | null;
     /**
      * Agreeableness
-     *
-     * 宜人性
      */
     agreeableness?: number | null;
     /**
      * Neuroticism
-     *
-     * 神经质
      */
     neuroticism?: number | null;
     /**
      * Confidence Score
-     *
-     * 置信度
      */
     confidence_score?: number | null;
     /**
      * Fraud Score
-     *
-     * 欺诈风险
      */
     fraud_score?: number | null;
     /**
      * Summary
-     *
-     * 分析摘要
      */
     summary?: string | null;
     /**
      * Raw Result
-     *
-     * 原始结果
      */
     raw_result?: {
         [key: string]: unknown;
@@ -2878,6 +2827,22 @@ export type CreateApplicationResponses = {
 
 export type CreateApplicationResponse = CreateApplicationResponses[keyof CreateApplicationResponses];
 
+export type GetStatsOverviewData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/applications/stats/overview';
+};
+
+export type GetStatsOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type GetStatsOverviewResponse = GetStatsOverviewResponses[keyof GetStatsOverviewResponses];
+
 export type DeleteApplicationData = {
     body?: never;
     path: {
@@ -2967,22 +2932,6 @@ export type UpdateApplicationResponses = {
 };
 
 export type UpdateApplicationResponse = UpdateApplicationResponses[keyof UpdateApplicationResponses];
-
-export type GetStatsOverviewData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/applications/stats/overview';
-};
-
-export type GetStatsOverviewResponses = {
-    /**
-     * Successful Response
-     */
-    200: DictResponse;
-};
-
-export type GetStatsOverviewResponse = GetStatsOverviewResponses[keyof GetStatsOverviewResponses];
 
 export type GetScreeningTasksData = {
     body?: never;
@@ -3847,31 +3796,6 @@ export type AiGenerateInitialQuestionsResponses = {
 
 export type AiGenerateInitialQuestionsResponse = AiGenerateInitialQuestionsResponses[keyof AiGenerateInitialQuestionsResponses];
 
-export type AiEvaluateAnswerData = {
-    body: AnswerEvaluateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/ai/interview/evaluate';
-};
-
-export type AiEvaluateAnswerErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AiEvaluateAnswerError = AiEvaluateAnswerErrors[keyof AiEvaluateAnswerErrors];
-
-export type AiEvaluateAnswerResponses = {
-    /**
-     * Successful Response
-     */
-    200: DictResponse;
-};
-
-export type AiEvaluateAnswerResponse = AiEvaluateAnswerResponses[keyof AiEvaluateAnswerResponses];
-
 export type AiGenerateAdaptiveQuestionsData = {
     body: CandidateQuestionsRequest;
     path?: never;
@@ -4008,8 +3932,10 @@ export type HealthCheckResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: DictResponse;
 };
+
+export type HealthCheckResponse = HealthCheckResponses[keyof HealthCheckResponses];
 
 export type RootData = {
     body?: never;
@@ -4022,5 +3948,7 @@ export type RootResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: DictResponse;
 };
+
+export type RootResponse = RootResponses[keyof RootResponses];

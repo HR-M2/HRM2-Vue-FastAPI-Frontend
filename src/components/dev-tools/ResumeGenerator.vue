@@ -87,7 +87,7 @@
           {{ generating ? '生成中...' : '开始生成' }}
         </el-button>
         <span v-if="generating" class="generating-hint">
-          正在批量生成 {{ formData.count }} 份简历，每份约需 3-5 秒...
+          正在批量生成 {{ formData.count }} 份简历，每份约需 30-50 秒...
         </span>
       </el-form-item>
     </el-form>
