@@ -57,6 +57,7 @@
       </div>
     </div>
     <template #footer>
+      <el-button v-if="screeningTaskId" @click="handleEdit">编辑报告</el-button>
       <el-button @click="visible = false">关闭</el-button>
     </template>
   </el-dialog>
@@ -70,10 +71,12 @@ import type { ResumeData } from '@/types'
 const props = defineProps<{
   modelValue: boolean
   resume: ResumeData | null
+  screeningTaskId?: string
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
+  'edit': [taskId: string]
 }>()
 
 const { renderMarkdown } = useScreeningUtils()
@@ -87,6 +90,12 @@ watch(() => props.modelValue, (val) => {
 watch(visible, (val) => {
   emit('update:modelValue', val)
 })
+
+const handleEdit = () => {
+  if (props.screeningTaskId) {
+    emit('edit', props.screeningTaskId)
+  }
+}
 </script>
 
 <style scoped lang="scss">
