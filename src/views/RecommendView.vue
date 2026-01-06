@@ -162,11 +162,11 @@
             <div v-for="(exp, index) in selectedInterviewReport.applied_experiences" :key="index" class="experience-item">
               <div class="experience-rule">
                 <el-icon><Promotion /></el-icon>
-                <span>{{ (exp as Record<string, unknown>).learned_rule }}</span>
+                <span>{{ exp.learned_rule }}</span>
               </div>
               <div class="experience-source">
                 <span class="source-label">来源反馈：</span>
-                <span class="source-text">{{ (exp as Record<string, unknown>).source_feedback }}</span>
+                <span class="source-text">{{ exp.source_feedback }}</span>
               </div>
             </div>
           </div>
@@ -585,12 +585,7 @@ const viewScreeningReport = async (app: ApplicationDetailResponse) => {
       detailData.resume_content = task.resume_content || undefined
       // 提取引用的经验
       if (task.applied_experiences && task.applied_experiences.length > 0) {
-        detailData.applied_experiences = task.applied_experiences.map((exp: Record<string, unknown>) => ({
-          id: exp.id as string,
-          learned_rule: exp.learned_rule as string,
-          source_feedback: exp.source_feedback as string,
-          category: exp.category as string
-        }))
+        detailData.applied_experiences = task.applied_experiences
       }
     }
     

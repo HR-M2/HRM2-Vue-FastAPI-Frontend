@@ -823,9 +823,7 @@ export type InterviewSessionResponse = {
     /**
      * Applied Experiences
      */
-    applied_experiences?: Array<{
-        [key: string]: unknown;
-    }> | null;
+    applied_experiences?: Array<AppModelsInterviewAppliedExperienceItem> | null;
 };
 
 /**
@@ -2291,9 +2289,7 @@ export type ScreeningTaskResponse = {
     /**
      * Applied Experiences
      */
-    applied_experiences?: Array<{
-        [key: string]: unknown;
-    }> | null;
+    applied_experiences?: Array<AppModelsInterviewAppliedExperienceItem> | null;
 };
 
 /**
@@ -2539,6 +2535,38 @@ export type VideoResultUpdate = {
     raw_result?: {
         [key: string]: unknown;
     } | null;
+};
+
+/**
+ * AppliedExperienceItem
+ *
+ * 引用的经验详情（用于 API 响应）
+ */
+export type AppModelsInterviewAppliedExperienceItem = {
+    /**
+     * Id
+     *
+     * 经验 ID
+     */
+    id: string;
+    /**
+     * Learned Rule
+     *
+     * AI 提炼的规则
+     */
+    learned_rule: string;
+    /**
+     * Source Feedback
+     *
+     * HR 原始反馈
+     */
+    source_feedback: string;
+    /**
+     * Category
+     *
+     * 经验类别
+     */
+    category: string;
 };
 
 export type GetPositionsData = {

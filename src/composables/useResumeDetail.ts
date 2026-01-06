@@ -72,12 +72,7 @@ export function useResumeDetail() {
           }
           // 提取引用的经验
           if (detail.applied_experiences && detail.applied_experiences.length > 0) {
-            resumeData.applied_experiences = detail.applied_experiences.map((exp: Record<string, unknown>) => ({
-              id: exp.id as string,
-              learned_rule: exp.learned_rule as string,
-              source_feedback: exp.source_feedback as string,
-              category: exp.category as string
-            }))
+            resumeData.applied_experiences = detail.applied_experiences
           }
         }
       } catch (err) {
@@ -135,12 +130,7 @@ export function useResumeDetail() {
         }
         // 提取引用的经验
         if (detail.applied_experiences && detail.applied_experiences.length > 0) {
-          resumeData.applied_experiences = detail.applied_experiences.map((exp: Record<string, unknown>) => ({
-            id: exp.id as string,
-            learned_rule: exp.learned_rule as string,
-            source_feedback: exp.source_feedback as string,
-            category: exp.category as string
-          }))
+          resumeData.applied_experiences = detail.applied_experiences
         }
       }
     } catch (err) {
