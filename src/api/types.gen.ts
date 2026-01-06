@@ -4178,6 +4178,36 @@ export type SubmitFeedbackResponses = {
 
 export type SubmitFeedbackResponse = SubmitFeedbackResponses[keyof SubmitFeedbackResponses];
 
+export type DeleteAllExperiencesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Category
+         *
+         * 按类别清空，不填则清空全部
+         */
+        category?: string | null;
+    };
+    url: '/api/v1/feedback/experiences';
+};
+
+export type DeleteAllExperiencesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteAllExperiencesError = DeleteAllExperiencesErrors[keyof DeleteAllExperiencesErrors];
+
+export type DeleteAllExperiencesResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type GetExperiencesData = {
     body?: never;
     path?: never;
@@ -4202,6 +4232,76 @@ export type GetExperiencesErrors = {
 export type GetExperiencesError = GetExperiencesErrors[keyof GetExperiencesErrors];
 
 export type GetExperiencesResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CreateExperienceData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Category
+         *
+         * 类别: screening/interview/analysis
+         */
+        category: string;
+        /**
+         * Learned Rule
+         *
+         * 经验规则
+         */
+        learned_rule: string;
+        /**
+         * Context Summary
+         *
+         * 上下文摘要
+         */
+        context_summary?: string;
+    };
+    url: '/api/v1/feedback/experiences';
+};
+
+export type CreateExperienceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateExperienceError = CreateExperienceErrors[keyof CreateExperienceErrors];
+
+export type CreateExperienceResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type DeleteExperienceData = {
+    body?: never;
+    path: {
+        /**
+         * Experience Id
+         */
+        experience_id: string;
+    };
+    query?: never;
+    url: '/api/v1/feedback/experiences/{experience_id}';
+};
+
+export type DeleteExperienceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteExperienceError = DeleteExperienceErrors[keyof DeleteExperienceErrors];
+
+export type DeleteExperienceResponses = {
     /**
      * Successful Response
      */

@@ -30,6 +30,9 @@
       <!-- 随机简历生成器 -->
       <ResumeGenerator />
 
+      <!-- 经验库管理工具 -->
+      <ExperienceManager />
+
       <!-- 预留更多工具位置 -->
       <el-card class="tool-placeholder" shadow="hover">
         <template #header>
@@ -48,7 +51,7 @@
 
 <script setup lang="ts">
 import { Promotion, Warning, Plus } from '@element-plus/icons-vue'
-import { ResumeGenerator } from '@/components/dev-tools'
+import { ResumeGenerator, ExperienceManager } from '@/components/dev-tools'
 </script>
 
 <style scoped lang="scss">
