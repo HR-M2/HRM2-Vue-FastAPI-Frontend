@@ -527,6 +527,58 @@ export type DimensionScoreItem = {
 };
 
 /**
+ * FeedbackRequest
+ *
+ * HR 反馈请求
+ */
+export type FeedbackRequest = {
+    /**
+     * Category
+     *
+     * 报告类别: screening/interview/analysis
+     */
+    category: string;
+    /**
+     * Target Id
+     *
+     * 目标 ID (task_id/session_id/analysis_id)
+     */
+    target_id: string;
+    /**
+     * Feedback
+     *
+     * HR 反馈内容
+     */
+    feedback: string;
+};
+
+/**
+ * FeedbackResponse
+ *
+ * 反馈处理响应
+ */
+export type FeedbackResponse = {
+    /**
+     * Learned Rule
+     *
+     * 提炼的经验规则
+     */
+    learned_rule: string;
+    /**
+     * New Report
+     *
+     * 重新生成的报告内容
+     */
+    new_report?: string | null;
+    /**
+     * Experience Id
+     *
+     * 存储的经验 ID
+     */
+    experience_id: string;
+};
+
+/**
  * FinalReportRequest
  *
  * 最终报告生成请求
@@ -1688,6 +1740,25 @@ export type ResponseModelComprehensiveAnalysisResponse = {
      */
     message?: string;
     data?: ComprehensiveAnalysisResponse | null;
+};
+
+/**
+ * ResponseModel[FeedbackResponse]
+ */
+export type ResponseModelFeedbackResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Code
+     */
+    code?: number;
+    /**
+     * Message
+     */
+    message?: string;
+    data?: FeedbackResponse | null;
 };
 
 /**
@@ -4074,6 +4145,68 @@ export type GenerateRandomResumeResponses = {
 };
 
 export type GenerateRandomResumeResponse = GenerateRandomResumeResponses[keyof GenerateRandomResumeResponses];
+
+export type SubmitFeedbackData = {
+    body: FeedbackRequest;
+    path?: never;
+    query?: {
+        /**
+         * Regenerate
+         *
+         * 是否重新生成报告
+         */
+        regenerate?: boolean;
+    };
+    url: '/api/v1/feedback';
+};
+
+export type SubmitFeedbackErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SubmitFeedbackError = SubmitFeedbackErrors[keyof SubmitFeedbackErrors];
+
+export type SubmitFeedbackResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeedbackResponse;
+};
+
+export type SubmitFeedbackResponse = SubmitFeedbackResponses[keyof SubmitFeedbackResponses];
+
+export type GetExperiencesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Category
+         *
+         * 按类别筛选
+         */
+        category?: string | null;
+    };
+    url: '/api/v1/feedback/experiences';
+};
+
+export type GetExperiencesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetExperiencesError = GetExperiencesErrors[keyof GetExperiencesErrors];
+
+export type GetExperiencesResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type HealthCheckData = {
     body?: never;

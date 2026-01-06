@@ -199,6 +199,33 @@
           />
         </el-form-item>
       </template>
+
+      <!-- AI 反馈区域（screening/interview/analysis 支持） -->
+      <template v-if="reportType !== 'video'">
+        <el-divider>🤖 AI 智能调整</el-divider>
+        <div class="ai-feedback-section">
+          <el-form-item label="指导 AI 调整报告">
+            <el-input
+              v-model="feedbackText"
+              type="textarea"
+              :rows="3"
+              placeholder="输入您对这份报告的反馈，AI 将学习并重新生成（例如：这个候选人虽然年限短但名校毕业应该加分）"
+            />
+          </el-form-item>
+          <el-button 
+            type="success" 
+            :loading="aiProcessing" 
+            :disabled="!feedbackText.trim()"
+            @click="handleAiFeedback"
+          >
+            <el-icon><MagicStick /></el-icon>
+            让 AI 重新评估
+          </el-button>
+          <span v-if="lastLearnedRule" class="learned-rule-hint">
+            ✅ 已学到：{{ lastLearnedRule }}
+          </span>
+        </div>
+      </template>
     </el-form>
 
     <template #footer>
@@ -213,11 +240,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { MagicStick } from '@element-plus/icons-vue'
 import { 
   updateScreeningResult,
   updateVideoResult,
   updateInterviewSession,
-  updateAnalysis
+  updateAnalysis,
+  submitFeedback
 } from '@/api/sdk.gen'
 
 export type ReportType = 'screening' | 'video' | 'interview' | 'analysis'
@@ -254,6 +283,9 @@ const visible = ref(props.modelValue)
 const saving = ref(false)
 const formData = ref<Record<string, unknown>>({})
 const screeningDimensionScores = ref<ScreeningDimensionScores>({})
+const feedbackText = ref('')
+const aiProcessing = ref(false)
+const lastLearnedRule = ref('')
 
 const dialogTitle = computed(() => {
   const titles: Record<ReportType, string> = {
@@ -287,8 +319,10 @@ watch(() => props.modelValue, (val) => {
       const dims = formData.value.dimension_scores as Record<string, DimensionScore>
       for (const key in dims) {
         const dim = dims[key]
-        dim.strengths_text = dim.strengths?.join('、') || ''
-        dim.weaknesses_text = dim.weaknesses?.join('、') || ''
+        if (dim) {
+          dim.strengths_text = dim.strengths?.join('、') || ''
+          dim.weaknesses_text = dim.weaknesses?.join('、') || ''
+        }
       }
     }
   }
@@ -379,11 +413,14 @@ const handleSave = async () => {
         if (formData.value.dimension_scores) {
           const dims = formData.value.dimension_scores as Record<string, DimensionScore>
           for (const key in dims) {
-            parseStrengths(dims[key])
-            parseWeaknesses(dims[key])
-            // 清除临时文本字段
-            delete dims[key].strengths_text
-            delete dims[key].weaknesses_text
+            const dim = dims[key]
+            if (dim) {
+              parseStrengths(dim)
+              parseWeaknesses(dim)
+              // 清除临时文本字段
+              delete dim.strengths_text
+              delete dim.weaknesses_text
+            }
           }
         }
         response = await updateAnalysis({
@@ -410,6 +447,64 @@ const handleSave = async () => {
     ElMessage.error('保存报告失败，请重试')
   } finally {
     saving.value = false
+  }
+}
+
+// AI 反馈处理
+const handleAiFeedback = async () => {
+  if (!feedbackText.value.trim() || !props.reportId) return
+  
+  aiProcessing.value = true
+  lastLearnedRule.value = ''
+  
+  try {
+    // 映射 reportType 到 API category
+    const categoryMap: Record<string, string> = {
+      screening: 'screening',
+      interview: 'interview',
+      analysis: 'analysis'
+    }
+    const category = categoryMap[props.reportType]
+    if (!category) {
+      ElMessage.warning('该报告类型不支持 AI 反馈')
+      return
+    }
+    
+    const response = await submitFeedback({
+      body: {
+        category,
+        target_id: props.reportId,
+        feedback: feedbackText.value.trim()
+      }
+    })
+    
+    if (response?.data?.success && response.data.data) {
+      const result = response.data.data
+      lastLearnedRule.value = result.learned_rule || ''
+      
+      // 如果返回了新报告，更新表单数据
+      if (result.new_report) {
+        if (props.reportType === 'screening') {
+          formData.value.summary = result.new_report
+        } else if (props.reportType === 'interview') {
+          formData.value.report_markdown = result.new_report
+        } else if (props.reportType === 'analysis') {
+          formData.value.report = result.new_report
+        }
+        ElMessage.success('AI 已学习并重新生成报告！')
+      } else {
+        ElMessage.success('AI 已学习经验，请点击保存修改')
+      }
+      
+      feedbackText.value = ''
+    } else {
+      ElMessage.error(response?.data?.message || 'AI 处理失败')
+    }
+  } catch (error) {
+    console.error('AI 反馈处理失败:', error)
+    ElMessage.error('AI 处理失败，请重试')
+  } finally {
+    aiProcessing.value = false
   }
 }
 </script>
@@ -524,6 +619,36 @@ const handleSave = async () => {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 14px;
     line-height: 1.6;
+  }
+
+  // AI 反馈区域样式
+  .ai-feedback-section {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 1px solid #86efac;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 8px;
+    
+    :deep(.el-form-item) {
+      margin-bottom: 12px;
+    }
+    
+    :deep(.el-button) {
+      gap: 6px;
+    }
+    
+    .learned-rule-hint {
+      display: inline-block;
+      margin-left: 12px;
+      font-size: 13px;
+      color: #16a34a;
+      animation: fadeIn 0.3s ease-in;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }
 </style>
