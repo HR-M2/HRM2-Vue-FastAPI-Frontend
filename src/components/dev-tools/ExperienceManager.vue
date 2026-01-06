@@ -12,20 +12,26 @@
 
     <!-- 操作栏 -->
     <div class="action-bar">
-      <el-select v-model="selectedCategory" placeholder="全部类别" clearable style="width: 150px">
+      <el-select v-model="selectedCategory" placeholder="全部类别" clearable style="width: 120px">
         <el-option label="全部" value="" />
         <el-option label="简历筛选" value="screening" />
         <el-option label="面试评估" value="interview" />
         <el-option label="综合分析" value="analysis" />
       </el-select>
-      <el-button type="primary" @click="loadExperiences">
-        <el-icon><Refresh /></el-icon>
-        刷新
-      </el-button>
-      <el-button type="danger" :disabled="experiences.length === 0" @click="handleClearAll">
-        <el-icon><Delete /></el-icon>
-        清空{{ selectedCategory ? '当前类别' : '全部' }}
-      </el-button>
+      <div class="action-buttons">
+        <el-button type="primary" @click="loadExperiences">
+          <el-icon><Refresh /></el-icon>
+          刷新
+        </el-button>
+        <el-button type="danger" :disabled="experiences.length === 0" @click="handleClearAll">
+          <el-icon><Delete /></el-icon>
+          清空
+        </el-button>
+        <el-button type="success" @click="showAddDialog = true">
+          <el-icon><Plus /></el-icon>
+          添加
+        </el-button>
+      </div>
     </div>
 
     <!-- 统计信息 -->
@@ -47,61 +53,93 @@
       </div>
       
       <div v-else class="experience-cards">
-        <div v-for="exp in filteredExperiences" :key="exp.id" class="experience-card">
+        <div 
+          v-for="exp in filteredExperiences" 
+          :key="exp.id" 
+          class="experience-card"
+          @click="showDetail(exp)"
+        >
           <div class="card-top">
             <el-tag :type="getCategoryType(exp.category)" size="small">
               {{ getCategoryLabel(exp.category) }}
             </el-tag>
             <span class="time">{{ formatTime(exp.created_at) }}</span>
-            <el-button type="danger" link size="small" @click="handleDelete(exp.id)">
+            <el-button type="danger" link size="small" @click.stop="handleDelete(exp.id)">
               <el-icon><Delete /></el-icon>
             </el-button>
           </div>
           <div class="rule-text">{{ exp.learned_rule }}</div>
-          <div class="context-text">
-            <el-icon><Document /></el-icon>
-            {{ exp.context_summary || '无上下文' }}
-          </div>
         </div>
       </div>
     </div>
 
-    <!-- 手动添加区域 -->
-    <el-divider content-position="left">手动添加经验</el-divider>
-    <el-form :inline="true" class="add-form">
-      <el-form-item label="类别">
-        <el-select v-model="newExperience.category" placeholder="选择类别" style="width: 120px">
-          <el-option label="简历筛选" value="screening" />
-          <el-option label="面试评估" value="interview" />
-          <el-option label="综合分析" value="analysis" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="规则" style="flex: 1">
-        <el-input 
-          v-model="newExperience.rule" 
-          placeholder="输入经验规则，如：名校背景应优先加分"
-          style="width: 100%"
-        />
-      </el-form-item>
-      <el-form-item>
+    <!-- 添加经验弹窗 -->
+    <el-dialog v-model="showAddDialog" title="添加经验规则" width="500px" destroy-on-close>
+      <el-form :model="newExperience" label-width="80px" label-position="left">
+        <el-form-item label="类别" required>
+          <el-select v-model="newExperience.category" placeholder="选择类别" style="width: 100%">
+            <el-option label="简历筛选" value="screening" />
+            <el-option label="面试评估" value="interview" />
+            <el-option label="综合分析" value="analysis" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="规则" required>
+          <el-input 
+            v-model="newExperience.rule" 
+            type="textarea"
+            :rows="4"
+            placeholder="输入经验规则，如：名校背景的候选人应适当加分"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAddDialog = false">取消</el-button>
         <el-button 
-          type="success" 
+          type="primary" 
           :disabled="!newExperience.category || !newExperience.rule.trim()"
           :loading="adding"
           @click="handleAdd"
         >
-          <el-icon><Plus /></el-icon>
-          添加
+          确认添加
         </el-button>
-      </el-form-item>
-    </el-form>
+      </template>
+    </el-dialog>
+
+    <!-- 经验详情弹窗 -->
+    <el-dialog v-model="showDetailDialog" title="经验详情" width="550px" destroy-on-close>
+      <div v-if="currentExperience" class="detail-content">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="类别">
+            <el-tag :type="getCategoryType(currentExperience.category)">
+              {{ getCategoryLabel(currentExperience.category) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="学习时间">
+            {{ new Date(currentExperience.created_at).toLocaleString('zh-CN') }}
+          </el-descriptions-item>
+          <el-descriptions-item label="经验规则">
+            <div class="detail-rule">{{ currentExperience.learned_rule }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="来源反馈">
+            <div class="detail-feedback">{{ currentExperience.source_feedback || '无' }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="上下文">
+            <div class="detail-context">{{ currentExperience.context_summary || '无' }}</div>
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <template #footer>
+        <el-button type="danger" @click="handleDeleteCurrent">删除此经验</el-button>
+        <el-button type="primary" @click="showDetailDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Collection, Refresh, Delete, Document, Plus } from '@element-plus/icons-vue'
+import { Collection, Refresh, Delete, Plus } from '@element-plus/icons-vue'
 import {
   getExperiences,
   deleteExperience,
@@ -114,6 +152,7 @@ interface Experience {
   category: string
   learned_rule: string
   context_summary: string
+  source_feedback?: string
   created_at: string
 }
 
@@ -121,6 +160,9 @@ const loading = ref(false)
 const adding = ref(false)
 const experiences = ref<Experience[]>([])
 const selectedCategory = ref('')
+const showAddDialog = ref(false)
+const showDetailDialog = ref(false)
+const currentExperience = ref<Experience | null>(null)
 
 const newExperience = reactive({
   category: 'screening',
@@ -185,6 +227,19 @@ const loadExperiences = async () => {
   }
 }
 
+// 显示详情
+const showDetail = (exp: Experience) => {
+  currentExperience.value = exp
+  showDetailDialog.value = true
+}
+
+// 删除当前查看的经验
+const handleDeleteCurrent = async () => {
+  if (!currentExperience.value) return
+  await handleDelete(currentExperience.value.id)
+  showDetailDialog.value = false
+}
+
 // 删除单条经验
 const handleDelete = async (id: string) => {
   try {
@@ -242,6 +297,7 @@ const handleAdd = async () => {
     })
     ElMessage.success('经验已添加')
     newExperience.rule = ''
+    showAddDialog.value = false
     loadExperiences()
   } catch (error) {
     console.error('添加失败:', error)
@@ -278,8 +334,16 @@ onMounted(() => {
 
 .action-bar {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 16px;
+  flex-wrap: nowrap;
+  align-items: center;
+
+  .action-buttons {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
 }
 
 .stats-row {
@@ -299,19 +363,19 @@ onMounted(() => {
 }
 
 .experience-list {
-  min-height: 200px;
-  max-height: 400px;
+  min-height: 150px;
+  max-height: 350px;
   overflow-y: auto;
 }
 
 .empty-state {
-  padding: 40px 0;
+  padding: 30px 0;
 }
 
 .experience-cards {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .experience-card {
@@ -319,11 +383,13 @@ onMounted(() => {
   background: #fafafa;
   border: 1px solid #ebeef5;
   border-radius: 8px;
+  cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
     background: #f0f9ff;
     border-color: #a0cfff;
+    transform: translateX(4px);
   }
 
   .card-top {
@@ -346,30 +412,24 @@ onMounted(() => {
     font-size: 14px;
     color: #303133;
     font-weight: 500;
-    margin-bottom: 6px;
-  }
-
-  .context-text {
-    font-size: 12px;
-    color: #909399;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    
-    .el-icon {
-      font-size: 14px;
-    }
+    line-height: 1.5;
   }
 }
 
-.add-form {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
+// 详情弹窗样式
+.detail-content {
+  .detail-rule {
+    font-weight: 600;
+    color: #409eff;
+    line-height: 1.6;
+  }
 
-  :deep(.el-form-item) {
-    margin-bottom: 0;
+  .detail-feedback,
+  .detail-context {
+    color: #606266;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 }
 </style>
