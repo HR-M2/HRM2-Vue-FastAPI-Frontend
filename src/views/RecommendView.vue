@@ -101,6 +101,8 @@
     <ResumeDetailDialog
       v-model="showScreeningDialog"
       :resume="selectedScreeningResumeData"
+      :screening-task-id="currentScreeningTaskId"
+      @edit="handleScreeningEdit"
     />
     
     <!-- 面试记录查看对话框 -->
@@ -152,6 +154,7 @@
         </div>
       </div>
       <template #footer>
+        <el-button @click="openReportEdit('interview', selectedInterviewReport)">编辑报告</el-button>
         <el-button @click="showInterviewReportDialog = false">关闭</el-button>
       </template>
     </el-dialog>
@@ -225,9 +228,19 @@
         </div>
       </div>
       <template #footer>
+        <el-button @click="openReportEdit('analysis', selectedComprehensiveAnalysis)">编辑报告</el-button>
         <el-button @click="showComprehensiveDialog = false">关闭</el-button>
       </template>
     </el-dialog>
+    
+    <!-- 报告编辑对话框 -->
+    <ReportEditDialog
+      v-model="showReportEditDialog"
+      :report-type="editReportType"
+      :report-data="editReportData"
+      :report-id="editReportId"
+      @saved="handleReportEditSaved"
+    />
   </div>
 </template>
 
@@ -241,6 +254,8 @@ import { TrophyBase, Plus } from '@element-plus/icons-vue'
 import { CandidateAnalysisCard } from '@/components/recommend'
 import PositionList from '@/components/common/PositionList.vue'
 import ResumeDetailDialog from '@/components/common/ResumeDetailDialog.vue'
+import { ReportEditDialog } from '@/components/common'
+import type { ReportType } from '@/components/common/ReportEditDialog.vue'
 
 // Composables
 import { usePositionManagement } from '@/composables/usePositionManagement'
@@ -450,6 +465,48 @@ const selectedResumeContent = ref<string>('')
 const selectedInterviewSession = ref<InterviewSessionResponse | null>(null)
 const selectedInterviewReport = ref<InterviewSessionResponse | null>(null)
 const selectedComprehensiveAnalysis = ref<ComprehensiveAnalysisResponse | null>(null)
+const currentScreeningTaskId = ref('')
+
+// ========== 报告编辑 ==========
+const showReportEditDialog = ref(false)
+const editReportType = ref<ReportType>('interview')
+const editReportData = ref<Record<string, unknown> | null>(null)
+const editReportId = ref('')
+const currentEditingApplicationId = ref('')
+
+const openReportEdit = (type: ReportType, reportData: unknown) => {
+  if (!reportData) {
+    ElMessage.warning('无报告数据')
+    return
+  }
+  
+  editReportType.value = type
+  editReportData.value = reportData as Record<string, unknown>
+  
+  if (type === 'screening') {
+    editReportId.value = (reportData as { id?: string }).id || ''
+  } else if (type === 'interview') {
+    editReportId.value = (reportData as InterviewSessionResponse).id || ''
+  } else if (type === 'analysis') {
+    editReportId.value = (reportData as ComprehensiveAnalysisResponse).id || ''
+  }
+  
+  showReportEditDialog.value = true
+}
+
+const handleReportEditSaved = async () => {
+  // 刷新当前页面数据
+  if (selectedPositionId.value) {
+    await loadApplicationsForPosition(selectedPositionId.value)
+  }
+  
+  // 关闭原查看对话框
+  showScreeningDialog.value = false
+  showInterviewReportDialog.value = false
+  showComprehensiveDialog.value = false
+  
+  ElMessage.success('报告已更新')
+}
 
 // 查看简历详情
 const viewResumeDetail = async (app: ApplicationDetailResponse) => {
@@ -519,10 +576,24 @@ const viewScreeningReport = async (app: ApplicationDetailResponse) => {
     }
     
     selectedScreeningResumeData.value = detailData
+    currentScreeningTaskId.value = app.screening_task.id
     showScreeningDialog.value = true
   } catch (err) {
     console.error('获取初筛报告失败:', err)
     ElMessage.error('获取初筛报告失败')
+  }
+}
+
+// 处理初筛报告编辑
+const handleScreeningEdit = async (taskId: string) => {
+  try {
+    const result = await getScreeningTask({ path: { task_id: taskId } })
+    if (result.data?.data) {
+      openReportEdit('screening', result.data.data)
+    }
+  } catch (err) {
+    console.error('获取初筛任务失败:', err)
+    ElMessage.error('获取初筛任务失败')
   }
 }
 

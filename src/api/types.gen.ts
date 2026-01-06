@@ -395,6 +395,60 @@ export type ComprehensiveAnalysisResponse = {
 };
 
 /**
+ * ComprehensiveAnalysisUpdate
+ *
+ * 更新综合分析请求
+ */
+export type ComprehensiveAnalysisUpdate = {
+    /**
+     * Final Score
+     *
+     * 综合得分
+     */
+    final_score?: number | null;
+    /**
+     * Recommendation Level
+     *
+     * 推荐等级
+     */
+    recommendation_level?: string | null;
+    /**
+     * Recommendation Reason
+     *
+     * 推荐理由
+     */
+    recommendation_reason?: string | null;
+    /**
+     * Suggested Action
+     *
+     * 建议行动
+     */
+    suggested_action?: string | null;
+    /**
+     * Dimension Scores
+     *
+     * 各维度评分
+     */
+    dimension_scores?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Report
+     *
+     * 分析报告
+     */
+    report?: string | null;
+    /**
+     * Input Snapshot
+     *
+     * 输入数据快照
+     */
+    input_snapshot?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * DictResponse
  *
  * 字典数据响应
@@ -710,6 +764,46 @@ export type InterviewSessionResponse = {
      * Position Title
      */
     position_title?: string | null;
+};
+
+/**
+ * InterviewSessionUpdate
+ *
+ * 更新面试会话请求
+ */
+export type InterviewSessionUpdate = {
+    /**
+     * Interview Type
+     */
+    interview_type?: string | null;
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Question Pool
+     */
+    question_pool?: Array<string> | null;
+    /**
+     * Is Completed
+     */
+    is_completed?: boolean | null;
+    /**
+     * Final Score
+     */
+    final_score?: number | null;
+    /**
+     * Report
+     */
+    report?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Report Markdown
+     */
+    report_markdown?: string | null;
 };
 
 /**
@@ -3480,6 +3574,36 @@ export type GetInterviewSessionResponses = {
 
 export type GetInterviewSessionResponse = GetInterviewSessionResponses[keyof GetInterviewSessionResponses];
 
+export type UpdateInterviewSessionData = {
+    body: InterviewSessionUpdate;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/api/v1/interview/{session_id}';
+};
+
+export type UpdateInterviewSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateInterviewSessionError = UpdateInterviewSessionErrors[keyof UpdateInterviewSessionErrors];
+
+export type UpdateInterviewSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelInterviewSessionResponse;
+};
+
+export type UpdateInterviewSessionResponse = UpdateInterviewSessionResponses[keyof UpdateInterviewSessionResponses];
+
 export type GenerateQuestionsData = {
     body: GenerateQuestionsRequest;
     path: {
@@ -3704,6 +3828,36 @@ export type GetAnalysisResponses = {
 };
 
 export type GetAnalysisResponse = GetAnalysisResponses[keyof GetAnalysisResponses];
+
+export type UpdateAnalysisData = {
+    body: ComprehensiveAnalysisUpdate;
+    path: {
+        /**
+         * Analysis Id
+         */
+        analysis_id: string;
+    };
+    query?: never;
+    url: '/api/v1/analysis/{analysis_id}';
+};
+
+export type UpdateAnalysisErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateAnalysisError = UpdateAnalysisErrors[keyof UpdateAnalysisErrors];
+
+export type UpdateAnalysisResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelComprehensiveAnalysisResponse;
+};
+
+export type UpdateAnalysisResponse = UpdateAnalysisResponses[keyof UpdateAnalysisResponses];
 
 export type GetAiStatusData = {
     body?: never;
