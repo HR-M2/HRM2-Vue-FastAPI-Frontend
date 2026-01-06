@@ -2,7 +2,7 @@
  * 简历相关类型定义
  */
 
-import type { ScreeningScore, AppModelsInterviewAppliedExperienceItem } from '@/api/types.gen'
+import type { ScreeningScore, AppliedExperienceItem } from '@/api/types.gen'
 
 /**
  * 简历数据（前端扩展）
@@ -18,7 +18,7 @@ export interface ResumeData {
   file_hash?: string
   created_at?: string
   // RAG 经验引用（使用生成的类型）
-  applied_experiences?: AppModelsInterviewAppliedExperienceItem[]
+  applied_experiences?: AppliedExperienceItem[]
 }
 
 /**

@@ -129,6 +129,38 @@ export type ApplicationUpdate = {
 };
 
 /**
+ * AppliedExperienceItem
+ *
+ * 引用的经验详情（用于 API 响应，展示报告引用了哪些历史经验）
+ */
+export type AppliedExperienceItem = {
+    /**
+     * Id
+     *
+     * 经验 ID
+     */
+    id: string;
+    /**
+     * Learned Rule
+     *
+     * AI 提炼的规则
+     */
+    learned_rule: string;
+    /**
+     * Source Feedback
+     *
+     * HR 原始反馈
+     */
+    source_feedback: string;
+    /**
+     * Category
+     *
+     * 经验类别
+     */
+    category: string;
+};
+
+/**
  * BatchDeleteData
  *
  * 批量删除结果
@@ -385,6 +417,10 @@ export type ComprehensiveAnalysisResponse = {
         [key: string]: unknown;
     };
     /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
+    /**
      * Candidate Name
      */
     candidate_name?: string | null;
@@ -392,6 +428,10 @@ export type ComprehensiveAnalysisResponse = {
      * Position Title
      */
     position_title?: string | null;
+    /**
+     * Applied Experiences
+     */
+    applied_experiences?: Array<AppliedExperienceItem> | null;
 };
 
 /**
@@ -446,6 +486,12 @@ export type ComprehensiveAnalysisUpdate = {
     input_snapshot?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Applied Experience Ids
+     *
+     * 引用的经验 ID 列表
+     */
+    applied_experience_ids?: Array<string> | null;
 };
 
 /**
@@ -823,7 +869,7 @@ export type InterviewSessionResponse = {
     /**
      * Applied Experiences
      */
-    applied_experiences?: Array<AppModelsInterviewAppliedExperienceItem> | null;
+    applied_experiences?: Array<AppliedExperienceItem> | null;
 };
 
 /**
@@ -2289,7 +2335,7 @@ export type ScreeningTaskResponse = {
     /**
      * Applied Experiences
      */
-    applied_experiences?: Array<AppModelsInterviewAppliedExperienceItem> | null;
+    applied_experiences?: Array<AppliedExperienceItem> | null;
 };
 
 /**
@@ -2535,38 +2581,6 @@ export type VideoResultUpdate = {
     raw_result?: {
         [key: string]: unknown;
     } | null;
-};
-
-/**
- * AppliedExperienceItem
- *
- * 引用的经验详情（用于 API 响应）
- */
-export type AppModelsInterviewAppliedExperienceItem = {
-    /**
-     * Id
-     *
-     * 经验 ID
-     */
-    id: string;
-    /**
-     * Learned Rule
-     *
-     * AI 提炼的规则
-     */
-    learned_rule: string;
-    /**
-     * Source Feedback
-     *
-     * HR 原始反馈
-     */
-    source_feedback: string;
-    /**
-     * Category
-     *
-     * 经验类别
-     */
-    category: string;
 };
 
 export type GetPositionsData = {
@@ -4360,6 +4374,36 @@ export type DeleteExperienceErrors = {
 export type DeleteExperienceError = DeleteExperienceErrors[keyof DeleteExperienceErrors];
 
 export type DeleteExperienceResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type BackfillEmbeddingsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Category
+         *
+         * 按类别筛选，不填则处理全部
+         */
+        category?: string | null;
+    };
+    url: '/api/v1/feedback/experiences/backfill-embeddings';
+};
+
+export type BackfillEmbeddingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BackfillEmbeddingsError = BackfillEmbeddingsErrors[keyof BackfillEmbeddingsErrors];
+
+export type BackfillEmbeddingsResponses = {
     /**
      * Successful Response
      */
