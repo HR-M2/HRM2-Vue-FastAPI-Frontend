@@ -4185,7 +4185,7 @@ export type DeleteAllExperiencesData = {
         /**
          * Category
          *
-         * 按类别清空，不填则清空全部
+         * 按类别清空
          */
         category?: string | null;
     };

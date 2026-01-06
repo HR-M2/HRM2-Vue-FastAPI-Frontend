@@ -621,19 +621,6 @@ export const generateRandomResume = <ThrowOnError extends boolean = false>(optio
  * 提交反馈并重生成报告
  *
  * 提交 HR 反馈，触发经验学习和报告重生成
- *
- * 流程：
- * 1. 验证目标报告存在
- * 2. 提取上下文信息
- * 3. 调用 ExperienceManager.learn() 学习经验
- * 4. 检索所有相关经验
- * 5. 注入经验重新生成报告
- *
- * Args:
- * data.category: 报告类别 (screening/interview/analysis)
- * data.target_id: 目标 ID
- * data.feedback: HR 反馈内容
- * regenerate: 是否立即重新生成报告（默认 True）
  */
 export const submitFeedback = <ThrowOnError extends boolean = false>(options: Options<SubmitFeedbackData, ThrowOnError>) => (options.client ?? client).post<SubmitFeedbackResponses, SubmitFeedbackErrors, ThrowOnError>({
     url: '/api/v1/feedback',
@@ -647,7 +634,7 @@ export const submitFeedback = <ThrowOnError extends boolean = false>(options: Op
 /**
  * 清空经验库
  *
- * 清空经验库（可按类别）
+ * 清空经验库
  */
 export const deleteAllExperiences = <ThrowOnError extends boolean = false>(options?: Options<DeleteAllExperiencesData, ThrowOnError>) => (options?.client ?? client).delete<DeleteAllExperiencesResponses, DeleteAllExperiencesErrors, ThrowOnError>({ url: '/api/v1/feedback/experiences', ...options });
 
@@ -655,16 +642,13 @@ export const deleteAllExperiences = <ThrowOnError extends boolean = false>(optio
  * 获取经验列表
  *
  * 获取已学习的经验列表
- *
- * Args:
- * category: 可选，按类别筛选
  */
 export const getExperiences = <ThrowOnError extends boolean = false>(options?: Options<GetExperiencesData, ThrowOnError>) => (options?.client ?? client).get<GetExperiencesResponses, GetExperiencesErrors, ThrowOnError>({ url: '/api/v1/feedback/experiences', ...options });
 
 /**
  * 手动添加经验
  *
- * 手动添加一条经验规则（不生成 Embedding）
+ * 手动添加一条经验规则
  */
 export const createExperience = <ThrowOnError extends boolean = false>(options: Options<CreateExperienceData, ThrowOnError>) => (options.client ?? client).post<CreateExperienceResponses, CreateExperienceErrors, ThrowOnError>({ url: '/api/v1/feedback/experiences', ...options });
 
