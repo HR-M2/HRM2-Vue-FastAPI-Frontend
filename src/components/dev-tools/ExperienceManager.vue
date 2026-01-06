@@ -23,6 +23,15 @@
           <el-icon><Refresh /></el-icon>
           刷新
         </el-button>
+        <el-button 
+          type="warning" 
+          :disabled="missingEmbeddingCount === 0" 
+          :loading="backfilling"
+          @click="handleBackfillEmbeddings"
+        >
+          <el-icon><MagicStick /></el-icon>
+          补全向量 ({{ missingEmbeddingCount }})
+        </el-button>
         <el-button type="danger" :disabled="experiences.length === 0" @click="handleClearAll">
           <el-icon><Delete /></el-icon>
           清空
@@ -62,6 +71,13 @@
           <div class="card-top">
             <el-tag :type="getCategoryType(exp.category)" size="small">
               {{ getCategoryLabel(exp.category) }}
+            </el-tag>
+            <el-tag 
+              :type="exp.has_embedding ? 'success' : 'danger'" 
+              size="small"
+              effect="plain"
+            >
+              {{ exp.has_embedding ? '已向量化' : '未向量化' }}
             </el-tag>
             <span class="time">{{ formatTime(exp.created_at) }}</span>
             <el-button type="danger" link size="small" @click.stop="handleDelete(exp.id)">
@@ -126,6 +142,11 @@
           <el-descriptions-item label="上下文">
             <div class="detail-context">{{ currentExperience.context_summary || '无' }}</div>
           </el-descriptions-item>
+          <el-descriptions-item label="向量化状态">
+            <el-tag :type="currentExperience.has_embedding ? 'success' : 'danger'">
+              {{ currentExperience.has_embedding ? '已向量化' : '未向量化' }}
+            </el-tag>
+          </el-descriptions-item>
         </el-descriptions>
       </div>
       <template #footer>
@@ -139,12 +160,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Collection, Refresh, Delete, Plus } from '@element-plus/icons-vue'
+import { Collection, Refresh, Delete, Plus, MagicStick } from '@element-plus/icons-vue'
 import {
   getExperiences,
   deleteExperience,
   deleteAllExperiences,
-  createExperience
+  createExperience,
+  backfillEmbeddings
 } from '@/api/sdk.gen'
 
 interface Experience {
@@ -154,10 +176,12 @@ interface Experience {
   context_summary: string
   source_feedback?: string
   created_at: string
+  has_embedding: boolean
 }
 
 const loading = ref(false)
 const adding = ref(false)
+const backfilling = ref(false)
 const experiences = ref<Experience[]>([])
 const selectedCategory = ref('')
 const showAddDialog = ref(false)
@@ -178,6 +202,11 @@ const categoryStats = computed(() => {
     }
   })
   return stats
+})
+
+// 缺失向量的经验数量
+const missingEmbeddingCount = computed(() => {
+  return experiences.value.filter(exp => !exp.has_embedding).length
 })
 
 // 过滤后的经验
@@ -304,6 +333,31 @@ const handleAdd = async () => {
     ElMessage.error('添加失败')
   } finally {
     adding.value = false
+  }
+}
+
+// 补全缺失的向量
+const handleBackfillEmbeddings = async () => {
+  backfilling.value = true
+  try {
+    const result = await backfillEmbeddings({
+      query: selectedCategory.value ? { category: selectedCategory.value } : {}
+    })
+    const data = (result.data as Record<string, unknown>)?.data as Record<string, unknown> | undefined
+    const processed = (data?.processed as number) || 0
+    const failed = (data?.failed as number) || 0
+    
+    if (failed > 0) {
+      ElMessage.warning(`已补全 ${processed} 条，${failed} 条失败`)
+    } else {
+      ElMessage.success(`已补全 ${processed} 条经验的向量`)
+    }
+    loadExperiences()
+  } catch (error) {
+    console.error('补全向量失败:', error)
+    ElMessage.error('补全向量失败')
+  } finally {
+    backfilling.value = false
   }
 }
 

@@ -5,6 +5,56 @@ export type ClientOptions = {
 };
 
 /**
+ * AgentExperienceResponse
+ *
+ * 经验响应
+ */
+export type AgentExperienceResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Category
+     *
+     * 经验类别
+     */
+    category: string;
+    /**
+     * Source Feedback
+     *
+     * HR 原始反馈
+     */
+    source_feedback: string;
+    /**
+     * Learned Rule
+     *
+     * AI 提炼的通用规则
+     */
+    learned_rule: string;
+    /**
+     * Context Summary
+     *
+     * 触发经验的上下文摘要
+     */
+    context_summary: string;
+    /**
+     * Has Embedding
+     *
+     * 是否已向量化
+     */
+    has_embedding?: boolean;
+};
+
+/**
  * ApplicationCreate
  *
  * 创建应聘申请请求
@@ -570,6 +620,26 @@ export type DimensionScoreItem = {
      * 详细分析说明
      */
     analysis?: string | null;
+};
+
+/**
+ * ExperienceListData
+ *
+ * 经验列表数据
+ */
+export type ExperienceListData = {
+    /**
+     * Items
+     *
+     * 经验列表
+     */
+    items: Array<AgentExperienceResponse>;
+    /**
+     * Total
+     *
+     * 总数
+     */
+    total: number;
 };
 
 /**
@@ -1798,6 +1868,25 @@ export type ResponseModelComprehensiveAnalysisResponse = {
      */
     message?: string;
     data?: ComprehensiveAnalysisResponse | null;
+};
+
+/**
+ * ResponseModel[ExperienceListData]
+ */
+export type ResponseModelExperienceListData = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Code
+     */
+    code?: number;
+    /**
+     * Message
+     */
+    message?: string;
+    data?: ExperienceListData | null;
 };
 
 /**
@@ -4307,8 +4396,10 @@ export type GetExperiencesResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: ResponseModelExperienceListData;
 };
+
+export type GetExperiencesResponse = GetExperiencesResponses[keyof GetExperiencesResponses];
 
 export type CreateExperienceData = {
     body?: never;
