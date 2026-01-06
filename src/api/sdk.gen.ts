@@ -241,6 +241,9 @@ export const deleteScreeningTask = <ThrowOnError extends boolean = false>(option
  * 获取筛选任务详情
  *
  * 获取筛选任务详情
+ *
+ * 如果任务引用了历史经验，会返回经验的详细内容，
+ * 便于用户了解 AI 的决策依据。
  */
 export const getScreeningTask = <ThrowOnError extends boolean = false>(options: Options<GetScreeningTaskData, ThrowOnError>) => (options.client ?? client).get<GetScreeningTaskResponses, GetScreeningTaskErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}', ...options });
 
@@ -361,6 +364,9 @@ export const deleteInterviewSession = <ThrowOnError extends boolean = false>(opt
  * 获取面试会话详情
  *
  * 获取面试会话详情
+ *
+ * 如果会话报告引用了历史经验，会返回经验的详细内容，
+ * 便于用户了解 AI 的决策依据。
  */
 export const getInterviewSession = <ThrowOnError extends boolean = false>(options: Options<GetInterviewSessionData, ThrowOnError>) => (options.client ?? client).get<GetInterviewSessionResponses, GetInterviewSessionErrors, ThrowOnError>({ url: '/api/v1/interview/{session_id}', ...options });
 

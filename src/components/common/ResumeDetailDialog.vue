@@ -45,6 +45,30 @@
         <div class="markdown-content" v-html="renderMarkdown(resume.screening_summary)"></div>
       </div>
 
+      <!-- AI 参考经验（RAG 引用） -->
+      <div v-if="resume.applied_experiences && resume.applied_experiences.length > 0" class="detail-section">
+        <h4>
+          <el-icon class="experience-icon"><MagicStick /></el-icon>
+          本次评分参考了以下经验
+        </h4>
+        <div class="experience-list">
+          <div v-for="exp in resume.applied_experiences" :key="exp.id" class="experience-item">
+            <div class="experience-rule">
+              <el-icon><Promotion /></el-icon>
+              <span>{{ exp.learned_rule }}</span>
+            </div>
+            <div class="experience-source">
+              <span class="source-label">来源反馈：</span>
+              <span class="source-text">{{ exp.source_feedback }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="experience-hint">
+          <el-icon><InfoFilled /></el-icon>
+          <span>这些经验来自您之前的反馈，AI 已学习并应用到本次评估中</span>
+        </div>
+      </div>
+
       <!-- 简历原文 -->
       <div class="detail-section">
         <h4>简历内容</h4>
@@ -65,6 +89,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { MagicStick, Promotion, InfoFilled } from '@element-plus/icons-vue'
 import { useScreeningUtils } from '@/composables/useScreeningUtils'
 import type { ResumeData } from '@/types'
 
@@ -243,6 +268,71 @@ const handleEdit = () => {
     color: #909399;
     background: #fafafa;
     border-radius: 6px;
+  }
+  
+  // 经验引用样式
+  .experience-icon {
+    color: #667eea;
+    margin-right: 6px;
+  }
+  
+  .experience-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .experience-item {
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f0f5ff 0%, #ede9fe 100%);
+    border-radius: 10px;
+    border-left: 3px solid #667eea;
+    
+    .experience-rule {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #303133;
+      margin-bottom: 8px;
+      
+      .el-icon {
+        color: #667eea;
+        margin-top: 3px;
+        flex-shrink: 0;
+      }
+    }
+    
+    .experience-source {
+      font-size: 12px;
+      color: #6b7280;
+      padding-left: 22px;
+      
+      .source-label {
+        color: #909399;
+      }
+      
+      .source-text {
+        color: #6b7280;
+      }
+    }
+  }
+  
+  .experience-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #f0f9eb;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #67c23a;
+    
+    .el-icon {
+      flex-shrink: 0;
+    }
   }
 }
 </style>

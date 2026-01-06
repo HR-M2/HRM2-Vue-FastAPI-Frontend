@@ -801,6 +801,10 @@ export type InterviewSessionResponse = {
      */
     report_markdown: string | null;
     /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
+    /**
      * Message Count
      */
     message_count?: number;
@@ -816,6 +820,12 @@ export type InterviewSessionResponse = {
      * Position Title
      */
     position_title?: string | null;
+    /**
+     * Applied Experiences
+     */
+    applied_experiences?: Array<{
+        [key: string]: unknown;
+    }> | null;
 };
 
 /**
@@ -856,6 +866,10 @@ export type InterviewSessionUpdate = {
      * Report Markdown
      */
     report_markdown?: string | null;
+    /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
 };
 
 /**
@@ -2115,6 +2129,12 @@ export type ScreeningResultUpdate = {
      * 错误信息
      */
     error_message?: string | null;
+    /**
+     * Applied Experience Ids
+     *
+     * 引用的经验 ID 列表
+     */
+    applied_experience_ids?: Array<string> | null;
 };
 
 /**
@@ -2253,6 +2273,10 @@ export type ScreeningTaskResponse = {
      */
     error_message: string | null;
     /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
+    /**
      * Candidate Name
      */
     candidate_name?: string | null;
@@ -2264,6 +2288,12 @@ export type ScreeningTaskResponse = {
      * Resume Content
      */
     resume_content?: string | null;
+    /**
+     * Applied Experiences
+     */
+    applied_experiences?: Array<{
+        [key: string]: unknown;
+    }> | null;
 };
 
 /**

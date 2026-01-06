@@ -5,7 +5,7 @@
  */
 
 // 简历相关
-export type { ResumeData, ResumeFile } from './resume'
+export type { ResumeData, ResumeFile, AppliedExperience } from './resume'
 
 // 岗位相关
 export type { PositionData } from './position'

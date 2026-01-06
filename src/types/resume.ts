@@ -5,6 +5,16 @@
 import type { ScreeningScore } from '@/api/types.gen'
 
 /**
+ * 引用的经验详情
+ */
+export interface AppliedExperience {
+  id: string
+  learned_rule: string
+  source_feedback: string
+  category: string
+}
+
+/**
  * 简历数据（前端扩展）
  */
 export interface ResumeData {
@@ -17,6 +27,8 @@ export interface ResumeData {
   screening_summary?: string
   file_hash?: string
   created_at?: string
+  // RAG 经验引用
+  applied_experiences?: AppliedExperience[]
 }
 
 /**

@@ -51,7 +51,7 @@ export function useResumeDetail() {
       created_at: item.created_at
     }
     
-    // 尝试获取更多详情（包括简历内容）
+    // 尝试获取更多详情（包括简历内容和引用的经验）
     if (item.task_id) {
       try {
         const response = await getScreeningTask({
@@ -69,6 +69,15 @@ export function useResumeDetail() {
               technical_score: (detail.dimension_scores?.technical_score as number) || undefined,
               manager_score: (detail.dimension_scores?.manager_score as number) || undefined
             }
+          }
+          // 提取引用的经验
+          if (detail.applied_experiences && detail.applied_experiences.length > 0) {
+            resumeData.applied_experiences = detail.applied_experiences.map((exp: Record<string, unknown>) => ({
+              id: exp.id as string,
+              learned_rule: exp.learned_rule as string,
+              source_feedback: exp.source_feedback as string,
+              category: exp.category as string
+            }))
           }
         }
       } catch (err) {
@@ -96,7 +105,7 @@ export function useResumeDetail() {
       created_at: task.created_at
     }
     
-    // 获取完整详情（包括简历内容和候选人姓名）
+    // 获取完整详情（包括简历内容、候选人姓名和引用的经验）
     try {
       const response = await getScreeningTask({
         path: { task_id: task.id }
@@ -123,6 +132,15 @@ export function useResumeDetail() {
             technical_score: (detail.dimension_scores?.technical_score as number) || undefined,
             manager_score: (detail.dimension_scores?.manager_score as number) || undefined
           }
+        }
+        // 提取引用的经验
+        if (detail.applied_experiences && detail.applied_experiences.length > 0) {
+          resumeData.applied_experiences = detail.applied_experiences.map((exp: Record<string, unknown>) => ({
+            id: exp.id as string,
+            learned_rule: exp.learned_rule as string,
+            source_feedback: exp.source_feedback as string,
+            category: exp.category as string
+          }))
         }
       }
     } catch (err) {
