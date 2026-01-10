@@ -12,13 +12,13 @@
 
     <!-- 操作栏 -->
     <div class="action-bar">
-      <el-select v-model="selectedCategory" placeholder="全部类别" clearable style="width: 120px">
+      <el-select v-model="selectedCategory" placeholder="全部类别" clearable style="width: 160px">
         <el-option label="全部" value="" />
         <el-option label="简历筛选" value="screening" />
         <el-option label="面试评估" value="interview" />
         <el-option label="综合分析" value="analysis" />
       </el-select>
-      <div class="action-buttons">
+      <div class="action-buttons-grid">
         <el-button type="primary" @click="loadExperiences">
           <el-icon><Refresh /></el-icon>
           刷新
@@ -34,7 +34,7 @@
         </el-button>
         <el-button type="danger" :disabled="experiences.length === 0" @click="handleClearAll">
           <el-icon><Delete /></el-icon>
-          清空
+          清空全部
         </el-button>
         <el-button type="success" @click="showAddDialog = true">
           <el-icon><Plus /></el-icon>
@@ -391,12 +391,18 @@ onMounted(() => {
   gap: 10px;
   margin-bottom: 16px;
   flex-wrap: nowrap;
-  align-items: center;
+  align-items: flex-start;
 
-  .action-buttons {
-    display: flex;
-    gap: 4px;
+  .action-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
     margin-left: auto;
+
+    .el-button {
+      margin: 0;
+      width: 100%;
+    }
   }
 }
 
