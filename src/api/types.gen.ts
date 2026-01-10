@@ -715,32 +715,6 @@ export type FinalReportRequest = {
 };
 
 /**
- * GenerateQuestionsRequest
- *
- * 生成问题请求
- */
-export type GenerateQuestionsRequest = {
-    /**
-     * Count
-     *
-     * 生成问题数量
-     */
-    count?: number;
-    /**
-     * Difficulty
-     *
-     * 难度: easy/medium/hard
-     */
-    difficulty?: string;
-    /**
-     * Focus Areas
-     *
-     * 关注领域
-     */
-    focus_areas?: Array<string> | null;
-};
-
-/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -3835,36 +3809,6 @@ export type UpdateInterviewSessionResponses = {
 };
 
 export type UpdateInterviewSessionResponse = UpdateInterviewSessionResponses[keyof UpdateInterviewSessionResponses];
-
-export type GenerateQuestionsData = {
-    body: GenerateQuestionsRequest;
-    path: {
-        /**
-         * Session Id
-         */
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/interview/{session_id}/questions';
-};
-
-export type GenerateQuestionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GenerateQuestionsError = GenerateQuestionsErrors[keyof GenerateQuestionsErrors];
-
-export type GenerateQuestionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: DictResponse;
-};
-
-export type GenerateQuestionsResponse = GenerateQuestionsResponses[keyof GenerateQuestionsResponses];
 
 export type SyncMessagesData = {
     body: MessagesSyncRequest;
