@@ -5,6 +5,56 @@ export type ClientOptions = {
 };
 
 /**
+ * AgentExperienceResponse
+ *
+ * 经验响应
+ */
+export type AgentExperienceResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Category
+     *
+     * 经验类别
+     */
+    category: string;
+    /**
+     * Source Feedback
+     *
+     * HR 原始反馈
+     */
+    source_feedback: string;
+    /**
+     * Learned Rule
+     *
+     * AI 提炼的通用规则
+     */
+    learned_rule: string;
+    /**
+     * Context Summary
+     *
+     * 触发经验的上下文摘要
+     */
+    context_summary: string;
+    /**
+     * Has Embedding
+     *
+     * 是否已向量化
+     */
+    has_embedding?: boolean;
+};
+
+/**
  * ApplicationCreate
  *
  * 创建应聘申请请求
@@ -126,6 +176,38 @@ export type ApplicationUpdate = {
      * Notes
      */
     notes?: string | null;
+};
+
+/**
+ * AppliedExperienceItem
+ *
+ * 引用的经验详情（用于 API 响应，展示报告引用了哪些历史经验）
+ */
+export type AppliedExperienceItem = {
+    /**
+     * Id
+     *
+     * 经验 ID
+     */
+    id: string;
+    /**
+     * Learned Rule
+     *
+     * AI 提炼的规则
+     */
+    learned_rule: string;
+    /**
+     * Source Feedback
+     *
+     * HR 原始反馈
+     */
+    source_feedback: string;
+    /**
+     * Category
+     *
+     * 经验类别
+     */
+    category: string;
 };
 
 /**
@@ -385,6 +467,10 @@ export type ComprehensiveAnalysisResponse = {
         [key: string]: unknown;
     };
     /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
+    /**
      * Candidate Name
      */
     candidate_name?: string | null;
@@ -392,6 +478,10 @@ export type ComprehensiveAnalysisResponse = {
      * Position Title
      */
     position_title?: string | null;
+    /**
+     * Applied Experiences
+     */
+    applied_experiences?: Array<AppliedExperienceItem> | null;
 };
 
 /**
@@ -446,6 +536,12 @@ export type ComprehensiveAnalysisUpdate = {
     input_snapshot?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * Applied Experience Ids
+     *
+     * 引用的经验 ID 列表
+     */
+    applied_experience_ids?: Array<string> | null;
 };
 
 /**
@@ -527,6 +623,78 @@ export type DimensionScoreItem = {
 };
 
 /**
+ * ExperienceListData
+ *
+ * 经验列表数据
+ */
+export type ExperienceListData = {
+    /**
+     * Items
+     *
+     * 经验列表
+     */
+    items: Array<AgentExperienceResponse>;
+    /**
+     * Total
+     *
+     * 总数
+     */
+    total: number;
+};
+
+/**
+ * FeedbackRequest
+ *
+ * HR 反馈请求
+ */
+export type FeedbackRequest = {
+    /**
+     * Category
+     *
+     * 报告类别: screening/interview/analysis
+     */
+    category: string;
+    /**
+     * Target Id
+     *
+     * 目标 ID (task_id/session_id/analysis_id)
+     */
+    target_id: string;
+    /**
+     * Feedback
+     *
+     * HR 反馈内容
+     */
+    feedback: string;
+};
+
+/**
+ * FeedbackResponse
+ *
+ * 反馈处理响应
+ */
+export type FeedbackResponse = {
+    /**
+     * Learned Rule
+     *
+     * 提炼的经验规则
+     */
+    learned_rule: string;
+    /**
+     * New Report
+     *
+     * 重新生成的报告内容
+     */
+    new_report?: string | null;
+    /**
+     * Experience Id
+     *
+     * 存储的经验 ID
+     */
+    experience_id: string;
+};
+
+/**
  * FinalReportRequest
  *
  * 最终报告生成请求
@@ -544,32 +712,6 @@ export type FinalReportRequest = {
      * HR备注
      */
     hr_notes?: string | null;
-};
-
-/**
- * GenerateQuestionsRequest
- *
- * 生成问题请求
- */
-export type GenerateQuestionsRequest = {
-    /**
-     * Count
-     *
-     * 生成问题数量
-     */
-    count?: number;
-    /**
-     * Difficulty
-     *
-     * 难度: easy/medium/hard
-     */
-    difficulty?: string;
-    /**
-     * Focus Areas
-     *
-     * 关注领域
-     */
-    focus_areas?: Array<string> | null;
 };
 
 /**
@@ -749,6 +891,10 @@ export type InterviewSessionResponse = {
      */
     report_markdown: string | null;
     /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
+    /**
      * Message Count
      */
     message_count?: number;
@@ -764,6 +910,10 @@ export type InterviewSessionResponse = {
      * Position Title
      */
     position_title?: string | null;
+    /**
+     * Applied Experiences
+     */
+    applied_experiences?: Array<AppliedExperienceItem> | null;
 };
 
 /**
@@ -804,6 +954,10 @@ export type InterviewSessionUpdate = {
      * Report Markdown
      */
     report_markdown?: string | null;
+    /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
 };
 
 /**
@@ -1691,6 +1845,44 @@ export type ResponseModelComprehensiveAnalysisResponse = {
 };
 
 /**
+ * ResponseModel[ExperienceListData]
+ */
+export type ResponseModelExperienceListData = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Code
+     */
+    code?: number;
+    /**
+     * Message
+     */
+    message?: string;
+    data?: ExperienceListData | null;
+};
+
+/**
+ * ResponseModel[FeedbackResponse]
+ */
+export type ResponseModelFeedbackResponse = {
+    /**
+     * Success
+     */
+    success?: boolean;
+    /**
+     * Code
+     */
+    code?: number;
+    /**
+     * Message
+     */
+    message?: string;
+    data?: FeedbackResponse | null;
+};
+
+/**
  * ResponseModel[HashCheckData]
  */
 export type ResponseModelHashCheckData = {
@@ -2044,6 +2236,12 @@ export type ScreeningResultUpdate = {
      * 错误信息
      */
     error_message?: string | null;
+    /**
+     * Applied Experience Ids
+     *
+     * 引用的经验 ID 列表
+     */
+    applied_experience_ids?: Array<string> | null;
 };
 
 /**
@@ -2182,6 +2380,10 @@ export type ScreeningTaskResponse = {
      */
     error_message: string | null;
     /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
+    /**
      * Candidate Name
      */
     candidate_name?: string | null;
@@ -2193,6 +2395,10 @@ export type ScreeningTaskResponse = {
      * Resume Content
      */
     resume_content?: string | null;
+    /**
+     * Applied Experiences
+     */
+    applied_experiences?: Array<AppliedExperienceItem> | null;
 };
 
 /**
@@ -3604,36 +3810,6 @@ export type UpdateInterviewSessionResponses = {
 
 export type UpdateInterviewSessionResponse = UpdateInterviewSessionResponses[keyof UpdateInterviewSessionResponses];
 
-export type GenerateQuestionsData = {
-    body: GenerateQuestionsRequest;
-    path: {
-        /**
-         * Session Id
-         */
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/interview/{session_id}/questions';
-};
-
-export type GenerateQuestionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GenerateQuestionsError = GenerateQuestionsErrors[keyof GenerateQuestionsErrors];
-
-export type GenerateQuestionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: DictResponse;
-};
-
-export type GenerateQuestionsResponse = GenerateQuestionsResponses[keyof GenerateQuestionsResponses];
-
 export type SyncMessagesData = {
     body: MessagesSyncRequest;
     path: {
@@ -4074,6 +4250,200 @@ export type GenerateRandomResumeResponses = {
 };
 
 export type GenerateRandomResumeResponse = GenerateRandomResumeResponses[keyof GenerateRandomResumeResponses];
+
+export type SubmitFeedbackData = {
+    body: FeedbackRequest;
+    path?: never;
+    query?: {
+        /**
+         * Regenerate
+         *
+         * 是否重新生成报告
+         */
+        regenerate?: boolean;
+    };
+    url: '/api/v1/feedback';
+};
+
+export type SubmitFeedbackErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SubmitFeedbackError = SubmitFeedbackErrors[keyof SubmitFeedbackErrors];
+
+export type SubmitFeedbackResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelFeedbackResponse;
+};
+
+export type SubmitFeedbackResponse = SubmitFeedbackResponses[keyof SubmitFeedbackResponses];
+
+export type DeleteAllExperiencesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Category
+         *
+         * 按类别清空
+         */
+        category?: string | null;
+    };
+    url: '/api/v1/feedback/experiences';
+};
+
+export type DeleteAllExperiencesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteAllExperiencesError = DeleteAllExperiencesErrors[keyof DeleteAllExperiencesErrors];
+
+export type DeleteAllExperiencesResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetExperiencesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Category
+         *
+         * 按类别筛选
+         */
+        category?: string | null;
+    };
+    url: '/api/v1/feedback/experiences';
+};
+
+export type GetExperiencesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetExperiencesError = GetExperiencesErrors[keyof GetExperiencesErrors];
+
+export type GetExperiencesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResponseModelExperienceListData;
+};
+
+export type GetExperiencesResponse = GetExperiencesResponses[keyof GetExperiencesResponses];
+
+export type CreateExperienceData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Category
+         *
+         * 类别: screening/interview/analysis
+         */
+        category: string;
+        /**
+         * Learned Rule
+         *
+         * 经验规则
+         */
+        learned_rule: string;
+        /**
+         * Context Summary
+         *
+         * 上下文摘要
+         */
+        context_summary?: string;
+    };
+    url: '/api/v1/feedback/experiences';
+};
+
+export type CreateExperienceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateExperienceError = CreateExperienceErrors[keyof CreateExperienceErrors];
+
+export type CreateExperienceResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type DeleteExperienceData = {
+    body?: never;
+    path: {
+        /**
+         * Experience Id
+         */
+        experience_id: string;
+    };
+    query?: never;
+    url: '/api/v1/feedback/experiences/{experience_id}';
+};
+
+export type DeleteExperienceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteExperienceError = DeleteExperienceErrors[keyof DeleteExperienceErrors];
+
+export type DeleteExperienceResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type BackfillEmbeddingsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Category
+         *
+         * 按类别筛选，不填则处理全部
+         */
+        category?: string | null;
+    };
+    url: '/api/v1/feedback/experiences/backfill-embeddings';
+};
+
+export type BackfillEmbeddingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BackfillEmbeddingsError = BackfillEmbeddingsErrors[keyof BackfillEmbeddingsErrors];
+
+export type BackfillEmbeddingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type HealthCheckData = {
     body?: never;

@@ -152,6 +152,29 @@
           <h4>评估总结</h4>
           <div class="summary-content markdown-body" v-html="formatReportContent(selectedInterviewReport.report_markdown)"></div>
         </div>
+        <!-- AI 参考经验（RAG 引用） -->
+        <div v-if="selectedInterviewReport.applied_experiences && selectedInterviewReport.applied_experiences.length > 0" class="experience-section">
+          <h4>
+            <el-icon class="experience-icon"><MagicStick /></el-icon>
+            本次评估参考了以下经验
+          </h4>
+          <div class="experience-list">
+            <div v-for="(exp, index) in selectedInterviewReport.applied_experiences" :key="index" class="experience-item">
+              <div class="experience-rule">
+                <el-icon><Promotion /></el-icon>
+                <span>{{ exp.learned_rule }}</span>
+              </div>
+              <div class="experience-source">
+                <span class="source-label">来源反馈：</span>
+                <span class="source-text">{{ exp.source_feedback }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="experience-hint">
+            <el-icon><InfoFilled /></el-icon>
+            <span>这些经验来自您之前的反馈，AI 已学习并应用到本次评估中</span>
+          </div>
+        </div>
       </div>
       <template #footer>
         <el-button @click="openReportEdit('interview', selectedInterviewReport)">编辑报告</el-button>
@@ -248,7 +271,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { TrophyBase, Plus } from '@element-plus/icons-vue'
+import { TrophyBase, Plus, MagicStick, Promotion, InfoFilled } from '@element-plus/icons-vue'
 
 // 组件导入
 import { CandidateAnalysisCard } from '@/components/recommend'
@@ -560,6 +583,10 @@ const viewScreeningReport = async (app: ApplicationDetailResponse) => {
       }
       detailData.screening_summary = task.summary || undefined
       detailData.resume_content = task.resume_content || undefined
+      // 提取引用的经验
+      if (task.applied_experiences && task.applied_experiences.length > 0) {
+        detailData.applied_experiences = task.applied_experiences
+      }
     }
     
     // 如果没有简历内容，尝试从简历API获取
@@ -1050,6 +1077,80 @@ onMounted(async () => {
       font-size: 14px;
       color: #374151;
       line-height: 1.6;
+    }
+  }
+  
+  // 经验引用样式
+  .experience-section {
+    margin-top: 20px;
+    
+    h4 {
+      display: flex;
+      align-items: center;
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      
+      .experience-icon {
+        color: #667eea;
+        margin-right: 6px;
+      }
+    }
+  }
+  
+  .experience-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .experience-item {
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #f0f5ff 0%, #ede9fe 100%);
+    border-radius: 10px;
+    border-left: 3px solid #667eea;
+    
+    .experience-rule {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #303133;
+      margin-bottom: 6px;
+      
+      .el-icon {
+        color: #667eea;
+        margin-top: 2px;
+        flex-shrink: 0;
+      }
+    }
+    
+    .experience-source {
+      font-size: 12px;
+      color: #6b7280;
+      padding-left: 20px;
+      
+      .source-label {
+        color: #909399;
+      }
+    }
+  }
+  
+  .experience-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #f0f9eb;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #67c23a;
+    
+    .el-icon {
+      flex-shrink: 0;
     }
   }
 }
