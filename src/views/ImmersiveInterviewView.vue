@@ -1,24 +1,52 @@
 <template>
   <div class="immersive-interview-view">
     <!-- 页面头部 -->
-    <div class="page-header">
+    <div v-if="isSessionActive" class="page-header">
       <div class="header-content">
         <div class="header-left">
-          <h1 class="page-title">
-            <span class="title-icon">🎬</span>
-            沉浸式面试
-            <el-tag type="warning" size="small" effect="dark" class="exp-tag">实验性</el-tag>
-          </h1>
-          <p class="page-desc">双摄像头实时面试 · 智能说话人识别 · AI状态分析</p>
+          <div class="candidate-info-header" v-if="session">
+            <div class="info-item">
+              <span class="info-label">候选人：</span>
+              <span class="info-value">{{ session.candidate_name }}</span>
+            </div>
+            <el-divider direction="vertical" class="info-divider" />
+            <div class="info-item">
+              <span class="info-label">应聘岗位：</span>
+              <span class="info-value">{{ session.position_title }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="header-center">
         </div>
         <div class="header-right">
           <el-tag v-if="isRecording" type="danger" effect="dark" size="large" class="status-tag">
             <span class="status-dot"></span>
             面试进行中 · {{ formatDuration(stats.duration) }}
           </el-tag>
-          <el-tag v-else-if="isSessionActive" type="success" effect="plain" size="large">
-            会话已就绪
-          </el-tag>
+          <el-button 
+            v-if="!isRecording"
+            type="success"
+            @click="handleStartInterview"
+          >
+            <el-icon><VideoPlay /></el-icon>
+            开始面试
+          </el-button>
+          <el-button 
+            v-else
+            type="danger"
+            @click="handleStopInterview"
+          >
+            <el-icon><VideoPause /></el-icon>
+            结束面试
+          </el-button>
+          <!-- <el-button @click="handleFetchSuggestions" :loading="isAnalyzing">
+            <el-icon><MagicStick /></el-icon>
+            获取建议
+          </el-button> -->
+          <el-button type="danger" plain @click="handleEndSession">
+            <el-icon><Close /></el-icon>
+            退出会话
+          </el-button>
         </div>
       </div>
     </div>
@@ -83,7 +111,7 @@
             </el-form-item>
 
             <!-- 分析间隔 -->
-            <el-form-item label="状态分析间隔">
+            <el-form-item label="数据更新间隔">
               <el-slider
                 v-model="config.analyzeInterval"
                 :min="3"
@@ -114,51 +142,6 @@
     <!-- 主面试界面 -->
     <transition name="slide-up">
       <div v-if="isSessionActive" class="main-interview-area">
-        <!-- 控制栏 -->
-        <div class="control-bar">
-          <div class="control-left">
-            <div class="candidate-info" v-if="session">
-              <span class="info-label">候选人：</span>
-              <span class="info-value">{{ session.candidate_name }}</span>
-              <el-divider direction="vertical" />
-              <span class="info-label">应聘岗位：</span>
-              <span class="info-value">{{ session.position_title }}</span>
-            </div>
-          </div>
-          <div class="control-center">
-            <el-button-group>
-              <el-button 
-                v-if="!isRecording"
-                type="success" 
-                size="large"
-                @click="handleStartInterview"
-              >
-                <el-icon><VideoPlay /></el-icon>
-                开始面试
-              </el-button>
-              <el-button 
-                v-else
-                type="danger" 
-                size="large"
-                @click="handleStopInterview"
-              >
-                <el-icon><VideoPause /></el-icon>
-                结束面试
-              </el-button>
-            </el-button-group>
-          </div>
-          <div class="control-right">
-            <el-button @click="handleFetchSuggestions" :loading="isAnalyzing">
-              <el-icon><MagicStick /></el-icon>
-              获取建议
-            </el-button>
-            <el-button type="danger" plain @click="handleEndSession">
-              <el-icon><Close /></el-icon>
-              退出会话
-            </el-button>
-          </div>
-        </div>
-
         <!-- 主内容区 -->
         <div class="content-grid">
           <!-- 左侧：视频区 -->
@@ -172,6 +155,7 @@
               :local-stream="localStream"
               :deception-score="cockpitData.deceptionScore"
               :face-out-of-frame="cockpitData.faceOutOfFrame"
+              :duration="stats.duration"
               @init-camera="handleInitCamera"
             />
           </div>
@@ -276,6 +260,7 @@ import {
   RealTimeAnalysisPanel
 } from '@/components/immersive'
 import { useImmersiveInterview } from '@/composables/useImmersiveInterview'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import type { QuestionSuggestion } from '@/composables/useImmersiveInterview'
 
 // 报告数据类型
@@ -327,8 +312,21 @@ const {
   addTranscript,
   generateReport,
   deleteSession,
-  cleanup
+  cleanup,
+  triggerDeceptionAlert
 } = useImmersiveInterview()
+
+// 启用键盘快捷键
+useKeyboardShortcuts({
+  onTriggerDeception: () => {
+    // 按键1：触发欺骗检测高值
+    triggerDeceptionAlert()
+    ElMessage.warning('已触发欺骗检测警告（10秒后恢复）')
+  }
+  // 可以在这里添加更多快捷键回调
+  // onKey2: () => { ... },
+  // onKey3: () => { ... },
+})
 
 // 本地状态
 const selectedApplicationId = ref('')
@@ -534,39 +532,60 @@ onUnmounted(() => {
 .page-header {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   border-radius: 20px;
-  padding: 28px 32px;
+  padding: 20px 32px;
   
   .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 24px;
   }
   
   .header-left {
-    .page-title {
+    flex-shrink: 0;
+    
+    .candidate-info-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin: 0 0 8px;
-      font-size: 28px;
-      font-weight: 700;
-      color: white;
+      gap: 16px;
       
-      .title-icon {
-        font-size: 32px;
+      .info-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .info-label {
+          font-size: 18px;
+          color: rgba(255, 255, 255, 0.8);
+          font-weight: 500;
+        }
+        
+        .info-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: white;
+        }
       }
       
-      .exp-tag {
-        font-size: 11px;
-        margin-left: 8px;
+      .info-divider {
+        height: 30px;
+        border-color: rgba(255, 255, 255, 0.3);
       }
     }
+  }
+  
+  .header-center {
+    flex-shrink: 0;
+  }
+  
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
     
-    .page-desc {
-      margin: 0;
-      font-size: 15px;
-      color: rgba(255, 255, 255, 0.7);
-      letter-spacing: 0.5px;
+    .el-button {
+      padding: 10px 20px;
     }
   }
   
@@ -678,46 +697,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.control-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  border-radius: 16px;
-  padding: 16px 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  
-  .control-left {
-    .candidate-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      .info-label {
-        font-size: 13px;
-        color: #6b7280;
-      }
-      
-      .info-value {
-        font-size: 14px;
-        font-weight: 600;
-        color: #1a1a2e;
-      }
-    }
-  }
-  
-  .control-center {
-    .el-button {
-      padding: 12px 28px;
-    }
-  }
-  
-  .control-right {
-    display: flex;
-    gap: 10px;
-  }
 }
 
 .content-grid {

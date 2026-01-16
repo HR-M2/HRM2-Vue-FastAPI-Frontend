@@ -4,7 +4,7 @@
       <div class="icon-wrapper recording">
         <el-icon class="mic-icon"><Microphone /></el-icon>
       </div>
-      <h3>真人实时语音面试</h3>
+      <h3>实时语音面试</h3>
       <p class="desc">面试官实时提问，系统自动转录候选人语音并智能推荐追问</p>
     </div>
     

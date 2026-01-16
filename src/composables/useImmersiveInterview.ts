@@ -65,6 +65,7 @@ export interface BigFivePersonality {
 export interface CockpitData {
   bigFive: BigFivePersonality
   deceptionScore: number   // 欺骗检测分数 0-1
+  depressionScore: number  // 抑郁检测分数 0-1
   overallScore: number     // 综合评分 0-100
   faceOutOfFrame: boolean  // 面部是否离框
 }
@@ -148,6 +149,7 @@ export function useImmersiveInterview() {
       neuroticism: 0.30
     },
     deceptionScore: 0.2,
+    depressionScore: 0.15,
     overallScore: 68,
     faceOutOfFrame: false
   })
@@ -155,7 +157,7 @@ export function useImmersiveInterview() {
   // 驾驶舱定时器
   let cockpitTimer: number | null = null
   let overallScoreTimer: number | null = null
-  let faceDetectionTimer: number | null = null
+  let deceptionResetTimer: number | null = null // 欺骗检测重置定时器
 
   // 定时器
   let analyzeTimer: number | null = null
@@ -190,15 +192,19 @@ export function useImmersiveInterview() {
     if (random < 0.85) {
       // 85% 概率: 正常范围 0.1-0.4
       targetRange = [0.1, 0.4]
-    } else if (random < 0.97) {
-      // 12% 概率: 偶尔峰值 0.5-0.7
-      targetRange = [0.5, 0.7]
     } else {
-      // 3% 概率: 极少异常 >0.7
-      targetRange = [0.7, 0.85]
+      // 15% 概率: 偶尔峰值 0.5-0.7
+      targetRange = [0.4, 0.6]
     }
     
     return smoothRandom(cockpitData.deceptionScore, targetRange[0], targetRange[1], 0.4)
+  }
+
+  // 生成抑郁检测分数（始终保持在0.4以下）
+  const generateDepressionScore = (): number => {
+    // 抑郁检测值保持在较低范围，更加平滑
+    const targetRange: [number, number] = [0.05, 0.35]
+    return smoothRandom(cockpitData.depressionScore, targetRange[0], targetRange[1], 0.2)
   }
 
   // 生成综合评分
@@ -222,25 +228,26 @@ export function useImmersiveInterview() {
 
   // 启动驾驶舱数据更新定时器
   const startCockpitTimers = () => {
-    // 大五人格 + 欺骗检测: 每10秒更新
+    // 使用配置的分析间隔统一更新所有数据
+    const intervalMs = config.analyzeInterval * 1000
+
+    // 大五人格 + 欺骗检测 + 抑郁检测 + 面部检测: 使用配置的间隔更新
     cockpitTimer = window.setInterval(() => {
       cockpitData.bigFive = generateBigFiveData()
       cockpitData.deceptionScore = generateDeceptionScore()
-    }, 10000)
+      cockpitData.depressionScore = generateDepressionScore()
+      cockpitData.faceOutOfFrame = generateFaceOutOfFrame()
+    }, intervalMs)
 
-    // 综合评分: 每60秒更新
+    // 综合评分: 使用配置间隔的 4 倍（相对较慢的更新）
     overallScoreTimer = window.setInterval(() => {
       cockpitData.overallScore = generateOverallScore()
-    }, 60000)
-
-    // 面部检测: 每5秒检查
-    faceDetectionTimer = window.setInterval(() => {
-      cockpitData.faceOutOfFrame = generateFaceOutOfFrame()
-    }, 5000)
+    }, intervalMs * 4)
 
     // 立即生成初始数据
     cockpitData.bigFive = generateBigFiveData()
     cockpitData.deceptionScore = generateDeceptionScore()
+    cockpitData.depressionScore = generateDepressionScore()
     cockpitData.overallScore = Math.round(60 + Math.random() * 15) // 初始值60-75
   }
 
@@ -254,10 +261,30 @@ export function useImmersiveInterview() {
       clearInterval(overallScoreTimer)
       overallScoreTimer = null
     }
-    if (faceDetectionTimer) {
-      clearInterval(faceDetectionTimer)
-      faceDetectionTimer = null
+    if (deceptionResetTimer) {
+      clearTimeout(deceptionResetTimer)
+      deceptionResetTimer = null
     }
+  }
+
+  // 手动触发欺骗检测高值（用于快捷键调试）
+  const triggerDeceptionAlert = () => {
+    // 清除之前的重置定时器
+    if (deceptionResetTimer) {
+      clearTimeout(deceptionResetTimer)
+      deceptionResetTimer = null
+    }
+
+    // 设置欺骗检测为高值 0.7-0.85
+    cockpitData.deceptionScore = 0.7 + Math.random() * 0.15
+    console.log(`[欺骗检测] 手动触发高值: ${cockpitData.deceptionScore.toFixed(2)}`)
+
+    // 10秒后恢复正常
+    deceptionResetTimer = window.setTimeout(() => {
+      cockpitData.deceptionScore = 0.1 + Math.random() * 0.3 // 恢复到正常范围
+      console.log(`[欺骗检测] 已恢复正常: ${cockpitData.deceptionScore.toFixed(2)}`)
+      deceptionResetTimer = null
+    }, 3000)
   }
 
   // 计算属性
@@ -420,6 +447,8 @@ export function useImmersiveInterview() {
 
       ElMessage.success('面试已开始')
       return true
+    } else {
+      ElMessage.error(result.message || '开始面试失败')
     }
 
     return false
@@ -442,9 +471,14 @@ export function useImmersiveInterview() {
         clearInterval(durationTimer)
         durationTimer = null
       }
+      
+      // 重置开始时间
+      startTime = null
 
       ElMessage.success('面试已结束')
       return true
+    } else {
+      ElMessage.error(result.message || '停止面试失败')
     }
 
     return false
@@ -683,6 +717,9 @@ export function useImmersiveInterview() {
     addTranscript,
     generateReport,
     deleteSession,
-    cleanup
+    cleanup,
+
+    // 调试功能
+    triggerDeceptionAlert
   }
 }

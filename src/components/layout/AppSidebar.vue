@@ -6,7 +6,7 @@
         <div class="logo-icon">
           <el-icon :size="24"><Briefcase /></el-icon>
         </div>
-        <span v-show="!isCollapsed" class="system-name">招聘管理系统</span>
+        <span v-show="!isCollapsed" class="system-name">艾思科技-智能招聘</span>
       </div>
       <el-icon 
         class="collapse-btn" 

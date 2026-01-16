@@ -88,27 +88,51 @@
       </div>
     </div>
 
-    <!-- 欺骗检测 -->
-    <div class="section-card" :class="{ 'warning-state': cockpitData.deceptionScore > 0.5 }">
-      <h4 class="section-title">
-        <span class="title-icon">🔍</span>
-        欺骗检测
-        <el-tag v-if="cockpitData.deceptionScore > 0.5" type="warning" size="small" effect="dark" class="warning-tag">
-          警告
-        </el-tag>
-      </h4>
-      <div class="deception-meter">
-        <div class="meter-bar-container">
-          <div 
-            class="meter-bar" 
-            :class="deceptionLevelClass"
-            :style="{ width: `${cockpitData.deceptionScore * 100}%` }"
-          ></div>
+    <!-- 欺骗检测 & 抑郁检测 -->
+    <div class="section-card detection-grid" :class="{ 'warning-state': cockpitData.deceptionScore > 0.5 }">
+      <!-- 欺骗检测 -->
+      <div class="detection-item">
+        <h4 class="section-title">
+          <span class="title-icon">🔍</span>
+          欺骗检测
+          <el-tag v-if="cockpitData.deceptionScore > 0.5" type="warning" size="small" effect="dark" class="warning-tag">
+            警告
+          </el-tag>
+        </h4>
+        <div class="deception-meter">
+          <div class="meter-bar-container">
+            <div 
+              class="meter-bar" 
+              :class="deceptionLevelClass"
+              :style="{ width: `${cockpitData.deceptionScore * 100}%` }"
+            ></div>
+          </div>
+          <div class="meter-labels">
+            <span>低</span>
+            <span class="meter-value" :class="deceptionLevelClass">{{ formatPercent(cockpitData.deceptionScore) }}</span>
+            <span>高</span>
+          </div>
         </div>
-        <div class="meter-labels">
-          <span>低</span>
-          <span class="meter-value" :class="deceptionLevelClass">{{ formatPercent(cockpitData.deceptionScore) }}</span>
-          <span>高</span>
+      </div>
+
+      <!-- 抑郁检测 -->
+      <div class="detection-item">
+        <h4 class="section-title">
+          <span class="title-icon">😔</span>
+          抑郁检测
+        </h4>
+        <div class="deception-meter">
+          <div class="meter-bar-container">
+            <div 
+              class="meter-bar depression-bar" 
+              :style="{ width: `${cockpitData.depressionScore * 100}%` }"
+            ></div>
+          </div>
+          <div class="meter-labels">
+            <span>低</span>
+            <span class="meter-value depression-value">{{ formatPercent(cockpitData.depressionScore) }}</span>
+            <span>高</span>
+          </div>
         </div>
       </div>
     </div>
@@ -135,20 +159,6 @@
       </div>
       <div v-else class="no-suggestions">
         <span>开始面试后自动推荐问题</span>
-      </div>
-    </div>
-
-    <!-- 底部统计 -->
-    <div class="stats-footer">
-      <div class="stat-item duration">
-        <el-icon><Timer /></el-icon>
-        <span class="stat-value">{{ formatTime(stats.duration) }}</span>
-        <span class="stat-label">面试时长</span>
-      </div>
-      <div class="stat-item score">
-        <el-icon><TrendCharts /></el-icon>
-        <span class="stat-value">{{ cockpitData.overallScore }}</span>
-        <span class="stat-label">综合评分</span>
       </div>
     </div>
     <!-- 基本信息弹窗 -->
@@ -182,7 +192,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { DataAnalysis, Refresh, Timer, TrendCharts, User, InfoFilled, Document, DataLine } from '@element-plus/icons-vue'
+import { DataAnalysis, Refresh, User, InfoFilled, Document, DataLine } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { ResumeDetailDialog } from '@/components/common'
 import { getResume, getScreeningTask } from '@/api/sdk.gen'
@@ -299,12 +309,6 @@ const deceptionLevelClass = computed(() => {
 
 const formatPercent = (value: number) => {
   return `${Math.round(value * 100)}%`
-}
-
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 </script>
 
@@ -479,6 +483,19 @@ const formatTime = (seconds: number) => {
     border: 1px solid #ffc107;
   }
   
+  &.detection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 12px;
+    
+    .detection-item {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+    }
+  }
+  
   .section-title {
     display: flex;
     align-items: center;
@@ -584,6 +601,10 @@ const formatTime = (seconds: number) => {
     &.level-danger {
       background: linear-gradient(90deg, #ef4444, #f87171);
     }
+    
+    &.depression-bar {
+      background: linear-gradient(90deg, #6b7280, #9ca3af);
+    }
   }
   
   .meter-labels {
@@ -608,6 +629,10 @@ const formatTime = (seconds: number) => {
       
       &.level-danger {
         color: #ef4444;
+      }
+      
+      &.depression-value {
+        color: #6b7280;
       }
     }
   }
@@ -687,37 +712,5 @@ const formatTime = (seconds: number) => {
   justify-content: center;
   color: #9ca3af;
   font-size: 12px;
-}
-
-// 底部统计
-.stats-footer {
-  display: flex;
-  justify-content: space-around;
-  padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
-  margin-top: auto;
-  
-  .stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    
-    .el-icon {
-      font-size: 20px;
-      color: #667eea;
-    }
-    
-    .stat-value {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1a1a2e;
-    }
-    
-    .stat-label {
-      font-size: 11px;
-      color: #6b7280;
-    }
-  }
 }
 </style>

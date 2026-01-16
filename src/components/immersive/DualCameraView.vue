@@ -11,9 +11,15 @@
           class="video-element"
         ></video>
         <div class="video-overlay">
-          <div class="video-label">
-            <span class="label-icon">👤</span>
-            <span class="label-text">{{ candidateName || '候选人' }}</span>
+          <div class="video-info-left">
+            <div class="video-label">
+              <span class="label-icon">👤</span>
+              <span class="label-text">{{ candidateName || '候选人' }}</span>
+            </div>
+            <div v-if="duration !== undefined" class="duration-badge">
+              <el-icon class="duration-icon"><Timer /></el-icon>
+              <span class="duration-text">{{ formatDuration(duration) }}</span>
+            </div>
           </div>
           <div v-if="isRecording" class="recording-indicator">
             <span class="rec-dot"></span>
@@ -66,34 +72,6 @@
       </div>
     </div>
 
-    <!-- 画中画 - 面试官 -->
-    <div class="pip-video-container" :class="{ 'expanded': isPipExpanded }">
-      <div class="video-wrapper interviewer-video">
-        <video
-          ref="interviewerVideoRef"
-          autoplay
-          playsinline
-          class="video-element"
-          :src="streamUrl"
-        ></video>
-        <div class="video-overlay mini">
-          <div class="video-label">
-            <span class="label-icon">🎤</span>
-            <span class="label-text">面试官</span>
-          </div>
-        </div>
-        
-        <!-- 控制按钮 -->
-        <div class="pip-controls">
-          <button class="pip-btn" @click="togglePipExpand" :title="isPipExpanded ? '缩小' : '放大'">
-            <el-icon><FullScreen v-if="!isPipExpanded" /><ScaleToOriginal v-else /></el-icon>
-          </button>
-          <button class="pip-btn" @click="swapVideos" title="切换位置">
-            <el-icon><Switch /></el-icon>
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- 无视频提示 -->
     <div v-if="!hasLocalVideo" class="no-video-overlay">
@@ -110,7 +88,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { FullScreen, ScaleToOriginal, Switch, VideoCameraFilled } from '@element-plus/icons-vue'
+import { FullScreen, ScaleToOriginal, Switch, VideoCameraFilled, Timer } from '@element-plus/icons-vue'
 import type { CandidateState } from '@/composables/useImmersiveInterview'
 
 interface Props {
@@ -122,6 +100,7 @@ interface Props {
   localStream?: MediaStream | null
   deceptionScore?: number
   faceOutOfFrame?: boolean
+  duration?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -132,7 +111,8 @@ const props = withDefaults(defineProps<Props>(), {
   emotionLabel: '',
   localStream: null,
   deceptionScore: 0,
-  faceOutOfFrame: false
+  faceOutOfFrame: false,
+  duration: undefined
 })
 
 // 欺骗警告显示（分数 > 0.5）
@@ -180,6 +160,13 @@ const togglePipExpand = () => {
 
 const swapVideos = () => {
   isSwapped.value = !isSwapped.value
+}
+
+// 格式化时长
+const formatDuration = (seconds: number) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
 // 监听本地流变化
@@ -240,10 +227,17 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+  backdrop-filter: blur(8px);
   
   &.mini {
     padding: 8px 12px;
   }
+}
+
+.video-info-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .video-label {
@@ -260,6 +254,28 @@ defineExpose({
   
   .label-text {
     font-size: 14px;
+  }
+}
+
+.duration-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(102, 126, 234, 0.85);
+  border-radius: 20px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  
+  .duration-icon {
+    font-size: 14px;
+  }
+  
+  .duration-text {
+    letter-spacing: 0.5px;
   }
 }
 
