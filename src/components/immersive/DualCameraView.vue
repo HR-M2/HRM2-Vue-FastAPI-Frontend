@@ -69,6 +69,48 @@
             </div>
           </transition>
         </div>
+
+        <!-- 实时语音转录显示区域 -->
+        <transition name="slide-up">
+          <div v-if="showTranscript" class="transcript-overlay">
+            <div class="transcript-header">
+              <div class="transcript-title">
+                <el-icon class="transcript-icon"><Microphone /></el-icon>
+                <span>实时转录</span>
+                <div v-if="isSpeechListening" class="listening-indicator">
+                  <span class="listening-dot"></span>
+                </div>
+              </div>
+              <div class="transcript-controls">
+                <el-button 
+                  v-if="speechTranscript"
+                  size="small" 
+                  type="danger" 
+                  text
+                  @click="$emit('clearTranscript')"
+                >
+                  清空
+                </el-button>
+                <span class="transcript-status">
+                  {{ isSpeechListening ? '录音中' : '已暂停' }}
+                </span>
+              </div>
+            </div>
+            <div class="transcript-content" ref="transcriptContentRef">
+              <div v-if="speechTranscript || speechInterim" class="transcript-text">
+                <!-- 已确认的累积文字 -->
+                <span v-if="speechTranscript" class="final-text">{{ speechTranscript }}</span>
+                <!-- 临时识别的文字 -->
+                <span v-if="speechInterim" class="interim-text">{{ speechInterim }}</span>
+                <!-- 光标指示器 -->
+                <span v-if="isSpeechListening" class="cursor-indicator">|</span>
+              </div>
+              <div v-else class="transcript-placeholder">
+                {{ isSpeechListening ? '正在监听语音...' : '等待语音输入' }}
+              </div>
+            </div>
+          </div>
+        </transition>
       </div>
     </div>
 
@@ -87,8 +129,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { FullScreen, ScaleToOriginal, Switch, VideoCameraFilled, Timer } from '@element-plus/icons-vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { FullScreen, ScaleToOriginal, Switch, VideoCameraFilled, Timer, Microphone } from '@element-plus/icons-vue'
 import type { CandidateState } from '@/composables/useImmersiveInterview'
 
 interface Props {
@@ -101,6 +143,10 @@ interface Props {
   deceptionScore?: number
   faceOutOfFrame?: boolean
   duration?: number
+  speechTranscript?: string
+  speechInterim?: string
+  isSpeechListening?: boolean
+  showTranscript?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -112,7 +158,11 @@ const props = withDefaults(defineProps<Props>(), {
   localStream: null,
   deceptionScore: 0,
   faceOutOfFrame: false,
-  duration: undefined
+  duration: undefined,
+  speechTranscript: '',
+  speechInterim: '',
+  isSpeechListening: false,
+  showTranscript: false
 })
 
 // 欺骗警告显示（分数 > 0.5）
@@ -120,10 +170,12 @@ const showDeceptionWarning = computed(() => props.deceptionScore > 0.5)
 
 const emit = defineEmits<{
   (e: 'init-camera'): void
+  (e: 'clearTranscript'): void
 }>()
 
 const candidateVideoRef = ref<HTMLVideoElement | null>(null)
 const interviewerVideoRef = ref<HTMLVideoElement | null>(null)
+const transcriptContentRef = ref<HTMLElement | null>(null)
 const isPipExpanded = ref(false)
 const isSwapped = ref(false)
 
@@ -175,6 +227,15 @@ watch(() => props.localStream, (stream) => {
     candidateVideoRef.value.srcObject = stream
   }
 }, { immediate: true })
+
+// 监听转录文本变化，自动滚动到底部
+watch([() => props.speechTranscript, () => props.speechInterim], () => {
+  nextTick(() => {
+    if (transcriptContentRef.value) {
+      transcriptContentRef.value.scrollTop = transcriptContentRef.value.scrollHeight
+    }
+  })
+})
 
 onMounted(() => {
   if (candidateVideoRef.value && props.localStream) {
@@ -534,5 +595,165 @@ defineExpose({
 .slide-down-leave-to {
   opacity: 0;
   transform: translateY(-20px);
+}
+
+// 实时转录显示区域
+.transcript-overlay {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  max-width: 500px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  z-index: 15;
+  
+  .transcript-header {
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .transcript-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      
+      .transcript-icon {
+        font-size: 16px;
+        color: #10b981;
+      }
+      
+      .listening-indicator {
+        .listening-dot {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          background: #10b981;
+          border-radius: 50%;
+          animation: pulse-listening 1.5s infinite;
+        }
+      }
+    }
+    
+    .transcript-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .el-button {
+        padding: 2px 8px;
+        font-size: 11px;
+        height: auto;
+        min-height: auto;
+      }
+      
+      .transcript-status {
+        font-size: 11px;
+        color: #9ca3af;
+        padding: 2px 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
+    }
+  }
+  
+  .transcript-content {
+    padding: 16px;
+    max-height: 150px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    
+    .transcript-text {
+      color: white;
+      font-size: 14px;
+      line-height: 1.6;
+      word-wrap: break-word;
+      word-break: break-word;
+      
+      .final-text {
+        color: #f3f4f6;
+      }
+      
+      .interim-text {
+        color: #9ca3af;
+        font-style: italic;
+      }
+      
+      .cursor-indicator {
+        color: #10b981;
+        font-weight: bold;
+        animation: blink-cursor 1s infinite;
+        margin-left: 2px;
+      }
+    }
+    
+    .transcript-placeholder {
+      color: #6b7280;
+      font-size: 13px;
+      font-style: italic;
+      text-align: center;
+      padding: 8px 0;
+    }
+  }
+  
+  // 自定义滚动条
+  .transcript-content::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .transcript-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+  
+  .transcript-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+  }
+  
+  .transcript-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+}
+
+@keyframes pulse-listening {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes blink-cursor {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.4s ease;
+}
+
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(30px);
 }
 </style>

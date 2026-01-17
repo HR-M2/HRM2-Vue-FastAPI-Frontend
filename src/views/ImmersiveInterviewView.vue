@@ -39,10 +39,17 @@
             <el-icon><VideoPause /></el-icon>
             结束面试
           </el-button>
-          <!-- <el-button @click="handleFetchSuggestions" :loading="isAnalyzing">
-            <el-icon><MagicStick /></el-icon>
-            获取建议
-          </el-button> -->
+          
+          <!-- 语音转录控制按钮 -->
+          <el-button 
+            v-if="isSessionActive && speechSupported && config.showTranscript"
+            :type="isSpeechListening ? 'warning' : 'primary'"
+            @click="handleToggleSpeechRecognition"
+          >
+            <el-icon><Microphone /></el-icon>
+            {{ isSpeechListening ? '停止转录' : '开始转录' }}
+          </el-button>
+          
           <el-button type="danger" plain @click="handleEndSession">
             <el-icon><Close /></el-icon>
             退出会话
@@ -105,7 +112,10 @@
               <div class="feature-toggles">
                 <el-checkbox v-model="config.localCameraEnabled">启用本地摄像头（候选人）</el-checkbox>
                 <el-checkbox v-model="config.autoAnalyze">自动状态分析</el-checkbox>
-                <el-checkbox v-model="config.showTranscript">显示实时转录</el-checkbox>
+                <el-checkbox v-model="config.showTranscript" :disabled="!speechSupported">
+                  显示实时转录
+                  <span v-if="!speechSupported" class="feature-tip">（浏览器不支持）</span>
+                </el-checkbox>
                 <el-checkbox v-model="config.showSuggestions">显示提问建议</el-checkbox>
               </div>
             </el-form-item>
@@ -156,7 +166,12 @@
               :deception-score="cockpitData.deceptionScore"
               :face-out-of-frame="cockpitData.faceOutOfFrame"
               :duration="stats.duration"
+              :speech-transcript="accumulatedTranscript"
+              :speech-interim="speechInterim"
+              :is-speech-listening="isSpeechListening"
+              :show-transcript="config.showTranscript && isSessionActive"
               @init-camera="handleInitCamera"
+              @clear-transcript="handleClearTranscript"
             />
           </div>
 
@@ -261,6 +276,7 @@ import {
 } from '@/components/immersive'
 import { useImmersiveInterview } from '@/composables/useImmersiveInterview'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
+import { useSpeechRecognition } from '@/composables/useSpeechRecognition'
 import type { QuestionSuggestion } from '@/composables/useImmersiveInterview'
 
 // 报告数据类型
@@ -315,6 +331,41 @@ const {
   cleanup,
   triggerDeceptionAlert
 } = useImmersiveInterview()
+
+// 语音识别相关
+const accumulatedTranscript = ref('') // 累积的完整转录文本
+
+const {
+  isSupported: speechSupported,
+  isListening: isSpeechListening,
+  transcript: speechTranscript,
+  interimTranscript: speechInterim,
+  finalTranscript: speechFinal,
+  error: speechError,
+  start: startSpeech,
+  stop: stopSpeech,
+  reset: resetSpeech
+} = useSpeechRecognition({
+  lang: 'zh-CN',
+  continuous: true,
+  interimResults: true,
+  onResult: (text, isFinal) => {
+    if (isFinal && text.trim()) {
+      // 将最终识别结果追加到累积文本中
+      if (accumulatedTranscript.value) {
+        accumulatedTranscript.value += ' ' + text.trim()
+      } else {
+        accumulatedTranscript.value = text.trim()
+      }
+      
+      // 同时添加到转录记录
+      addTranscript('candidate', text.trim())
+    }
+  },
+  onError: (errorMsg) => {
+    console.error('语音识别错误:', errorMsg)
+  }
+})
 
 // 启用键盘快捷键
 useKeyboardShortcuts({
@@ -384,8 +435,23 @@ const handleCreateSession = async () => {
   }
   
   const success = await createSession(selectedApplicationId.value)
-  if (success && config.localCameraEnabled) {
-    await handleInitCamera()
+  if (success) {
+    // 重置累积转录文本
+    accumulatedTranscript.value = ''
+    
+    if (config.localCameraEnabled) {
+      await handleInitCamera()
+    }
+    
+    // 如果启用了转录功能，立即开始语音识别
+    if (speechSupported.value && config.showTranscript) {
+      const speechSuccess = await startSpeech()
+      if (speechSuccess) {
+        ElMessage.success('语音转录已启动')
+      } else {
+        ElMessage.warning('语音转录启动失败，请检查麦克风权限')
+      }
+    }
   }
 }
 
@@ -397,6 +463,16 @@ const handleInitCamera = async () => {
 // 开始面试
 const handleStartInterview = async () => {
   await startInterview()
+  
+  // 如果语音识别还没启动且已启用，现在启动
+  if (speechSupported.value && config.showTranscript && !isSpeechListening.value) {
+    const success = await startSpeech()
+    if (success) {
+      ElMessage.success('语音转录已启动')
+    } else {
+      ElMessage.warning('语音转录启动失败，请检查麦克风权限')
+    }
+  }
 }
 
 // 结束面试
@@ -411,6 +487,12 @@ const handleStopInterview = async () => {
         type: 'warning'
       }
     )
+    
+    // 停止语音识别
+    if (isSpeechListening.value) {
+      stopSpeech()
+    }
+    
     await stopInterview()
   } catch {
     // 用户取消
@@ -429,6 +511,15 @@ const handleEndSession = async () => {
         type: 'warning'
       }
     )
+    
+    // 停止语音识别
+    if (isSpeechListening.value) {
+      stopSpeech()
+    }
+    
+    // 清空累积转录文本
+    accumulatedTranscript.value = ''
+    
     await deleteSession()
     selectedApplicationId.value = ''
   } catch {
@@ -450,6 +541,28 @@ const handleFetchInsights = async () => {
 const handleUseSuggestion = (suggestion: QuestionSuggestion) => {
   addTranscript('interviewer', suggestion.question)
   ElMessage.success('问题已添加到转录')
+}
+
+// 手动切换语音识别
+const handleToggleSpeechRecognition = async () => {
+  if (isSpeechListening.value) {
+    stopSpeech()
+    ElMessage.info('语音转录已停止')
+  } else {
+    const success = await startSpeech()
+    if (success) {
+      ElMessage.success('语音转录已启动')
+    } else {
+      ElMessage.error('语音转录启动失败，请检查麦克风权限')
+    }
+  }
+}
+
+// 清空转录文本
+const handleClearTranscript = () => {
+  accumulatedTranscript.value = ''
+  resetSpeech()
+  ElMessage.info('转录文本已清空')
 }
 
 // 生成报告
@@ -516,6 +629,12 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  // 清理语音识别
+  if (isSpeechListening.value) {
+    stopSpeech()
+  }
+  // 清空累积转录文本
+  accumulatedTranscript.value = ''
   cleanup()
 })
 </script>
@@ -660,6 +779,14 @@ onUnmounted(() => {
       display: flex;
       flex-direction: column;
       gap: 12px;
+      
+      .el-checkbox {
+        .feature-tip {
+          font-size: 12px;
+          color: #f56c6c;
+          margin-left: 4px;
+        }
+      }
     }
   }
   

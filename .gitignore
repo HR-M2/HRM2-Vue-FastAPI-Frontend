@@ -32,3 +32,6 @@ coverage/
 # Local build caches
 .cache/
 *.tsbuildinfo
+.kiro/steering/product.md
+.kiro/steering/structure.md
+.kiro/steering/tech.md
