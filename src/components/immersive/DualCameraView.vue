@@ -70,47 +70,82 @@
           </transition>
         </div>
 
-        <!-- 实时语音转录显示区域 -->
-        <transition name="slide-up">
-          <div v-if="showTranscript" class="transcript-overlay">
-            <div class="transcript-header">
-              <div class="transcript-title">
-                <el-icon class="transcript-icon"><Microphone /></el-icon>
-                <span>实时转录</span>
-                <div v-if="isSpeechListening" class="listening-indicator">
-                  <span class="listening-dot"></span>
+        <!-- 左侧分析面板 -->
+        <div class="left-analysis-panel">
+          <!-- 大五人格分析 -->
+          <div class="analysis-card personality-card">
+            <h4 class="card-title">
+              <span class="title-icon">🧠</span>
+              大五人格
+            </h4>
+            <div class="personality-mini-list">
+              <div class="personality-mini-item">
+                <span class="trait-label">开放性</span>
+                <div class="trait-mini-bar">
+                  <div class="trait-fill openness" :style="{ width: `${(bigFiveData?.openness || 0) * 100}%` }"></div>
                 </div>
+                <span class="trait-percent">{{ Math.round((bigFiveData?.openness || 0) * 100) }}%</span>
               </div>
-              <div class="transcript-controls">
-                <el-button 
-                  v-if="speechTranscript"
-                  size="small" 
-                  type="danger" 
-                  text
-                  @click="$emit('clearTranscript')"
-                >
-                  清空
-                </el-button>
-                <span class="transcript-status">
-                  {{ isSpeechListening ? '录音中' : '已暂停' }}
-                </span>
+              <div class="personality-mini-item">
+                <span class="trait-label">尽责性</span>
+                <div class="trait-mini-bar">
+                  <div class="trait-fill conscientiousness" :style="{ width: `${(bigFiveData?.conscientiousness || 0) * 100}%` }"></div>
+                </div>
+                <span class="trait-percent">{{ Math.round((bigFiveData?.conscientiousness || 0) * 100) }}%</span>
               </div>
-            </div>
-            <div class="transcript-content" ref="transcriptContentRef">
-              <div v-if="speechTranscript || speechInterim" class="transcript-text">
-                <!-- 已确认的累积文字 -->
-                <span v-if="speechTranscript" class="final-text">{{ speechTranscript }}</span>
-                <!-- 临时识别的文字 -->
-                <span v-if="speechInterim" class="interim-text">{{ speechInterim }}</span>
-                <!-- 光标指示器 -->
-                <span v-if="isSpeechListening" class="cursor-indicator">|</span>
+              <div class="personality-mini-item">
+                <span class="trait-label">外向性</span>
+                <div class="trait-mini-bar">
+                  <div class="trait-fill extraversion" :style="{ width: `${(bigFiveData?.extraversion || 0) * 100}%` }"></div>
+                </div>
+                <span class="trait-percent">{{ Math.round((bigFiveData?.extraversion || 0) * 100) }}%</span>
               </div>
-              <div v-else class="transcript-placeholder">
-                {{ isSpeechListening ? '正在监听语音...' : '等待语音输入' }}
+              <div class="personality-mini-item">
+                <span class="trait-label">宜人性</span>
+                <div class="trait-mini-bar">
+                  <div class="trait-fill agreeableness" :style="{ width: `${(bigFiveData?.agreeableness || 0) * 100}%` }"></div>
+                </div>
+                <span class="trait-percent">{{ Math.round((bigFiveData?.agreeableness || 0) * 100) }}%</span>
+              </div>
+              <div class="personality-mini-item">
+                <span class="trait-label">神经质</span>
+                <div class="trait-mini-bar">
+                  <div class="trait-fill neuroticism" :style="{ width: `${(bigFiveData?.neuroticism || 0) * 100}%` }"></div>
+                </div>
+                <span class="trait-percent">{{ Math.round((bigFiveData?.neuroticism || 0) * 100) }}%</span>
               </div>
             </div>
           </div>
-        </transition>
+
+          <!-- 检测区域 -->
+          <div class="detection-cards">
+            <!-- 欺骗检测 -->
+            <div class="analysis-card detection-card" :class="{ 'warning-state': deceptionScore > 0.5 }">
+              <h4 class="card-title">
+                <span class="title-icon">🔍</span>
+                欺骗检测
+              </h4>
+              <div class="detection-meter">
+                <div class="meter-circle" :class="deceptionLevelClass">
+                  <span class="meter-value">{{ Math.round(deceptionScore * 100) }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 抑郁检测 -->
+            <div class="analysis-card detection-card">
+              <h4 class="card-title">
+                <span class="title-icon">😔</span>
+                抑郁检测
+              </h4>
+              <div class="detection-meter">
+                <div class="meter-circle depression-meter">
+                  <span class="meter-value">{{ Math.round((depressionScore || 0) * 100) }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -147,6 +182,14 @@ interface Props {
   speechInterim?: string
   isSpeechListening?: boolean
   showTranscript?: boolean
+  bigFiveData?: {
+    openness: number
+    conscientiousness: number
+    extraversion: number
+    agreeableness: number
+    neuroticism: number
+  }
+  depressionScore?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -162,11 +205,27 @@ const props = withDefaults(defineProps<Props>(), {
   speechTranscript: '',
   speechInterim: '',
   isSpeechListening: false,
-  showTranscript: false
+  showTranscript: false,
+  bigFiveData: () => ({
+    openness: 0,
+    conscientiousness: 0,
+    extraversion: 0,
+    agreeableness: 0,
+    neuroticism: 0
+  }),
+  depressionScore: 0
 })
 
 // 欺骗警告显示（分数 > 0.5）
 const showDeceptionWarning = computed(() => props.deceptionScore > 0.5)
+
+// 欺骗检测等级样式
+const deceptionLevelClass = computed(() => {
+  const score = props.deceptionScore
+  if (score > 0.7) return 'level-danger'
+  if (score > 0.5) return 'level-warning'
+  return 'level-normal'
+})
 
 const emit = defineEmits<{
   (e: 'init-camera'): void
@@ -595,6 +654,160 @@ defineExpose({
 .slide-down-leave-to {
   opacity: 0;
   transform: translateY(-20px);
+}
+
+// 左侧分析面板
+.left-analysis-panel {
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  width: 22%;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 25;
+}
+
+.analysis-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  
+  &.warning-state {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+  
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 10px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    
+    .title-icon {
+      font-size: 14px;
+    }
+  }
+}
+
+// 大五人格分析
+.personality-card {
+  .personality-mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .personality-mini-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .trait-label {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.9);
+      min-width: 36px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    
+    .trait-mini-bar {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      overflow: hidden;
+      
+      .trait-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.5s ease;
+        
+        &.openness {
+          background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        &.conscientiousness {
+          background: linear-gradient(90deg, #10b981, #34d399);
+        }
+        
+        &.extraversion {
+          background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+        
+        &.agreeableness {
+          background: linear-gradient(90deg, #06b6d4, #22d3ee);
+        }
+        
+        &.neuroticism {
+          background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+      }
+    }
+    
+    .trait-percent {
+      font-size: 10px;
+      font-weight: 600;
+      color: white;
+      min-width: 28px;
+      text-align: right;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+}
+
+// 检测卡片
+.detection-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.detection-card {
+  .detection-meter {
+    display: flex;
+    justify-content: center;
+    
+    .meter-circle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      
+      &.level-normal {
+        background: conic-gradient(#10b981 0deg, rgba(255, 255, 255, 0.2) 0deg);
+      }
+      
+      &.level-warning {
+        background: conic-gradient(#f59e0b 0deg, rgba(255, 255, 255, 0.2) 0deg);
+      }
+      
+      &.level-danger {
+        background: conic-gradient(#ef4444 0deg, rgba(255, 255, 255, 0.2) 0deg);
+      }
+      
+      &.depression-meter {
+        background: conic-gradient(#6b7280 0deg, rgba(255, 255, 255, 0.2) 0deg);
+      }
+      
+      .meter-value {
+        font-size: 11px;
+        font-weight: 700;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      }
+    }
+  }
 }
 
 // 实时转录显示区域

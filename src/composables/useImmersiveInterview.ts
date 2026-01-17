@@ -315,11 +315,20 @@ export function useImmersiveInterview() {
         },
         ...options
       })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        return { 
+          success: false, 
+          message: `HTTP ${response.status}: ${response.statusText}. ${errorText}` 
+        }
+      }
+      
       const result = await response.json()
       return result
-    } catch (error) {
+    } catch (error: any) {
       console.error('API调用失败:', error)
-      return { success: false, message: String(error) }
+      return { success: false, message: `网络错误: ${error?.message || String(error)}` }
     }
   }
 
@@ -327,17 +336,19 @@ export function useImmersiveInterview() {
   const createSession = async (applicationId: string): Promise<boolean> => {
     isLoading.value = true
     try {
+      const requestBody = {
+        application_id: applicationId,
+        local_camera_enabled: config.localCameraEnabled,
+        stream_url: config.streamUrl || null,
+        config: {
+          autoAnalyze: config.autoAnalyze,
+          analyzeInterval: config.analyzeInterval
+        }
+      }
+      
       const result = await apiCall<ImmersiveSession>(`${API_BASE}`, {
         method: 'POST',
-        body: JSON.stringify({
-          application_id: applicationId,
-          local_camera_enabled: config.localCameraEnabled,
-          stream_url: config.streamUrl || null,
-          config: {
-            autoAnalyze: config.autoAnalyze,
-            analyzeInterval: config.analyzeInterval
-          }
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (result.success && result.data) {
@@ -349,6 +360,10 @@ export function useImmersiveInterview() {
         ElMessage.error(result.message || '创建会话失败')
         return false
       }
+    } catch (error) {
+      console.error('创建会话异常:', error)
+      ElMessage.error('创建会话时发生异常')
+      return false
     } finally {
       isLoading.value = false
     }
@@ -552,12 +567,16 @@ export function useImmersiveInterview() {
   const fetchSuggestions = async (): Promise<void> => {
     if (!sessionId.value) return
 
-    const result = await apiCall<{ suggestions: QuestionSuggestion[] }>(
-      `${API_BASE}/${sessionId.value}/suggestions`
-    )
+    try {
+      const result = await apiCall<{ suggestions: QuestionSuggestion[] }>(
+        `${API_BASE}/${sessionId.value}/suggestions`
+      )
 
-    if (result.success && result.data) {
-      suggestions.value = result.data.suggestions
+      if (result.success && result.data) {
+        suggestions.value = result.data.suggestions
+      }
+    } catch (error) {
+      console.error('获取建议失败:', error)
     }
   }
 

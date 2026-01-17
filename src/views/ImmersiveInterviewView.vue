@@ -41,14 +41,7 @@
           </el-button>
           
           <!-- 语音转录控制按钮 -->
-          <el-button 
-            v-if="isSessionActive && speechSupported && config.showTranscript"
-            :type="isSpeechListening ? 'warning' : 'primary'"
-            @click="handleToggleSpeechRecognition"
-          >
-            <el-icon><Microphone /></el-icon>
-            {{ isSpeechListening ? '停止转录' : '开始转录' }}
-          </el-button>
+          <!-- 已移至右侧对话区域 -->
           
           <el-button type="danger" plain @click="handleEndSession">
             <el-icon><Close /></el-icon>
@@ -170,6 +163,8 @@
               :speech-interim="speechInterim"
               :is-speech-listening="isSpeechListening"
               :show-transcript="config.showTranscript && isSessionActive"
+              :big-five-data="cockpitData.bigFive"
+              :depression-score="cockpitData.depressionScore"
               @init-camera="handleInitCamera"
               @clear-transcript="handleClearTranscript"
             />
@@ -183,8 +178,14 @@
               :cockpit-data="cockpitData"
               :suggestions="suggestions"
               :candidate-info="candidateInfo"
+              :messages="chatMessages"
+              :speech-supported="speechSupported"
+              :is-speech-listening="isSpeechListening"
               @refresh-suggestions="handleFetchSuggestions"
               @use-suggestion="handleUseSuggestion"
+              @toggle-speech="handleToggleSpeechRecognition"
+              @send-question="handleSendQuestion"
+              @add-suggestion-to-chat="handleAddSuggestionToChat"
             />
           </div>
         </div>
@@ -266,8 +267,6 @@ import {
   VideoCamera,
   VideoPlay,
   VideoPause,
-  MagicStick,
-  DataAnalysis,
   Close
 } from '@element-plus/icons-vue'
 import {
@@ -338,10 +337,7 @@ const accumulatedTranscript = ref('') // 累积的完整转录文本
 const {
   isSupported: speechSupported,
   isListening: isSpeechListening,
-  transcript: speechTranscript,
   interimTranscript: speechInterim,
-  finalTranscript: speechFinal,
-  error: speechError,
   start: startSpeech,
   stop: stopSpeech,
   reset: resetSpeech
@@ -356,6 +352,26 @@ const {
         accumulatedTranscript.value += ' ' + text.trim()
       } else {
         accumulatedTranscript.value = text.trim()
+      }
+      
+      // 处理候选人对话消息
+      if (currentCandidateMessageId.value) {
+        // 如果有当前候选人消息，追加内容
+        const existingMessage = chatMessages.value.find(msg => msg.id === currentCandidateMessageId.value)
+        if (existingMessage) {
+          existingMessage.content += ' ' + text.trim()
+          existingMessage.timestamp = new Date() // 更新时间戳
+        }
+      } else {
+        // 如果没有当前候选人消息，创建新消息
+        const newMessageId = generateMessageId()
+        chatMessages.value.push({
+          id: newMessageId,
+          role: 'candidate',
+          content: text.trim(),
+          timestamp: new Date()
+        })
+        currentCandidateMessageId.value = newMessageId
       }
       
       // 同时添加到转录记录
@@ -391,6 +407,20 @@ const applications = ref<Array<{
 const isLoadingCandidates = ref(false)
 const showReportDialog = ref(false)
 const reportData = ref<ReportData | null>(null)
+
+// 聊天消息
+const chatMessages = ref<Array<{
+  id: string
+  role: 'interviewer' | 'candidate' | 'system'
+  content: string
+  timestamp: Date
+}>>([])
+
+// 当前候选人消息ID（用于追加内容）
+const currentCandidateMessageId = ref<string | null>(null)
+
+// 生成消息ID
+const generateMessageId = () => `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 
 // 获取候选人列表
 const fetchApplications = async () => {
@@ -436,21 +466,21 @@ const handleCreateSession = async () => {
   
   const success = await createSession(selectedApplicationId.value)
   if (success) {
-    // 重置累积转录文本
+    // 重置累积转录文本和聊天记录
     accumulatedTranscript.value = ''
+    chatMessages.value = []
+    currentCandidateMessageId.value = null
+    
+    // 添加系统欢迎消息
+    chatMessages.value.push({
+      id: generateMessageId(),
+      role: 'system',
+      content: '面试会话已创建，点击"开始面试"后将自动启动语音转录',
+      timestamp: new Date()
+    })
     
     if (config.localCameraEnabled) {
       await handleInitCamera()
-    }
-    
-    // 如果启用了转录功能，立即开始语音识别
-    if (speechSupported.value && config.showTranscript) {
-      const speechSuccess = await startSpeech()
-      if (speechSuccess) {
-        ElMessage.success('语音转录已启动')
-      } else {
-        ElMessage.warning('语音转录启动失败，请检查麦克风权限')
-      }
     }
   }
 }
@@ -464,7 +494,15 @@ const handleInitCamera = async () => {
 const handleStartInterview = async () => {
   await startInterview()
   
-  // 如果语音识别还没启动且已启用，现在启动
+  // 添加系统消息
+  chatMessages.value.push({
+    id: generateMessageId(),
+    role: 'system',
+    content: '面试已开始',
+    timestamp: new Date()
+  })
+  
+  // 面试开始后自动启动语音识别
   if (speechSupported.value && config.showTranscript && !isSpeechListening.value) {
     const success = await startSpeech()
     if (success) {
@@ -472,6 +510,13 @@ const handleStartInterview = async () => {
     } else {
       ElMessage.warning('语音转录启动失败，请检查麦克风权限')
     }
+  }
+  
+  // 自动获取基于简历的初始问题建议
+  if (config.showSuggestions) {
+    setTimeout(() => {
+      handleFetchSuggestions()
+    }, 1000) // 延迟1秒获取，确保界面已完全加载
   }
 }
 
@@ -491,7 +536,22 @@ const handleStopInterview = async () => {
     // 停止语音识别
     if (isSpeechListening.value) {
       stopSpeech()
+      ElMessage.info('语音转录已停止')
     }
+    
+    // 添加系统消息
+    chatMessages.value.push({
+      id: generateMessageId(),
+      role: 'system',
+      content: '面试已结束',
+      timestamp: new Date()
+    })
+    
+    // 预留：保存会话记录到后端
+    // TODO: 实现保存会话记录的API调用
+    const conversationData = getConversationHistory()
+    console.log('会话记录已准备保存:', conversationData)
+    // await saveConversationToBackend(conversationData)
     
     await stopInterview()
   } catch {
@@ -517,8 +577,10 @@ const handleEndSession = async () => {
       stopSpeech()
     }
     
-    // 清空累积转录文本
+    // 清空累积转录文本和聊天记录
     accumulatedTranscript.value = ''
+    chatMessages.value = []
+    currentCandidateMessageId.value = null
     
     await deleteSession()
     selectedApplicationId.value = ''
@@ -529,7 +591,64 @@ const handleEndSession = async () => {
 
 // 获取建议
 const handleFetchSuggestions = async () => {
-  await fetchSuggestions()
+  try {
+    await fetchSuggestions()
+    
+    // 如果API没有返回建议，根据候选人信息生成基于简历的建议
+    if (suggestions.value.length === 0) {
+      const resumeBasedSuggestions = generateResumeBasedSuggestions()
+      suggestions.value = resumeBasedSuggestions
+    }
+  } catch (error) {
+    console.error('获取建议时发生错误:', error)
+    
+    // 发生错误时也使用基于简历的建议
+    const resumeBasedSuggestions = generateResumeBasedSuggestions()
+    suggestions.value = resumeBasedSuggestions
+  }
+}
+
+// 生成基于简历的问题建议
+const generateResumeBasedSuggestions = () => {
+  const candidateName = candidateInfo.value.name || '候选人'
+  const position = candidateInfo.value.position || '该岗位'
+  
+  const resumeQuestions = [
+    {
+      question: `请${candidateName}简单介绍一下自己，以及为什么对${position}感兴趣？`,
+      type: 'probe' as const,
+      priority: 1,
+      reason: '开场自我介绍'
+    },
+    {
+      question: `能否详细介绍一下您简历中提到的最有挑战性的项目经历？`,
+      type: 'probe' as const,
+      priority: 2,
+      reason: '项目经验深挖'
+    },
+    {
+      question: `在您的工作经历中，遇到过什么技术难题？是如何解决的？`,
+      type: 'probe' as const,
+      priority: 3,
+      reason: '问题解决能力'
+    },
+    {
+      question: `您认为自己在技术方面的优势是什么？有哪些需要提升的地方？`,
+      type: 'alternative' as const,
+      priority: 4,
+      reason: '自我认知评估'
+    },
+    {
+      question: `对于${position}这个岗位，您有什么问题想了解的吗？`,
+      type: 'alternative' as const,
+      priority: 5,
+      reason: '反向提问'
+    }
+  ]
+  
+  // 随机选择3-4个问题
+  const shuffled = resumeQuestions.sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, Math.min(4, resumeQuestions.length))
 }
 
 // 获取洞察
@@ -541,6 +660,61 @@ const handleFetchInsights = async () => {
 const handleUseSuggestion = (suggestion: QuestionSuggestion) => {
   addTranscript('interviewer', suggestion.question)
   ElMessage.success('问题已添加到转录')
+}
+
+// 发送面试官问题
+const handleSendQuestion = (question: string) => {
+  // 结束当前候选人消息（如果有的话）
+  currentCandidateMessageId.value = null
+  
+  // 添加到聊天记录
+  chatMessages.value.push({
+    id: generateMessageId(),
+    role: 'interviewer',
+    content: question,
+    timestamp: new Date()
+  })
+  
+  // 添加到转录记录
+  addTranscript('interviewer', question)
+}
+
+// 将建议添加到聊天（预留接口）
+const handleAddSuggestionToChat = (suggestion: QuestionSuggestion) => {
+  handleSendQuestion(suggestion.question)
+}
+
+// 获取完整对话记录（用于保存）
+const getConversationHistory = () => {
+  return {
+    sessionId: sessionId.value,
+    candidateName: session.value?.candidate_name || '',
+    positionTitle: session.value?.position_title || '',
+    messages: chatMessages.value.map(msg => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp.toISOString()
+    })),
+    transcripts: transcripts.value, // 原始转录记录
+    stats: stats,
+    exportedAt: new Date().toISOString()
+  }
+}
+
+// 导出对话记录
+const handleExportConversation = () => {
+  const conversationData = getConversationHistory()
+  
+  const blob = new Blob([JSON.stringify(conversationData, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `conversation_${sessionId.value}_${Date.now()}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+  
+  ElMessage.success('对话记录已导出')
 }
 
 // 手动切换语音识别
@@ -561,8 +735,10 @@ const handleToggleSpeechRecognition = async () => {
 // 清空转录文本
 const handleClearTranscript = () => {
   accumulatedTranscript.value = ''
+  chatMessages.value = []
+  currentCandidateMessageId.value = null
   resetSpeech()
-  ElMessage.info('转录文本已清空')
+  ElMessage.info('转录文本和聊天记录已清空')
 }
 
 // 生成报告
@@ -633,8 +809,10 @@ onUnmounted(() => {
   if (isSpeechListening.value) {
     stopSpeech()
   }
-  // 清空累积转录文本
+  // 清空累积转录文本和聊天记录
   accumulatedTranscript.value = ''
+  chatMessages.value = []
+  currentCandidateMessageId.value = null
   cleanup()
 })
 </script>
