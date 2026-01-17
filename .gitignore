@@ -35,3 +35,5 @@ coverage/
 .kiro/steering/product.md
 .kiro/steering/structure.md
 .kiro/steering/tech.md
+.kiro/specs/immersive-api-update/design.md
+.kiro/specs/immersive-api-update/requirements.md

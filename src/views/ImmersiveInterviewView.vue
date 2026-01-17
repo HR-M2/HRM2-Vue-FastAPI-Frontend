@@ -181,7 +181,7 @@
               :messages="chatMessages"
               :speech-supported="speechSupported"
               :is-speech-listening="isSpeechListening"
-              @refresh-suggestions="handleFetchSuggestions"
+              @refresh-suggestions="handleRefreshSuggestions"
               @use-suggestion="handleUseSuggestion"
               @toggle-speech="handleToggleSpeechRecognition"
               @send-question="handleSendQuestion"
@@ -255,6 +255,15 @@
         <el-button type="primary" @click="handleDownloadReport">下载报告</el-button>
       </template>
     </el-dialog>
+
+    <!-- 面试结果统计弹窗 -->
+    <InterviewResultDialog
+      v-model="showResultDialog"
+      :result-data="interviewResult"
+      :loading="isResultLoading"
+      @export-report="handleExportReport"
+      @view-full-report="handleViewFullReport"
+    />
   </div>
 </template>
 
@@ -271,12 +280,13 @@ import {
 } from '@element-plus/icons-vue'
 import {
   DualCameraView,
-  RealTimeAnalysisPanel
+  RealTimeAnalysisPanel,
+  InterviewResultDialog
 } from '@/components/immersive'
 import { useImmersiveInterview } from '@/composables/useImmersiveInterview'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { useSpeechRecognition } from '@/composables/useSpeechRecognition'
-import type { QuestionSuggestion } from '@/composables/useImmersiveInterview'
+import type { QuestionSuggestion, CompleteSessionResponse } from '@/composables/useImmersiveInterview'
 
 // 报告数据类型
 interface ReportData {
@@ -322,10 +332,11 @@ const {
   initLocalCamera,
   startInterview,
   stopInterview,
-  fetchSuggestions,
+  fetchQuestionSuggestions,
   fetchInsights,
   addTranscript,
   generateReport,
+  completeSession,
   deleteSession,
   cleanup,
   triggerDeceptionAlert
@@ -407,6 +418,11 @@ const applications = ref<Array<{
 const isLoadingCandidates = ref(false)
 const showReportDialog = ref(false)
 const reportData = ref<ReportData | null>(null)
+
+// 面试结果弹窗相关
+const showResultDialog = ref(false)
+const isResultLoading = ref(false)
+const interviewResult = ref<CompleteSessionResponse | null>(null)
 
 // 聊天消息
 const chatMessages = ref<Array<{
@@ -524,7 +540,7 @@ const handleStartInterview = async () => {
 const handleStopInterview = async () => {
   try {
     await ElMessageBox.confirm(
-      '确定要结束本次面试吗？',
+      '确定要结束本次面试吗？系统将生成完整的面试报告。',
       '结束面试',
       {
         confirmButtonText: '确定结束',
@@ -532,6 +548,8 @@ const handleStopInterview = async () => {
         type: 'warning'
       }
     )
+    
+    console.log('[ImmersiveInterviewView] 开始结束面试流程')
     
     // 停止语音识别
     if (isSpeechListening.value) {
@@ -543,19 +561,38 @@ const handleStopInterview = async () => {
     chatMessages.value.push({
       id: generateMessageId(),
       role: 'system',
-      content: '面试已结束',
+      content: '面试已结束，正在生成报告...',
       timestamp: new Date()
     })
     
-    // 预留：保存会话记录到后端
-    // TODO: 实现保存会话记录的API调用
-    const conversationData = getConversationHistory()
-    console.log('会话记录已准备保存:', conversationData)
-    // await saveConversationToBackend(conversationData)
-    
+    // 1. 先停止录制
+    console.log('[ImmersiveInterviewView] 停止录制')
     await stopInterview()
+    
+    // 2. 完成会话并获取完整数据
+    console.log('[ImmersiveInterviewView] 完成会话并获取数据')
+    showResultDialog.value = true
+    isResultLoading.value = true
+    
+    try {
+      const completeResult = await completeSession()
+      if (completeResult) {
+        console.log('[ImmersiveInterviewView] 获取到完整会话数据:', completeResult)
+        interviewResult.value = completeResult
+        ElMessage.success('面试报告已生成')
+      } else {
+        ElMessage.warning('无法获取完整的面试数据，但面试已正常结束')
+      }
+    } catch (error) {
+      console.error('[ImmersiveInterviewView] 获取完整会话数据失败:', error)
+      ElMessage.error('生成面试报告时出现问题，但面试已正常结束')
+    } finally {
+      isResultLoading.value = false
+    }
+    
   } catch {
     // 用户取消
+    console.log('[ImmersiveInterviewView] 用户取消结束面试')
   }
 }
 
@@ -589,22 +626,34 @@ const handleEndSession = async () => {
   }
 }
 
+// 刷新建议 - 用于事件处理
+const handleRefreshSuggestions = async () => {
+  console.log('[ImmersiveInterviewView] 收到 refresh-suggestions 事件')
+  // 调用实际的获取建议逻辑
+  await handleFetchSuggestions()
+}
+
 // 获取建议
 const handleFetchSuggestions = async () => {
+  console.log('[ImmersiveInterviewView] 开始获取建议')
   try {
-    await fetchSuggestions()
+    await fetchQuestionSuggestions()
+    console.log('[ImmersiveInterviewView] fetchQuestionSuggestions 调用完成，当前建议数量:', suggestions.value.length)
     
     // 如果API没有返回建议，根据候选人信息生成基于简历的建议
     if (suggestions.value.length === 0) {
+      console.log('[ImmersiveInterviewView] API未返回建议，生成基于简历的建议')
       const resumeBasedSuggestions = generateResumeBasedSuggestions()
       suggestions.value = resumeBasedSuggestions
+      console.log('[ImmersiveInterviewView] 生成了', resumeBasedSuggestions.length, '条基于简历的建议')
     }
   } catch (error) {
-    console.error('获取建议时发生错误:', error)
+    console.error('[ImmersiveInterviewView] 获取建议时发生错误:', error)
     
     // 发生错误时也使用基于简历的建议
     const resumeBasedSuggestions = generateResumeBasedSuggestions()
     suggestions.value = resumeBasedSuggestions
+    console.log('[ImmersiveInterviewView] 错误降级，生成了', resumeBasedSuggestions.length, '条基于简历的建议')
   }
 }
 
@@ -616,31 +665,31 @@ const generateResumeBasedSuggestions = () => {
   const resumeQuestions = [
     {
       question: `请${candidateName}简单介绍一下自己，以及为什么对${position}感兴趣？`,
-      type: 'probe' as const,
+      type: 'behavioral' as const,
       priority: 1,
       reason: '开场自我介绍'
     },
     {
       question: `能否详细介绍一下您简历中提到的最有挑战性的项目经历？`,
-      type: 'probe' as const,
+      type: 'technical' as const,
       priority: 2,
       reason: '项目经验深挖'
     },
     {
       question: `在您的工作经历中，遇到过什么技术难题？是如何解决的？`,
-      type: 'probe' as const,
+      type: 'technical' as const,
       priority: 3,
       reason: '问题解决能力'
     },
     {
       question: `您认为自己在技术方面的优势是什么？有哪些需要提升的地方？`,
-      type: 'alternative' as const,
+      type: 'behavioral' as const,
       priority: 4,
       reason: '自我认知评估'
     },
     {
       question: `对于${position}这个岗位，您有什么问题想了解的吗？`,
-      type: 'alternative' as const,
+      type: 'situational' as const,
       priority: 5,
       reason: '反向提问'
     }
@@ -769,6 +818,30 @@ const handleExportData = () => {
   URL.revokeObjectURL(url)
   
   ElMessage.success('数据已导出')
+}
+
+// 面试结果弹窗事件处理
+const handleExportReport = () => {
+  if (interviewResult.value) {
+    const blob = new Blob([JSON.stringify(interviewResult.value, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `interview_report_${interviewResult.value.session_info.id}_${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success('面试报告已导出')
+  }
+}
+
+const handleViewFullReport = () => {
+  // 这里可以跳转到详细报告页面或打开新的弹窗
+  ElMessage.info('详细报告功能开发中...')
+}
+
+const handleCloseResultDialog = () => {
+  showResultDialog.value = false
+  // 关闭弹窗后可以选择返回主页或保持在当前页面
 }
 
 // 下载报告

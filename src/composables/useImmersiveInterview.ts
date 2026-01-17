@@ -5,15 +5,54 @@
 import { ref, reactive, computed, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 
-// 类型定义
-export interface CandidateState {
-  timestamp: string
-  emotion: {
-    emotion: string
-    confidence: number
-    valence: number
-    arousal: number
-  }
+// 标准化数据类型定义
+
+// 大五人格数据
+export interface BigFivePersonality {
+  openness: number        // 开放性 0-1
+  conscientiousness: number // 尽责性 0-1
+  extraversion: number     // 外向性 0-1
+  agreeableness: number    // 宜人性 0-1
+  neuroticism: number      // 神经质 0-1
+}
+
+// 抑郁风险评估
+export interface DepressionRisk {
+  score: number           // 抑郁可能性 0-100
+  level: 'low' | 'medium' | 'high'  // 风险等级
+  confidence: number      // 分析置信度 0-1
+}
+
+// 情绪数据
+export interface EmotionData {
+  emotion: string         // 情绪类型
+  confidence: number      // 置信度 0-1
+  valence: number        // 效价 0-1
+  arousal: number        // 唤醒度 0-1
+}
+
+// 转录记录
+export interface TranscriptRecord {
+  speaker: 'interviewer' | 'candidate'
+  text: string
+  is_final: boolean
+}
+
+// 说话人片段
+export interface SpeakerSegment {
+  speaker: 'interviewer' | 'candidate'
+  start_time: number
+  end_time: number
+  text: string
+  confidence: number
+  big_five_personality?: BigFivePersonality
+  depression_risk?: DepressionRisk
+}
+
+// 状态记录
+export interface StateRecord {
+  segment_id: string
+  emotion: EmotionData
   engagement: number
   nervousness: number
   confidence_level: number
@@ -23,14 +62,20 @@ export interface CandidateState {
   speech_pace: 'slow' | 'normal' | 'fast'
 }
 
-export interface SpeakerSegment {
-  speaker: 'interviewer' | 'candidate'
-  start_time: number
-  end_time: number
-  text: string
-  confidence: number
+// 候选人状态（向后兼容）
+export interface CandidateState {
+  timestamp: string
+  emotion: EmotionData
+  engagement: number
+  nervousness: number
+  confidence_level: number
+  eye_contact: number
+  posture_score: number
+  speech_clarity: number
+  speech_pace: 'slow' | 'normal' | 'fast'
 }
 
+// 转录文本（向后兼容）
 export interface Transcript {
   speaker: 'interviewer' | 'candidate' | 'unknown'
   text: string
@@ -38,13 +83,18 @@ export interface Transcript {
   is_final: boolean
 }
 
+// 问题建议
 export interface QuestionSuggestion {
   question: string
-  type: 'followup' | 'alternative' | 'probe'
+  type: 'technical' | 'behavioral' | 'situational'
   priority: number
   reason?: string
+  psychological_context?: string
+  timing_suggestion?: string
+  expected_response_indicators?: string[]
 }
 
+// 面试洞察
 export interface InterviewInsight {
   category: string
   content: string
@@ -52,13 +102,100 @@ export interface InterviewInsight {
   timestamp: string
 }
 
-// 大五人格类型
-export interface BigFivePersonality {
-  openness: number        // 开放性 0-1
-  conscientiousness: number // 尽责性 0-1
-  extraversion: number     // 外向性 0-1
-  agreeableness: number    // 宜人性 0-1
-  neuroticism: number      // 神经质 0-1
+// 洞察警报
+export interface InsightAlert {
+  category: string
+  content: string
+  severity: 'info' | 'warning' | 'alert'
+  timestamp: string
+}
+
+// 质量指标
+export interface QualityMetrics {
+  session_quality_score: number
+  psychological_wellness_score: number
+}
+
+// 批量同步数据请求
+export interface SyncDataRequest {
+  transcripts?: TranscriptRecord[]
+  speaker_segments?: SpeakerSegment[]
+  state_records?: StateRecord[]
+}
+
+// 问题建议选项
+export interface QuestionOptions {
+  count?: number
+  difficulty?: 'easy' | 'medium' | 'hard'
+  focus_areas?: string[]
+  use_psychological_context?: boolean
+  use_conversation_history?: boolean
+  question_type?: 'technical' | 'behavioral' | 'situational' | 'mixed'
+}
+
+// 问题建议响应
+export interface QuestionSuggestionsResponse {
+  suggestions: QuestionSuggestion[]
+}
+
+// 洞察响应
+export interface InsightsResponse {
+  insights: InterviewInsight[]
+  alerts: InsightAlert[]
+  suggestions: string[]
+  session_quality_score: number
+  psychological_wellness_score: number
+}
+
+// 会话统计
+export interface SessionStatistics {
+  duration_seconds: number
+  interviewer_speak_ratio: number
+  candidate_speak_ratio: number
+  avg_engagement: number
+  avg_confidence: number
+  total_transcripts: number
+  total_segments: number
+  session_quality_score: number // 新增：会话质量评分
+}
+
+// 心理摘要
+export interface PsychologicalSummary {
+  overall_big_five: BigFivePersonality
+  overall_depression_risk: DepressionRisk
+  emotional_stability: number
+  stress_indicators: string[]
+  positive_traits: string[]
+  areas_of_concern: string[]
+  psychological_wellness_score: number // 新增：心理健康评分
+}
+
+// 创建会话请求
+export interface CreateSessionRequest {
+  application_id: string
+  local_camera_enabled: boolean
+  stream_url?: string | null
+  config?: Record<string, unknown>
+}
+
+// 完整会话响应
+export interface CompleteSessionResponse {
+  session_info: {
+    id: string
+    duration_seconds: number
+    start_time: string
+    end_time: string
+    is_completed: boolean
+  }
+  statistics: SessionStatistics
+  psychological_summary: PsychologicalSummary
+  full_transcripts: TranscriptRecord[]
+  full_speaker_segments: SpeakerSegment[]
+  full_state_history: StateRecord[]
+  candidate_info: {
+    name: string
+    position_title: string
+  }
 }
 
 // 驾驶舱数据类型
@@ -96,9 +233,93 @@ export interface ImmersiveConfig {
   analyzeInterval: number // 秒
   showTranscript: boolean
   showSuggestions: boolean
+  psychologicalAnalysisEnabled: boolean // 新增：心理分析功能开关
+  syncInterval: number // 新增：同步间隔（秒）
+  maxBatchSize: number // 新增：最大批量大小
 }
 
+import { DataSyncManager } from './DataSyncManager'
+
+// 新的API端点常量
 const API_BASE = '/api/v1/immersive'
+
+// API错误处理器
+class APIErrorHandler {
+  private retryAttempts = new Map<string, number>()
+  private readonly MAX_RETRIES = 3
+  private readonly RETRY_DELAYS: number[] = [1000, 2000, 4000] // 指数退避
+  
+  async handleAPICall<T>(
+    operation: () => Promise<T>,
+    operationId: string
+  ): Promise<T> {
+    try {
+      const result = await operation()
+      this.retryAttempts.delete(operationId)
+      return result
+    } catch (error) {
+      return this.handleError(error, operation, operationId)
+    }
+  }
+  
+  private async handleError<T>(
+    error: any,
+    operation: () => Promise<T>,
+    operationId: string
+  ): Promise<T> {
+    const attempts = this.retryAttempts.get(operationId) || 0
+    
+    if (attempts < this.MAX_RETRIES && this.isRetryableError(error)) {
+      this.retryAttempts.set(operationId, attempts + 1)
+      const delayIndex = Math.min(attempts, this.RETRY_DELAYS.length - 1)
+      const delay = this.RETRY_DELAYS[delayIndex] ?? 4000 // 默认4秒
+      await this.delay(delay)
+      return this.handleAPICall(operation, operationId)
+    }
+    
+    throw error
+  }
+  
+  private isRetryableError(error: any): boolean {
+    // 网络错误、超时、5xx错误等可重试
+    return error.code === 'NETWORK_ERROR' || 
+           error.status >= 500 || 
+           error.code === 'TIMEOUT'
+  }
+  
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+}
+
+// 降级管理器
+class FallbackManager {
+  async getQuestionSuggestionsWithFallback(
+    options: QuestionOptions
+  ): Promise<QuestionSuggestion[]> {
+    // 基于简历和配置生成本地问题建议
+    return [
+      {
+        question: "请详细介绍一下您最有挑战性的项目经历？",
+        type: 'behavioral',
+        priority: 1,
+        reason: "本地生成 - 项目经验探索"
+      },
+      {
+        question: "您如何处理工作中的压力和挑战？",
+        type: 'behavioral',
+        priority: 2,
+        reason: "本地生成 - 抗压能力评估"
+      },
+      {
+        question: "描述一次您需要学习新技术或技能的经历。",
+        type: 'behavioral',
+        priority: 3,
+        reason: "本地生成 - 学习能力评估"
+      }
+    ]
+  }
+}
 
 export function useImmersiveInterview() {
   // 配置
@@ -108,7 +329,10 @@ export function useImmersiveInterview() {
     autoAnalyze: true,
     analyzeInterval: 5,
     showTranscript: true,
-    showSuggestions: true
+    showSuggestions: true,
+    psychologicalAnalysisEnabled: true, // 默认启用心理分析
+    syncInterval: 5, // 5秒同步间隔
+    maxBatchSize: 10 // 最大批量大小
   })
 
   // 会话状态
@@ -130,6 +354,17 @@ export function useImmersiveInterview() {
   const insights = ref<InterviewInsight[]>([])
   const speakerSegments = ref<SpeakerSegment[]>([])
 
+  // 新增：批量同步队列和质量指标
+  const syncQueue = ref<SyncDataRequest>({
+    transcripts: [],
+    speaker_segments: [],
+    state_records: []
+  })
+  const qualityMetrics = ref<QualityMetrics>({
+    session_quality_score: 0,
+    psychological_wellness_score: 0
+  })
+
   // 统计
   const stats = reactive({
     duration: 0,
@@ -138,6 +373,11 @@ export function useImmersiveInterview() {
     avgEngagement: 0,
     avgConfidence: 0
   })
+
+  // 管理器实例
+  let dataSyncManager: DataSyncManager | null = null
+  const errorHandler = new APIErrorHandler()
+  const fallbackManager = new FallbackManager()
 
   // 驾驶舱模拟数据
   const cockpitData = reactive<CockpitData>({
@@ -307,6 +547,13 @@ export function useImmersiveInterview() {
     url: string,
     options: RequestInit = {}
   ): Promise<{ success: boolean; data?: T; message?: string }> => {
+    console.log('[apiCall] 发送请求:', {
+      url,
+      method: options.method || 'GET',
+      headers: options.headers,
+      body: options.body
+    })
+
     try {
       const response = await fetch(url, {
         headers: {
@@ -316,8 +563,21 @@ export function useImmersiveInterview() {
         ...options
       })
       
+      console.log('[apiCall] 收到响应:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
+      
       if (!response.ok) {
         const errorText = await response.text()
+        console.error('[apiCall] 请求失败:', {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        })
         return { 
           success: false, 
           message: `HTTP ${response.status}: ${response.statusText}. ${errorText}` 
@@ -325,35 +585,57 @@ export function useImmersiveInterview() {
       }
       
       const result = await response.json()
+      console.log('[apiCall] 请求成功:', { url, result })
       return result
     } catch (error: any) {
-      console.error('API调用失败:', error)
+      console.error('[apiCall] 网络错误:', { url, error })
       return { success: false, message: `网络错误: ${error?.message || String(error)}` }
     }
   }
 
-  // 创建会话
+  // 创建会话 - 使用新的 POST /api/v1/immersive 端点
   const createSession = async (applicationId: string): Promise<boolean> => {
     isLoading.value = true
     try {
-      const requestBody = {
+      const requestBody: CreateSessionRequest = {
         application_id: applicationId,
         local_camera_enabled: config.localCameraEnabled,
         stream_url: config.streamUrl || null,
         config: {
           autoAnalyze: config.autoAnalyze,
-          analyzeInterval: config.analyzeInterval
+          analyzeInterval: config.analyzeInterval,
+          psychologicalAnalysisEnabled: config.psychologicalAnalysisEnabled
         }
       }
       
-      const result = await apiCall<ImmersiveSession>(`${API_BASE}`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody)
-      })
+      const result = await errorHandler.handleAPICall(
+        () => apiCall<ImmersiveSession>(`${API_BASE}`, {
+          method: 'POST',
+          body: JSON.stringify(requestBody)
+        }),
+        'createSession'
+      )
 
       if (result.success && result.data) {
         sessionId.value = result.data.id
         session.value = result.data
+        
+        // 初始化数据同步管理器
+        dataSyncManager = new DataSyncManager({
+          sessionId: result.data.id,
+          config,
+          apiCall,
+          onSyncSuccess: (data) => {
+            console.log('数据同步成功:', data)
+          },
+          onSyncError: (error, data) => {
+            console.error('数据同步失败:', error, data)
+          },
+          onRetryExhausted: (data) => {
+            console.error('数据同步重试次数耗尽:', data)
+          }
+        })
+        
         ElMessage.success('沉浸式面试会话已创建')
         return true
       } else {
@@ -430,70 +712,97 @@ export function useImmersiveInterview() {
     return false
   }
 
-  // 开始面试
+  // 开始面试 - 使用新的 POST /api/v1/immersive/{session_id}/start 端点
   const startInterview = async (): Promise<boolean> => {
     if (!sessionId.value) {
       ElMessage.warning('请先创建会话')
       return false
     }
 
-    const result = await apiCall(`${API_BASE}/${sessionId.value}/start`, {
-      method: 'POST'
-    })
+    try {
+      const result = await errorHandler.handleAPICall(
+        () => apiCall(`${API_BASE}/${sessionId.value}/start`, {
+          method: 'POST'
+        }),
+        'startInterview'
+      )
 
-    if (result.success) {
-      isRecording.value = true
-      startTime = new Date()
-      
-      // 启动时长计时器
-      durationTimer = window.setInterval(() => {
-        if (startTime) {
-          stats.duration = Math.floor((Date.now() - startTime.getTime()) / 1000)
+      if (result.success) {
+        isRecording.value = true
+        startTime = new Date()
+        
+        // 启动时长计时器
+        durationTimer = window.setInterval(() => {
+          if (startTime) {
+            stats.duration = Math.floor((Date.now() - startTime.getTime()) / 1000)
+          }
+        }, 1000)
+
+        // 启动自动分析
+        if (config.autoAnalyze) {
+          startAutoAnalyze()
         }
-      }, 1000)
 
-      // 启动自动分析
-      if (config.autoAnalyze) {
-        startAutoAnalyze()
+        // 启动数据同步
+        if (dataSyncManager) {
+          dataSyncManager.startAutoSync()
+        }
+
+        // 启动驾驶舱数据模拟
+        startCockpitTimers()
+
+        ElMessage.success('面试已开始')
+        return true
+      } else {
+        ElMessage.error(result.message || '开始面试失败')
       }
-
-      // 启动驾驶舱数据模拟
-      startCockpitTimers()
-
-      ElMessage.success('面试已开始')
-      return true
-    } else {
-      ElMessage.error(result.message || '开始面试失败')
+    } catch (error) {
+      console.error('开始面试异常:', error)
+      ElMessage.error('开始面试时发生异常')
     }
 
     return false
   }
 
-  // 停止面试
+  // 停止面试 - 使用新的 POST /api/v1/immersive/{session_id}/stop 端点
   const stopInterview = async (): Promise<boolean> => {
     if (!sessionId.value) return false
 
-    const result = await apiCall(`${API_BASE}/${sessionId.value}/stop`, {
-      method: 'POST'
-    })
+    try {
+      const result = await errorHandler.handleAPICall(
+        () => apiCall(`${API_BASE}/${sessionId.value}/stop`, {
+          method: 'POST'
+        }),
+        'stopInterview'
+      )
 
-    if (result.success) {
-      isRecording.value = false
-      stopAutoAnalyze()
-      stopCockpitTimers()
-      
-      if (durationTimer) {
-        clearInterval(durationTimer)
-        durationTimer = null
+      if (result.success) {
+        isRecording.value = false
+        stopAutoAnalyze()
+        stopCockpitTimers()
+        
+        // 停止数据同步
+        if (dataSyncManager) {
+          await dataSyncManager.forceSyncNow() // 最后一次同步
+          dataSyncManager.stopAutoSync()
+        }
+        
+        if (durationTimer) {
+          clearInterval(durationTimer)
+          durationTimer = null
+        }
+        
+        // 重置开始时间
+        startTime = null
+
+        ElMessage.success('面试已结束')
+        return true
+      } else {
+        ElMessage.error(result.message || '停止面试失败')
       }
-      
-      // 重置开始时间
-      startTime = null
-
-      ElMessage.success('面试已结束')
-      return true
-    } else {
-      ElMessage.error(result.message || '停止面试失败')
+    } catch (error) {
+      console.error('停止面试异常:', error)
+      ElMessage.error('停止面试时发生异常')
     }
 
     return false
@@ -518,96 +827,275 @@ export function useImmersiveInterview() {
     }
   }
 
-  // 分析当前状态
+  // 分析当前状态 - 修复：使用正确的 insights API
   const analyzeCurrentState = async (): Promise<void> => {
     if (!sessionId.value || isAnalyzing.value) return
     
     isAnalyzing.value = true
     
     try {
-      // 获取视频帧（实际实现需要canvas截图）
-      const result = await apiCall<{ state: CandidateState; suggestions: string[]; alerts: string[] }>(
-        `${API_BASE}/${sessionId.value}/state-analysis`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            context: { timestamp: Date.now() }
-          })
-        }
-      )
-
-      if (result.success && result.data) {
-        currentState.value = result.data.state
-        
-        // 更新平均值
-        if (session.value?.state_history) {
-          const history = [...session.value.state_history, result.data.state]
-          stats.avgEngagement = history.reduce((sum, s) => sum + s.engagement, 0) / history.length
-          stats.avgConfidence = history.reduce((sum, s) => sum + s.confidence_level, 0) / history.length
-        }
-
-        // 处理提醒
-        if (result.data.alerts?.length) {
-          result.data.alerts.forEach(alert => {
-            insights.value.unshift({
-              category: '提醒',
-              content: alert,
-              severity: 'alert',
-              timestamp: new Date().toISOString()
-            })
-          })
-        }
-      }
+      // 使用正确的 insights API 获取实时洞察
+      await fetchInsights()
     } finally {
       isAnalyzing.value = false
     }
   }
 
-  // 获取提问建议
-  const fetchSuggestions = async (): Promise<void> => {
-    if (!sessionId.value) return
+  // 获取提问建议 - 使用新的 POST /api/v1/immersive/{session_id}/questions 端点
+  const fetchQuestionSuggestions = async (options?: QuestionOptions): Promise<void> => {
+    if (!sessionId.value) {
+      console.warn('[fetchQuestionSuggestions] 没有会话ID，跳过请求')
+      return
+    }
+
+    console.log('[fetchQuestionSuggestions] 开始获取问题建议，会话ID:', sessionId.value)
 
     try {
-      const result = await apiCall<{ suggestions: QuestionSuggestion[] }>(
-        `${API_BASE}/${sessionId.value}/suggestions`
+      const requestOptions: QuestionOptions = {
+        count: 5,
+        question_type: 'mixed',
+        use_psychological_context: config.psychologicalAnalysisEnabled,
+        use_conversation_history: true,
+        ...options
+      }
+
+      console.log('[fetchQuestionSuggestions] 请求参数:', requestOptions)
+      console.log('[fetchQuestionSuggestions] 请求URL:', `${API_BASE}/${sessionId.value}/questions`)
+
+      const result = await errorHandler.handleAPICall(
+        () => apiCall<QuestionSuggestionsResponse>(
+          `${API_BASE}/${sessionId.value}/questions`,
+          {
+            method: 'POST',
+            body: JSON.stringify(requestOptions)
+          }
+        ),
+        'fetchQuestionSuggestions'
       )
+
+      console.log('[fetchQuestionSuggestions] API响应:', result)
 
       if (result.success && result.data) {
         suggestions.value = result.data.suggestions
+        console.log('[fetchQuestionSuggestions] 成功获取建议:', result.data.suggestions.length, '条')
+      } else {
+        console.warn('[fetchQuestionSuggestions] API调用失败:', result.message)
       }
     } catch (error) {
-      console.error('获取建议失败:', error)
+      console.error('[fetchQuestionSuggestions] 获取问题建议失败，使用降级方案:', error)
+      // 使用降级方案
+      suggestions.value = await fallbackManager.getQuestionSuggestionsWithFallback(options || {})
+      console.log('[fetchQuestionSuggestions] 使用降级方案生成建议:', suggestions.value.length, '条')
     }
   }
 
-  // 获取面试洞察
+  // 获取面试洞察 - 使用新的 GET /api/v1/immersive/{session_id}/insights 端点
   const fetchInsights = async (): Promise<void> => {
     if (!sessionId.value) return
 
-    const result = await apiCall<{ insights: InterviewInsight[] }>(
-      `${API_BASE}/${sessionId.value}/insights`
-    )
+    try {
+      const result = await errorHandler.handleAPICall(
+        () => apiCall<InsightsResponse>(`${API_BASE}/${sessionId.value}/insights`),
+        'fetchInsights'
+      )
 
-    if (result.success && result.data) {
-      insights.value = result.data.insights
+      if (result.success && result.data) {
+        insights.value = result.data.insights
+        
+        // 处理警报
+        if (result.data.alerts?.length) {
+          result.data.alerts.forEach(alert => {
+            insights.value.unshift({
+              category: alert.category,
+              content: alert.content,
+              severity: alert.severity,
+              timestamp: alert.timestamp
+            })
+          })
+        }
+        
+        // 更新质量指标
+        qualityMetrics.value = {
+          session_quality_score: result.data.session_quality_score,
+          psychological_wellness_score: result.data.psychological_wellness_score
+        }
+      }
+    } catch (error) {
+      console.error('获取洞察失败，使用本地模拟数据:', error)
+      // 使用本地模拟数据（基于驾驶舱数据生成状态）
+      generateMockCurrentState()
     }
   }
 
-  // 添加转录文本
+  // 生成模拟的当前状态数据（当后端API不可用时）
+  const generateMockCurrentState = () => {
+    if (!isRecording.value) return
+
+    // 基于驾驶舱数据生成候选人状态
+    const mockState: CandidateState = {
+      timestamp: new Date().toISOString(),
+      emotion: {
+        emotion: cockpitData.deceptionScore > 0.5 ? 'nervous' : 'confident',
+        confidence: 1 - cockpitData.deceptionScore,
+        valence: cockpitData.bigFive.extraversion,
+        arousal: cockpitData.bigFive.neuroticism
+      },
+      engagement: Math.max(0.3, 1 - cockpitData.bigFive.neuroticism),
+      nervousness: cockpitData.bigFive.neuroticism,
+      confidence_level: cockpitData.bigFive.conscientiousness,
+      eye_contact: cockpitData.faceOutOfFrame ? 0.2 : 0.8 + Math.random() * 0.2,
+      posture_score: 0.7 + Math.random() * 0.2,
+      speech_clarity: 0.8 + Math.random() * 0.15,
+      speech_pace: cockpitData.bigFive.neuroticism > 0.6 ? 'fast' : 'normal'
+    }
+
+    currentState.value = mockState
+
+    // 更新统计数据
+    if (session.value?.state_history) {
+      const history = [...session.value.state_history, mockState]
+      stats.avgEngagement = history.reduce((sum, s) => sum + s.engagement, 0) / history.length
+      stats.avgConfidence = history.reduce((sum, s) => sum + s.confidence_level, 0) / history.length
+    }
+
+    // 生成一些模拟洞察
+    if (cockpitData.deceptionScore > 0.6) {
+      insights.value.unshift({
+        category: '行为分析',
+        content: '检测到候选人可能存在紧张情绪，建议营造轻松氛围',
+        severity: 'warning',
+        timestamp: new Date().toISOString()
+      })
+    }
+
+    if (cockpitData.faceOutOfFrame) {
+      insights.value.unshift({
+        category: '视频质量',
+        content: '候选人面部离开画面，请提醒调整摄像头位置',
+        severity: 'alert',
+        timestamp: new Date().toISOString()
+      })
+    }
+  }
+
+  // 完成会话 - 使用新的 POST /api/v1/immersive/{session_id}/complete 端点
+  const completeSession = async (): Promise<CompleteSessionResponse | null> => {
+    if (!sessionId.value) return null
+
+    try {
+      // 先停止录制
+      await stopInterview()
+      
+      // 最后一次数据同步
+      if (dataSyncManager) {
+        await dataSyncManager.forceSyncNow()
+      }
+
+      const result = await errorHandler.handleAPICall(
+        () => apiCall<CompleteSessionResponse>(`${API_BASE}/${sessionId.value}/complete`, {
+          method: 'POST'
+        }),
+        'completeSession'
+      )
+
+      if (result.success && result.data) {
+        ElMessage.success('面试会话已完成')
+        return result.data
+      } else {
+        ElMessage.error(result.message || '完成会话失败')
+      }
+    } catch (error) {
+      console.error('完成会话异常:', error)
+      ElMessage.error('完成会话时发生异常')
+    }
+
+    return null
+  }
+
+  // 添加转录文本 - 使用批量同步
   const addTranscript = async (
     speaker: 'interviewer' | 'candidate',
     text: string,
     isFinal: boolean = true
   ): Promise<void> => {
-    if (!sessionId.value) return
+    if (!sessionId.value || !dataSyncManager) return
 
-    const result = await apiCall<Transcript>(
-      `${API_BASE}/${sessionId.value}/transcript?speaker=${speaker}&text=${encodeURIComponent(text)}&is_final=${isFinal}`,
-      { method: 'POST' }
-    )
+    const transcriptRecord: TranscriptRecord = {
+      speaker,
+      text,
+      is_final: isFinal
+    }
 
-    if (result.success && result.data) {
-      transcripts.value.push(result.data)
+    // 添加到本地显示
+    transcripts.value.push({
+      speaker,
+      text,
+      timestamp: new Date().toISOString(),
+      is_final: isFinal
+    })
+
+    // 添加到同步队列
+    dataSyncManager.addTranscript(transcriptRecord)
+  }
+
+  // 添加说话人片段 - 使用批量同步
+  const addSpeakerSegment = async (segment: SpeakerSegment): Promise<void> => {
+    if (!sessionId.value || !dataSyncManager) return
+
+    // 添加到本地显示
+    speakerSegments.value.push(segment)
+
+    // 添加到同步队列
+    dataSyncManager.addSpeakerSegment(segment)
+  }
+
+  // 添加状态记录 - 使用批量同步
+  const addStateRecord = async (state: CandidateState): Promise<void> => {
+    if (!sessionId.value || !dataSyncManager) return
+
+    const stateRecord: StateRecord = {
+      segment_id: `segment_${Date.now()}`,
+      emotion: state.emotion,
+      engagement: state.engagement,
+      nervousness: state.nervousness,
+      confidence_level: state.confidence_level,
+      eye_contact: state.eye_contact,
+      posture_score: state.posture_score,
+      speech_clarity: state.speech_clarity,
+      speech_pace: state.speech_pace
+    }
+
+    // 添加到同步队列
+    dataSyncManager.addStateRecord(stateRecord)
+  }
+
+  // 手动触发数据同步
+  const syncDataNow = async (): Promise<void> => {
+    if (dataSyncManager) {
+      await dataSyncManager.forceSyncNow()
+    }
+  }
+
+  // 获取同步队列状态
+  const getSyncQueueStatus = () => {
+    return dataSyncManager?.getQueueStatus() || {
+      totalItems: 0,
+      transcripts: 0,
+      speakerSegments: 0,
+      stateRecords: 0,
+      isEmpty: true
+    }
+  }
+
+  // 获取同步统计信息
+  const getSyncStats = () => {
+    return dataSyncManager?.getSyncStats() || {
+      totalSyncs: 0,
+      successfulSyncs: 0,
+      failedSyncs: 0,
+      totalRetries: 0,
+      avgSyncTime: 0,
+      lastSyncTime: 0
     }
   }
 
@@ -628,21 +1116,55 @@ export function useImmersiveInterview() {
     return null
   }
 
-  // 删除会话
+  // 删除会话 - 使用新的 DELETE /api/v1/immersive/{session_id} 端点
   const deleteSession = async (): Promise<boolean> => {
     if (!sessionId.value) return false
 
-    const result = await apiCall(`${API_BASE}/${sessionId.value}`, {
-      method: 'DELETE'
-    })
+    try {
+      const result = await errorHandler.handleAPICall(
+        () => apiCall(`${API_BASE}/${sessionId.value}`, {
+          method: 'DELETE'
+        }),
+        'deleteSession'
+      )
 
-    if (result.success) {
-      cleanup()
-      ElMessage.success('会话已删除')
-      return true
+      if (result.success) {
+        cleanup()
+        ElMessage.success('会话已删除')
+        return true
+      } else {
+        ElMessage.error(result.message || '删除会话失败')
+      }
+    } catch (error) {
+      console.error('删除会话异常:', error)
+      ElMessage.error('删除会话时发生异常')
     }
 
     return false
+  }
+
+  // 心理分析功能开关
+  const enablePsychologicalAnalysis = (enabled: boolean): void => {
+    config.psychologicalAnalysisEnabled = enabled
+    
+    // 如果当前有会话，立即应用设置
+    if (sessionId.value) {
+      // 更新问题建议的心理上下文参数
+      if (config.showSuggestions) {
+        fetchQuestionSuggestions()
+      }
+    }
+  }
+
+  // 获取心理分析配置
+  const getPsychologicalAnalysisConfig = () => {
+    return {
+      enabled: config.psychologicalAnalysisEnabled,
+      showEmotionLabels: config.psychologicalAnalysisEnabled,
+      showBigFiveData: config.psychologicalAnalysisEnabled,
+      showDepressionAnalysis: config.psychologicalAnalysisEnabled,
+      includeInQuestionSuggestions: config.psychologicalAnalysisEnabled
+    }
   }
 
   // 清理资源
@@ -650,6 +1172,12 @@ export function useImmersiveInterview() {
     stopAutoAnalyze()
     stopCockpitTimers()
     stopLocalCamera()
+    
+    // 停止数据同步
+    if (dataSyncManager) {
+      dataSyncManager.destroy()
+      dataSyncManager = null
+    }
     
     if (durationTimer) {
       clearInterval(durationTimer)
@@ -665,6 +1193,17 @@ export function useImmersiveInterview() {
     insights.value = []
     speakerSegments.value = []
     startTime = null
+    
+    // 清理新增的状态
+    syncQueue.value = {
+      transcripts: [],
+      speaker_segments: [],
+      state_records: []
+    }
+    qualityMetrics.value = {
+      session_quality_score: 0,
+      psychological_wellness_score: 0
+    }
     
     Object.assign(stats, {
       duration: 0,
@@ -726,17 +1265,39 @@ export function useImmersiveInterview() {
     stats,
     cockpitData,
 
+    // 新增：批量同步和质量指标
+    syncQueue,
+    qualityMetrics,
+
     // 操作
     createSession,
     startInterview,
     stopInterview,
     analyzeCurrentState,
-    fetchSuggestions,
+    
+    // 更新的方法名
+    fetchQuestionSuggestions, // 替代 fetchSuggestions
     fetchInsights,
+    
+    // 新增的数据管理方法
     addTranscript,
-    generateReport,
+    addSpeakerSegment,
+    addStateRecord,
+    syncDataNow,
+    getSyncQueueStatus,
+    getSyncStats,
+    
+    // 新增的会话管理方法
+    completeSession, // 新增
     deleteSession,
     cleanup,
+
+    // 新增的心理分析配置方法
+    enablePsychologicalAnalysis,
+    getPsychologicalAnalysisConfig,
+
+    // 保留的方法（向后兼容）
+    generateReport,
 
     // 调试功能
     triggerDeceptionAlert
