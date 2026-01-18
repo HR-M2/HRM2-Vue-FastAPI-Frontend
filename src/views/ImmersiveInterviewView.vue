@@ -184,6 +184,7 @@
               @use-suggestion="handleUseSuggestion"
               @toggle-speech="handleToggleSpeechRecognition"
               @send-question="handleSendQuestion"
+              @send-question-and-switch="handleSendQuestionAndSwitch"
               @add-suggestion-to-chat="handleAddSuggestionToChat"
             />
           </div>
@@ -578,6 +579,10 @@ const handleStopInterview = async () => {
       ElMessage.info('语音转录已停止')
     }
     
+    // 同步最后一轮对话（确保最后的内容不会丢失）
+    console.log('[ImmersiveInterviewView] 同步最后一轮对话')
+    await switchSpeaker()
+    
     // 添加系统消息
     chatMessages.value.push({
       id: generateMessageId(),
@@ -774,9 +779,39 @@ const handleSendQuestion = (question: string) => {
   addTranscript('interviewer', question)
 }
 
+// 发送面试官问题并切换到候选人发言
+const handleSendQuestionAndSwitch = async (question: string) => {
+  // 清空累积的语音转录（被建议覆盖）
+  accumulatedTranscript.value = ''
+  
+  // 结束当前消息
+  currentCandidateMessageId.value = null
+  
+  // 添加到聊天记录
+  chatMessages.value.push({
+    id: generateMessageId(),
+    role: 'interviewer',
+    content: question,
+    timestamp: new Date()
+  })
+  
+  // 添加到转录记录
+  addTranscript('interviewer', question)
+  
+  // 执行同步并切换到候选人发言
+  await switchSpeaker()
+  
+  // 确保切换后是候选人发言
+  if (currentSpeaker.value !== 'candidate') {
+    await switchSpeaker()
+  }
+  
+  ElMessage.success('已发送问题，切换到候选人发言')
+}
+
 // 将建议添加到聊天（预留接口）
 const handleAddSuggestionToChat = (suggestion: QuestionSuggestion) => {
-  handleSendQuestion(suggestion.question)
+  handleSendQuestionAndSwitch(suggestion.question)
 }
 
 // 获取完整对话记录（用于保存）

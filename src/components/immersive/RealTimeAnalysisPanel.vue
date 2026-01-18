@@ -57,6 +57,27 @@
             </div>
           </div>
         </div>
+        
+        <!-- 面试官提问输入 - 移到会话窗口内部 -->
+        <div class="chat-input-area">
+          <el-input
+            v-model="questionInput"
+            placeholder="输入面试官问题..."
+            size="small"
+            @keydown.enter="sendQuestionAndSwitch"
+          >
+            <template #append>
+              <el-button 
+                :icon="Promotion" 
+                @click="sendQuestionAndSwitch"
+                :disabled="!questionInput.trim()"
+                size="small"
+              >
+                发送并切换
+              </el-button>
+            </template>
+          </el-input>
+        </div>
       </div>
       
       <!-- 输入控制区域 -->
@@ -200,26 +221,6 @@
             </transition>
           </teleport>
           
-          <!-- 面试官提问输入 -->
-          <div class="question-input-area">
-            <el-input
-              v-model="questionInput"
-              placeholder="输入面试官问题..."
-              size="small"
-              @keydown.enter="sendQuestion"
-            >
-              <template #append>
-                <el-button 
-                  :icon="Promotion" 
-                  @click="sendQuestion"
-                  :disabled="!questionInput.trim()"
-                  size="small"
-                >
-                  发送
-                </el-button>
-              </template>
-            </el-input>
-          </div>
         </div>
       </div>
     </div>
@@ -334,16 +335,23 @@ const sendQuestion = () => {
   }
 }
 
-// 使用建议问题
-const handleUseSuggestion = (suggestion: QuestionSuggestion) => {
-  questionInput.value = suggestion.question
+// 发送面试官问题并切换到候选人发言
+const sendQuestionAndSwitch = () => {
+  if (questionInput.value.trim()) {
+    emit('send-question-and-switch', questionInput.value.trim())
+    questionInput.value = ''
+  }
 }
 
-// 使用建议问题并关闭展开面板
+// 使用建议问题 - 直接发送并切换到候选人发言
+const handleUseSuggestion = (suggestion: QuestionSuggestion) => {
+  emit('send-question-and-switch', suggestion.question)
+}
+
+// 使用建议问题并关闭展开面板 - 直接发送并切换
 const handleUseSuggestionAndClose = (suggestion: QuestionSuggestion) => {
-  questionInput.value = suggestion.question
   isSuggestionsExpanded.value = false
-  ElMessage.success('问题已填入输入框')
+  emit('send-question-and-switch', suggestion.question)
 }
 
 // 获取问题建议
@@ -477,6 +485,7 @@ const emit = defineEmits<{
   (e: 'use-suggestion', suggestion: QuestionSuggestion): void
   (e: 'toggle-speech'): void
   (e: 'send-question', question: string): void
+  (e: 'send-question-and-switch', question: string): void
   (e: 'add-suggestion-to-chat', suggestion: QuestionSuggestion): void
 }>()
 
@@ -620,8 +629,11 @@ const typeLabels: Record<string, string> = {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  padding-bottom: 8px;
   min-height: 200px;
-  max-height: 400px; // 限制最大高度，超出时显示滚动条
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
   
   // 自定义滚动条
   &::-webkit-scrollbar {
@@ -640,6 +652,17 @@ const typeLabels: Record<string, string> = {
     &:hover {
       background: #a8a8a8;
     }
+  }
+}
+
+.chat-input-area {
+  padding: 8px 0;
+  border-top: 1px solid #e5e7eb;
+  margin-top: auto;
+  background: #fff;
+  
+  :deep(.el-input-group__append) {
+    padding: 0 8px;
   }
 }
 
