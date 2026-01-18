@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="面试结果统计"
-    width="800px"
+    width="900px"
     :close-on-click-modal="!loading"
     :close-on-press-escape="true"
     :show-close="true"
@@ -27,17 +27,17 @@
     </div>
     
     <div v-else-if="resultData" class="result-content">
-      <!-- 会话基本信息 -->
-      <div class="session-info-card">
-        <h3>面试基本信息</h3>
+      <!-- 1. 基本信息 -->
+      <div class="section-card basic-info-card">
+        <h3><el-icon><User /></el-icon> 面试基本信息</h3>
         <div class="info-grid">
           <div class="info-item">
             <span class="label">候选人：</span>
-            <span class="value">{{ resultData.candidate_name }}</span>
+            <span class="value">{{ resultData.candidate_info?.name || '未知' }}</span>
           </div>
           <div class="info-item">
             <span class="label">应聘岗位：</span>
-            <span class="value">{{ resultData.position_title }}</span>
+            <span class="value">{{ resultData.candidate_info?.position_title || '未知' }}</span>
           </div>
           <div class="info-item">
             <span class="label">面试时长：</span>
@@ -45,160 +45,144 @@
           </div>
           <div class="info-item">
             <span class="label">开始时间：</span>
-            <span class="value">{{ formatDateTime(resultData.created_at) }}</span>
+            <span class="value">{{ formatDateTime(resultData.start_time) }}</span>
           </div>
         </div>
       </div>
 
-      <!-- 统计数据 -->
-      <div class="statistics-card">
-        <h3>对话统计</h3>
+      <!-- 2. 对话概要统计 -->
+      <div class="section-card statistics-card">
+        <h3><el-icon><DataAnalysis /></el-icon> 对话概要统计</h3>
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-value">{{ resultData.statistics.total_segments }}</div>
-            <div class="stat-label">总对话段数</div>
+            <div class="stat-value">{{ resultData.statistics.total_utterances }}</div>
+            <div class="stat-label">总发言数</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ (resultData.statistics.candidate_speak_ratio * 100).toFixed(1) }}%</div>
-            <div class="stat-label">候选人发言比例</div>
+            <div class="stat-value">{{ resultData.statistics.candidate_utterances }}</div>
+            <div class="stat-label">候选人发言</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ (resultData.statistics.interviewer_speak_ratio * 100).toFixed(1) }}%</div>
-            <div class="stat-label">面试官发言比例</div>
+            <div class="stat-value">{{ resultData.statistics.interviewer_utterances }}</div>
+            <div class="stat-label">面试官发言</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ Math.round(resultData.statistics.session_quality_score) }}</div>
-            <div class="stat-label">会话质量分</div>
+            <div class="stat-value">{{ (resultData.statistics.candidate_ratio * 100).toFixed(0) }}%</div>
+            <div class="stat-label">候选人占比</div>
           </div>
         </div>
-      </div>
-
-      <!-- 心理分析汇总 -->
-      <div v-if="resultData.psychological_summary" class="psychology-card">
-        <h3>心理分析汇总</h3>
         
-        <!-- 大五人格 -->
-        <div class="big-five-section">
-          <h4>大五人格特征</h4>
-          <div class="personality-traits">
-            <div class="trait-item">
-              <span class="trait-name">开放性</span>
-              <el-progress 
-                :percentage="Math.round((resultData.psychological_summary.final_big_five?.openness || 0) * 100)"
-                :stroke-width="8"
-                :show-text="true"
-              />
-            </div>
-            <div class="trait-item">
-              <span class="trait-name">尽责性</span>
-              <el-progress 
-                :percentage="Math.round((resultData.psychological_summary.final_big_five?.conscientiousness || 0) * 100)"
-                :stroke-width="8"
-                :show-text="true"
-              />
-            </div>
-            <div class="trait-item">
-              <span class="trait-name">外向性</span>
-              <el-progress 
-                :percentage="Math.round((resultData.psychological_summary.final_big_five?.extraversion || 0) * 100)"
-                :stroke-width="8"
-                :show-text="true"
-              />
-            </div>
-            <div class="trait-item">
-              <span class="trait-name">宜人性</span>
-              <el-progress 
-                :percentage="Math.round((resultData.psychological_summary.final_big_five?.agreeableness || 0) * 100)"
-                :stroke-width="8"
-                :show-text="true"
-              />
-            </div>
-            <div class="trait-item">
-              <span class="trait-name">神经质</span>
-              <el-progress 
-                :percentage="Math.round((resultData.psychological_summary.final_big_five?.neuroticism || 0) * 100)"
-                :stroke-width="8"
-                :show-text="true"
-                color="#f56c6c"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- 抑郁风险评估 -->
-        <div class="depression-section">
-          <h4>心理健康评估</h4>
-          <div class="depression-info">
-            <div class="risk-level" :class="getRiskLevelClass(resultData.psychological_summary.depression_assessment?.level || 'unknown')">
-              <span class="risk-label">抑郁风险等级：</span>
-              <span class="risk-value">{{ getRiskLevelText(resultData.psychological_summary.depression_assessment?.level || 'unknown') }}</span>
-            </div>
-            <div class="risk-score">
-              <span class="score-label">风险评分：</span>
-              <span class="score-value">{{ (resultData.psychological_summary.depression_assessment?.score || 0).toFixed(1) }}/100</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 积极特质和关注点 -->
-        <div class="traits-section">
-          <div class="positive-traits">
-            <h4>积极特质</h4>
-            <div class="trait-tags">
-              <el-tag 
-                v-for="trait in []" 
-                :key="trait"
-                type="success"
-                class="trait-tag"
-              >
-                {{ trait }}
-              </el-tag>
-            </div>
-          </div>
-          
-          <div class="concerns">
-            <h4>关注点</h4>
-            <div class="concern-tags">
-              <el-tag 
-                v-for="concern in []" 
-                :key="concern"
-                type="warning"
-                class="concern-tag"
-              >
-                {{ concern }}
-              </el-tag>
-            </div>
+        <!-- 抑郁风险概览 -->
+        <div class="depression-summary">
+          <div class="depression-item">
+            <span class="label">整体抑郁风险：</span>
+            <el-tag :type="getDepressionTagType(resultData.statistics.overall_depression.final_level)">
+              {{ getRiskLevelText(resultData.statistics.overall_depression.final_level) }}
+            </el-tag>
+            <span class="score">(平均评分: {{ resultData.statistics.overall_depression.avg_score.toFixed(1) }})</span>
           </div>
         </div>
       </div>
 
-      <!-- 质量评分 -->
-      <div class="quality-card">
-        <h3>面试质量评分</h3>
-        <div class="quality-scores">
-          <div class="score-item">
-            <div class="score-circle">
-              <el-progress 
-                type="circle" 
-                :percentage="Math.round(resultData.statistics.session_quality_score)"
-                :width="80"
-                :stroke-width="8"
-              />
+      <!-- 3. 面试时间轴 -->
+      <div class="section-card timeline-card">
+        <h3><el-icon><Clock /></el-icon> 面试时间轴</h3>
+        
+        <div v-if="resultData.conversation_history?.length" class="timeline-container">
+          <div 
+            v-for="(item, index) in resultData.conversation_history" 
+            :key="index"
+            class="timeline-item"
+            :class="{ 'is-candidate': item.speaker === 'candidate' }"
+          >
+            <!-- 时间轴线 -->
+            <div class="timeline-line">
+              <div class="timeline-dot" :class="item.speaker"></div>
             </div>
-            <div class="score-label">会话质量</div>
-          </div>
-          <div class="score-item">
-            <div class="score-circle">
-              <el-progress 
-                type="circle" 
-                :percentage="Math.round(resultData.psychological_summary?.psychological_wellness_score || 0)"
-                :width="80"
-                :stroke-width="8"
-                color="#67c23a"
-              />
+            
+            <!-- 内容区 -->
+            <div class="timeline-content">
+              <!-- 发言头部 -->
+              <div class="content-header">
+                <span class="speaker-tag" :class="item.speaker">
+                  {{ item.speaker === 'interviewer' ? '面试官' : '候选人' }}
+                </span>
+                <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+              </div>
+              
+              <!-- 发言内容 -->
+              <div class="content-text">{{ item.text }}</div>
+              
+              <!-- 心理评分指标（仅候选人发言显示） -->
+              <div v-if="item.speaker === 'candidate' && item.candidate_scores" class="scores-panel">
+                <!-- 大五人格 -->
+                <div class="score-group big-five">
+                  <div class="group-title">大五人格</div>
+                  <div class="mini-bars">
+                    <div class="mini-bar-item" title="开放性">
+                      <span class="bar-label">开</span>
+                      <div class="bar-track">
+                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.openness * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.openness * 100).toFixed(0) }}</span>
+                    </div>
+                    <div class="mini-bar-item" title="尽责性">
+                      <span class="bar-label">责</span>
+                      <div class="bar-track">
+                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.conscientiousness * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.conscientiousness * 100).toFixed(0) }}</span>
+                    </div>
+                    <div class="mini-bar-item" title="外向性">
+                      <span class="bar-label">外</span>
+                      <div class="bar-track">
+                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.extraversion * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.extraversion * 100).toFixed(0) }}</span>
+                    </div>
+                    <div class="mini-bar-item" title="宜人性">
+                      <span class="bar-label">宜</span>
+                      <div class="bar-track">
+                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.agreeableness * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.agreeableness * 100).toFixed(0) }}</span>
+                    </div>
+                    <div class="mini-bar-item neuroticism" title="神经质">
+                      <span class="bar-label">神</span>
+                      <div class="bar-track">
+                        <div class="bar-fill warning" :style="{ width: (item.candidate_scores.big_five.neuroticism * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.neuroticism * 100).toFixed(0) }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 欺骗检测 -->
+                <div class="score-group deception">
+                  <div class="group-title">欺骗检测</div>
+                  <div class="score-indicator" :class="getDeceptionClass(item.candidate_scores.deception.score)">
+                    <span class="score-value">{{ (item.candidate_scores.deception.score * 100).toFixed(0) }}%</span>
+                    <span class="confidence">(置信度: {{ (item.candidate_scores.deception.confidence * 100).toFixed(0) }}%)</span>
+                  </div>
+                </div>
+                
+                <!-- 抑郁风险 -->
+                <div class="score-group depression">
+                  <div class="group-title">抑郁风险</div>
+                  <div class="score-indicator">
+                    <el-tag size="small" :type="getDepressionTagType(item.candidate_scores.depression.level)">
+                      {{ getRiskLevelText(item.candidate_scores.depression.level) }}
+                    </el-tag>
+                    <span class="score-num">{{ item.candidate_scores.depression.score.toFixed(0) }}/100</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="score-label">心理健康</div>
           </div>
+        </div>
+        
+        <div v-else class="empty-timeline">
+          <el-empty description="暂无对话记录" :image-size="80" />
         </div>
       </div>
     </div>
@@ -207,16 +191,15 @@
       <div class="dialog-footer">
         <el-button @click="handleClose">退出面试界面</el-button>
         <el-button v-if="resultData" type="primary" @click="handleExport">导出报告</el-button>
-        <el-button v-if="resultData" type="success" @click="handleViewFullReport">查看详细报告</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { CircleClose, Loading } from '@element-plus/icons-vue'
+import { CircleClose, Loading, User, DataAnalysis, Clock } from '@element-plus/icons-vue'
 import type { CompleteSessionResponse } from '@/composables/useImmersiveInterview'
 
 interface Props {
@@ -236,7 +219,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'export-report'): void
-  (e: 'view-full-report'): void
   (e: 'close'): void
 }>()
 
@@ -247,10 +229,10 @@ const visible = computed({
 
 // 格式化时长
 const formatDuration = (seconds: number): string => {
+  if (!seconds) return '0秒'
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = seconds % 60
-  
+  const secs = Math.floor(seconds % 60)  
   if (hours > 0) {
     return `${hours}小时${minutes}分钟${secs}秒`
   } else if (minutes > 0) {
@@ -262,17 +244,14 @@ const formatDuration = (seconds: number): string => {
 
 // 格式化日期时间
 const formatDateTime = (dateString: string): string => {
+  if (!dateString) return '未知'
   return new Date(dateString).toLocaleString('zh-CN')
 }
 
-// 获取风险等级样式类
-const getRiskLevelClass = (level: string): string => {
-  switch (level) {
-    case 'low': return 'risk-low'
-    case 'medium': return 'risk-medium'
-    case 'high': return 'risk-high'
-    default: return 'risk-unknown'
-  }
+// 格式化时间（仅时分秒）
+const formatTime = (dateString: string): string => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleTimeString('zh-CN')
 }
 
 // 获取风险等级文本
@@ -285,15 +264,21 @@ const getRiskLevelText = (level: string): string => {
   }
 }
 
-// 获取趋势文本
-const getTrendText = (trend: string | undefined): string => {
-  switch (trend) {
-    case 'improving': return '改善中'
-    case 'stable': return '稳定'
-    case 'worsening': return '恶化中'
-    case 'insufficient_data': return '数据不足'
-    default: return '未知'
+// 获取抑郁风险标签类型
+const getDepressionTagType = (level: string): 'success' | 'warning' | 'danger' | 'info' => {
+  switch (level) {
+    case 'low': return 'success'
+    case 'medium': return 'warning'
+    case 'high': return 'danger'
+    default: return 'info'
   }
+}
+
+// 获取欺骗检测样式类
+const getDeceptionClass = (score: number): string => {
+  if (score < 0.3) return 'level-low'
+  if (score < 0.6) return 'level-medium'
+  return 'level-high'
 }
 
 // 关闭弹窗
@@ -308,11 +293,6 @@ const handleExport = () => {
   ElMessage.success('报告导出功能开发中...')
 }
 
-// 查看详细报告
-const handleViewFullReport = () => {
-  emit('view-full-report')
-  ElMessage.success('详细报告功能开发中...')
-}
 </script>
 
 <style scoped lang="scss">
@@ -350,12 +330,8 @@ const handleViewFullReport = () => {
 }
 
 @keyframes rotating {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .error-container {
@@ -365,28 +341,10 @@ const handleViewFullReport = () => {
   padding: 40px 20px;
   text-align: center;
   
-  .error-icon {
-    margin-bottom: 16px;
-  }
-  
-  .error-title {
-    margin: 0 0 12px 0;
-    color: #f56c6c;
-    font-size: 18px;
-    font-weight: 600;
-  }
-  
-  .error-message {
-    margin: 0 0 24px 0;
-    color: #666;
-    line-height: 1.6;
-    max-width: 400px;
-  }
-  
-  .error-actions {
-    display: flex;
-    gap: 12px;
-  }
+  .error-icon { margin-bottom: 16px; }
+  .error-title { margin: 0 0 12px 0; color: #f56c6c; font-size: 18px; font-weight: 600; }
+  .error-message { margin: 0 0 24px 0; color: #666; line-height: 1.6; max-width: 400px; }
+  .error-actions { display: flex; gap: 12px; }
 }
 
 .result-content {
@@ -395,17 +353,26 @@ const handleViewFullReport = () => {
   gap: 20px;
 }
 
-// 会话信息卡片
-.session-info-card {
-  background: #f8fafc;
+.section-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
   
   h3 {
-    margin: 0 0 12px 0;
+    margin: 0 0 16px 0;
     color: #1f2937;
     font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .el-icon { color: #3b82f6; }
   }
+}
+
+.basic-info-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   
   .info-grid {
     display: grid;
@@ -414,34 +381,13 @@ const handleViewFullReport = () => {
     
     .info-item {
       display: flex;
-      
-      .label {
-        color: #6b7280;
-        margin-right: 8px;
-        min-width: 80px;
-      }
-      
-      .value {
-        color: #1f2937;
-        font-weight: 500;
-      }
+      .label { color: #6b7280; margin-right: 8px; min-width: 80px; }
+      .value { color: #1f2937; font-weight: 500; }
     }
   }
 }
 
-// 统计数据卡片
 .statistics-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-  
-  h3 {
-    margin: 0 0 16px 0;
-    color: #1f2937;
-    font-size: 16px;
-  }
-  
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -449,157 +395,142 @@ const handleViewFullReport = () => {
     
     .stat-item {
       text-align: center;
-      
-      .stat-value {
-        font-size: 24px;
-        font-weight: 600;
-        color: #3b82f6;
-        margin-bottom: 4px;
-      }
-      
-      .stat-label {
-        font-size: 12px;
-        color: #6b7280;
-      }
+      .stat-value { font-size: 24px; font-weight: 600; color: #3b82f6; margin-bottom: 4px; }
+      .stat-label { font-size: 12px; color: #6b7280; }
     }
   }
 }
 
-// 心理分析卡片
-.psychology-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
+.depression-summary {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #e5e7eb;
   
-  h3 {
-    margin: 0 0 16px 0;
-    color: #1f2937;
-    font-size: 16px;
+  .depression-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    .label { color: #6b7280; }
+    .score { color: #9ca3af; font-size: 13px; }
+  }
+}
+
+.timeline-card {
+  .timeline-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 8px;
   }
   
-  h4 {
-    margin: 16px 0 12px 0;
-    color: #374151;
-    font-size: 14px;
+  .timeline-item {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    &:last-child { margin-bottom: 0; }
   }
   
-  .personality-traits {
+  .timeline-line {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    
-    .trait-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      
-      .trait-name {
-        min-width: 60px;
-        font-size: 13px;
-        color: #374151;
-      }
-      
-      :deep(.el-progress) {
-        flex: 1;
-      }
-    }
-  }
-  
-  .depression-info {
-    display: flex;
-    gap: 24px;
     align-items: center;
+    width: 20px;
+    flex-shrink: 0;
     
-    .risk-level {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      .risk-label {
-        color: #6b7280;
-      }
-      
-      .risk-value {
-        font-weight: 600;
-      }
-      
-      &.risk-low .risk-value {
-        color: #10b981;
-      }
-      
-      &.risk-medium .risk-value {
-        color: #f59e0b;
-      }
-      
-      &.risk-high .risk-value {
-        color: #ef4444;
-      }
+    .timeline-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #9ca3af;
+      &.interviewer { background: #3b82f6; }
+      &.candidate { background: #10b981; }
     }
     
-    .risk-score {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      .score-label {
-        color: #6b7280;
-      }
-      
-      .score-value {
-        font-weight: 600;
-        color: #374151;
-      }
+    &::after {
+      content: '';
+      flex: 1;
+      width: 2px;
+      background: #e5e7eb;
+      margin-top: 4px;
     }
   }
   
-  .traits-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-top: 16px;
-    
-    .trait-tags, .concern-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      
-      .trait-tag, .concern-tag {
-        margin: 0;
-      }
-    }
-  }
-}
-
-// 质量评分卡片
-.quality-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
+  .timeline-item:last-child .timeline-line::after { display: none; }
   
-  h3 {
-    margin: 0 0 16px 0;
-    color: #1f2937;
-    font-size: 16px;
-  }
-  
-  .quality-scores {
-    display: flex;
-    justify-content: space-around;
+  .timeline-content {
+    flex: 1;
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 12px;
     
-    .score-item {
+    .content-header {
       display: flex;
-      flex-direction: column;
       align-items: center;
       gap: 12px;
+      margin-bottom: 8px;
       
-      .score-label {
-        font-size: 14px;
-        color: #6b7280;
+      .speaker-tag {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        &.interviewer { background: #dbeafe; color: #1d4ed8; }
+        &.candidate { background: #d1fae5; color: #047857; }
+      }
+      
+      .timestamp { color: #9ca3af; font-size: 12px; }
+    }
+    
+    .content-text { color: #374151; line-height: 1.6; font-size: 14px; }
+  }
+  
+  .scores-panel {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e5e7eb;
+    flex-wrap: wrap;
+    
+    .score-group {
+      flex: 1;
+      min-width: 150px;
+      .group-title { font-size: 11px; color: #9ca3af; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    }
+    
+    .big-five {
+      min-width: 200px;
+      .mini-bars { display: flex; flex-direction: column; gap: 4px; }
+      .mini-bar-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        .bar-label { width: 14px; font-size: 10px; color: #6b7280; text-align: center; }
+        .bar-track { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; background: #3b82f6; border-radius: 3px; transition: width 0.3s ease; &.warning { background: #f59e0b; } }
+        .bar-value { width: 24px; font-size: 10px; color: #6b7280; text-align: right; }
       }
     }
+    
+    .deception .score-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      .score-value { font-weight: 600; font-size: 16px; }
+      .confidence { font-size: 11px; color: #9ca3af; }
+      &.level-low .score-value { color: #10b981; }
+      &.level-medium .score-value { color: #f59e0b; }
+      &.level-high .score-value { color: #ef4444; }
+    }
+    
+    .depression .score-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      .score-num { font-size: 12px; color: #6b7280; }
+    }
   }
+  
+  .empty-timeline { padding: 20px 0; }
 }
 
 .dialog-footer {

@@ -1,13 +1,12 @@
 /**
  * 数据同步管理器
  * 用于批量数据处理、同步队列管理和定时器机制
+ * 根据新API规范，使用统一的 utterances 结构进行数据同步
  */
 
 import type { 
   SyncDataRequest, 
-  TranscriptRecord, 
-  SpeakerSegment, 
-  StateRecord,
+  Utterance,
   ImmersiveConfig 
 } from './useImmersiveInterview'
 
@@ -15,17 +14,14 @@ export interface DataSyncManagerOptions {
   sessionId: string
   config: ImmersiveConfig
   apiCall: <T>(url: string, options?: RequestInit) => Promise<{ success: boolean; data?: T; message?: string }>
-  onSyncSuccess?: (data: SyncDataRequest) => void
-  onSyncError?: (error: any, data: SyncDataRequest) => void
-  onRetryExhausted?: (data: SyncDataRequest) => void
+  onSyncSuccess?: (utterances: Utterance[]) => void
+  onSyncError?: (error: any, utterances: Utterance[]) => void
+  onRetryExhausted?: (utterances: Utterance[]) => void
 }
 
 export class DataSyncManager {
-  private syncQueue: SyncDataRequest = {
-    transcripts: [],
-    speaker_segments: [],
-    state_records: []
-  }
+  // 统一的 utterances 队列
+  private utterancesQueue: Utterance[] = []
   
   private syncTimer: number | null = null
   private readonly sessionId: string
@@ -33,9 +29,9 @@ export class DataSyncManager {
   private readonly apiCall: <T>(url: string, options?: RequestInit) => Promise<{ success: boolean; data?: T; message?: string }>
   
   // 回调函数
-  private readonly onSyncSuccess?: (data: SyncDataRequest) => void
-  private readonly onSyncError?: (error: any, data: SyncDataRequest) => void
-  private readonly onRetryExhausted?: (data: SyncDataRequest) => void
+  private readonly onSyncSuccess?: (utterances: Utterance[]) => void
+  private readonly onSyncError?: (error: any, utterances: Utterance[]) => void
+  private readonly onRetryExhausted?: (utterances: Utterance[]) => void
   
   // 重试管理
   private retryAttempts = new Map<string, number>()
@@ -65,51 +61,18 @@ export class DataSyncManager {
   }
   
   /**
-   * 添加转录记录到同步队列
+   * 添加单条发言记录到同步队列
    */
-  addTranscript(transcript: TranscriptRecord): void {
-    this.syncQueue.transcripts = this.syncQueue.transcripts || []
-    this.syncQueue.transcripts.push(transcript)
+  addUtterance(utterance: Utterance): void {
+    this.utterancesQueue.push(utterance)
     this.checkAutoSync()
   }
   
   /**
-   * 添加说话人片段到同步队列
+   * 批量添加发言记录
    */
-  addSpeakerSegment(segment: SpeakerSegment): void {
-    this.syncQueue.speaker_segments = this.syncQueue.speaker_segments || []
-    this.syncQueue.speaker_segments.push(segment)
-    this.checkAutoSync()
-  }
-  
-  /**
-   * 添加状态记录到同步队列
-   */
-  addStateRecord(state: StateRecord): void {
-    this.syncQueue.state_records = this.syncQueue.state_records || []
-    this.syncQueue.state_records.push(state)
-    this.checkAutoSync()
-  }
-  
-  /**
-   * 批量添加多种类型的数据
-   */
-  addBatchData(data: Partial<SyncDataRequest>): void {
-    if (data.transcripts?.length) {
-      this.syncQueue.transcripts = this.syncQueue.transcripts || []
-      this.syncQueue.transcripts.push(...data.transcripts)
-    }
-    
-    if (data.speaker_segments?.length) {
-      this.syncQueue.speaker_segments = this.syncQueue.speaker_segments || []
-      this.syncQueue.speaker_segments.push(...data.speaker_segments)
-    }
-    
-    if (data.state_records?.length) {
-      this.syncQueue.state_records = this.syncQueue.state_records || []
-      this.syncQueue.state_records.push(...data.state_records)
-    }
-    
+  addUtterances(utterances: Utterance[]): void {
+    this.utterancesQueue.push(...utterances)
     this.checkAutoSync()
   }
   
@@ -127,17 +90,14 @@ export class DataSyncManager {
    * 判断是否应该进行同步
    */
   private shouldSync(): boolean {
-    const totalItems = this.getTotalQueueSize()
-    return totalItems >= this.config.maxBatchSize
+    return this.utterancesQueue.length >= this.config.maxBatchSize
   }
   
   /**
    * 获取队列中的总数据量
    */
   private getTotalQueueSize(): number {
-    return (this.syncQueue.transcripts?.length || 0) +
-           (this.syncQueue.speaker_segments?.length || 0) +
-           (this.syncQueue.state_records?.length || 0)
+    return this.utterancesQueue.length
   }
   
   /**
@@ -145,16 +105,12 @@ export class DataSyncManager {
    */
   getQueueStatus(): {
     totalItems: number
-    transcripts: number
-    speakerSegments: number
-    stateRecords: number
+    utterances: number
     isEmpty: boolean
   } {
     return {
-      totalItems: this.getTotalQueueSize(),
-      transcripts: this.syncQueue.transcripts?.length || 0,
-      speakerSegments: this.syncQueue.speaker_segments?.length || 0,
-      stateRecords: this.syncQueue.state_records?.length || 0,
+      totalItems: this.utterancesQueue.length,
+      utterances: this.utterancesQueue.length,
       isEmpty: this.isEmpty()
     }
   }
@@ -176,14 +132,15 @@ export class DataSyncManager {
     
     const syncId = `sync_${Date.now()}`
     const startTime = Date.now()
-    const dataToSync = this.createSyncPayload()
+    const utterancesToSync = [...this.utterancesQueue]
+    const payload: SyncDataRequest = { utterances: utterancesToSync }
     
     this.syncStats.totalSyncs++
     
     try {
       const result = await this.apiCall(`${this.API_BASE}/${this.sessionId}/sync`, {
         method: 'POST',
-        body: JSON.stringify(dataToSync)
+        body: JSON.stringify(payload)
       })
       
       const syncTime = Date.now() - startTime
@@ -192,12 +149,12 @@ export class DataSyncManager {
       if (result.success) {
         this.clearQueue()
         this.retryAttempts.delete(syncId)
-        this.onSyncSuccess?.(dataToSync)
+        this.onSyncSuccess?.(utterancesToSync)
         return true
       } else {
         console.error('数据同步失败:', result.message)
-        this.onSyncError?.(new Error(result.message || '同步失败'), dataToSync)
-        await this.retrySync(dataToSync, syncId, 1)
+        this.onSyncError?.(new Error(result.message || '同步失败'), utterancesToSync)
+        await this.retrySync(utterancesToSync, syncId, 1)
         return false
       }
     } catch (error) {
@@ -205,32 +162,10 @@ export class DataSyncManager {
       this.updateSyncStats(syncTime, false)
       
       console.error('数据同步异常:', error)
-      this.onSyncError?.(error, dataToSync)
-      await this.retrySync(dataToSync, syncId, 1)
+      this.onSyncError?.(error, utterancesToSync)
+      await this.retrySync(utterancesToSync, syncId, 1)
       return false
     }
-  }
-  
-  /**
-   * 创建同步负载，优化数据大小
-   */
-  private createSyncPayload(): SyncDataRequest {
-    const payload: SyncDataRequest = {}
-    
-    // 只包含非空数组
-    if (this.syncQueue.transcripts?.length) {
-      payload.transcripts = [...this.syncQueue.transcripts]
-    }
-    
-    if (this.syncQueue.speaker_segments?.length) {
-      payload.speaker_segments = [...this.syncQueue.speaker_segments]
-    }
-    
-    if (this.syncQueue.state_records?.length) {
-      payload.state_records = [...this.syncQueue.state_records]
-    }
-    
-    return payload
   }
   
   /**
@@ -258,10 +193,10 @@ export class DataSyncManager {
   /**
    * 重试同步，使用指数退避策略
    */
-  private async retrySync(data: SyncDataRequest, syncId: string, attempt: number): Promise<void> {
+  private async retrySync(utterances: Utterance[], syncId: string, attempt: number): Promise<void> {
     if (attempt > this.MAX_RETRIES) {
       console.error('数据同步重试次数已达上限，放弃同步')
-      this.onRetryExhausted?.(data)
+      this.onRetryExhausted?.(utterances)
       return
     }
     
@@ -273,20 +208,21 @@ export class DataSyncManager {
     
     setTimeout(async () => {
       try {
+        const payload: SyncDataRequest = { utterances }
         const result = await this.apiCall(`${this.API_BASE}/${this.sessionId}/sync`, {
           method: 'POST',
-          body: JSON.stringify(data)
+          body: JSON.stringify(payload)
         })
         
         if (result.success) {
           console.log(`数据同步重试成功 (第${attempt}次重试)`)
           this.retryAttempts.delete(syncId)
-          this.onSyncSuccess?.(data)
+          this.onSyncSuccess?.(utterances)
         } else {
-          await this.retrySync(data, syncId, attempt + 1)
+          await this.retrySync(utterances, syncId, attempt + 1)
         }
       } catch (error) {
-        await this.retrySync(data, syncId, attempt + 1)
+        await this.retrySync(utterances, syncId, attempt + 1)
       }
     }, delay)
   }
@@ -295,20 +231,14 @@ export class DataSyncManager {
    * 检查队列是否为空
    */
   private isEmpty(): boolean {
-    return (!this.syncQueue.transcripts?.length) &&
-           (!this.syncQueue.speaker_segments?.length) &&
-           (!this.syncQueue.state_records?.length)
+    return this.utterancesQueue.length === 0
   }
   
   /**
    * 清空同步队列
    */
   private clearQueue(): void {
-    this.syncQueue = {
-      transcripts: [],
-      speaker_segments: [],
-      state_records: []
-    }
+    this.utterancesQueue = []
   }
   
   /**

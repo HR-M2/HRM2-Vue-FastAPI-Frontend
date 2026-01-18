@@ -60,6 +60,9 @@ export interface StateRecord {
   posture_score: number
   speech_clarity: number
   speech_pace: 'slow' | 'normal' | 'fast'
+  deception_score?: number  // 欺骗检测分数 0-1
+  big_five_personality?: BigFivePersonality  // 大五人格数据
+  depression_risk?: DepressionRisk  // 抑郁风险评估
 }
 
 // 候选人状态（向后兼容）
@@ -116,11 +119,31 @@ export interface QualityMetrics {
   psychological_wellness_score: number
 }
 
-// 批量同步数据请求
+// 候选人心理评分（每次sync必带）
+export interface CandidateScores {
+  big_five: BigFivePersonality
+  deception: {
+    score: number      // 欺骗检测分数 0-1
+    confidence: number // 置信度 0-1
+  }
+  depression: {
+    score: number      // 抑郁风险分数 0-100
+    level: 'low' | 'medium' | 'high'
+    confidence: number // 置信度 0-1
+  }
+}
+
+// 发言记录（新版API结构）
+export interface Utterance {
+  speaker: 'interviewer' | 'candidate'
+  text: string
+  timestamp: number  // 毫秒时间戳
+  candidate_scores: CandidateScores
+}
+
+// 批量同步数据请求（新版API结构）
 export interface SyncDataRequest {
-  transcripts?: TranscriptRecord[]
-  speaker_segments?: SpeakerSegment[]
-  state_records?: StateRecord[]
+  utterances: Utterance[]
 }
 
 // 问题建议选项
@@ -178,53 +201,36 @@ export interface CreateSessionRequest {
   config?: Record<string, unknown>
 }
 
-// 完整会话响应 - 匹配后端实际返回的数据结构
+// 会话历史记录项（新版API结构）
+export interface ConversationHistoryItem {
+  speaker: 'interviewer' | 'candidate'
+  text: string
+  timestamp: string  // ISO格式时间戳
+  candidate_scores: CandidateScores
+}
+
+// 完整会话响应 - 匹配新版后端API返回的数据结构
 export interface CompleteSessionResponse {
-  id: string
-  created_at: string
-  updated_at: string
-  application_id: string
-  local_camera_enabled: boolean
-  stream_url: string | null
-  config: Record<string, unknown>
-  is_recording: boolean
-  is_completed: boolean
-  transcripts: TranscriptRecord[]
-  speaker_segments: SpeakerSegment[]
-  state_history: StateRecord[]
+  session_id: string
   duration_seconds: number
-  interviewer_speak_ratio: number
-  candidate_speak_ratio: number
-  final_analysis: Record<string, unknown> | null
-  candidate_name: string
-  position_title: string
+  start_time: string
+  end_time: string
   statistics: {
-    total_segments: number
-    candidate_segments: number
-    interviewer_segments: number
-    candidate_speak_ratio: number
-    interviewer_speak_ratio: number
-    session_quality_score: number
-    avg_engagement: number
-    avg_confidence: number
-    avg_nervousness: number
-  }
-  psychological_summary: {
-    final_big_five: BigFivePersonality | null
-    depression_assessment: {
-      score: number
-      level: string
-      confidence: number
-    } | null
-    psychological_wellness_score: number
-    trend_analysis: {
-      depression_risk_trend: string
-      latest_state: Record<string, unknown> | null
+    total_utterances: number
+    interviewer_utterances: number
+    candidate_utterances: number
+    interviewer_ratio: number
+    candidate_ratio: number
+    overall_depression: {
+      avg_score: number
+      final_level: string
     }
   }
-  full_transcripts: TranscriptRecord[]
-  full_speaker_segments: SpeakerSegment[]
-  full_state_history: StateRecord[]
+  conversation_history: ConversationHistoryItem[]
+  candidate_info: {
+    name: string
+    position_title: string
+  }
 }
 
 // 驾驶舱数据类型
@@ -355,57 +361,38 @@ class FallbackManager {
     candidateName: string,
     positionTitle: string,
     durationSeconds: number,
-    cockpitData: CockpitData
+    cockpitData: CockpitData,
+    conversationHistory: ConversationHistoryItem[] = []
   ): CompleteSessionResponse {
     const now = new Date()
     const startTime = new Date(now.getTime() - durationSeconds * 1000)
     
+    // 统计发言数量
+    const candidateUtterances = conversationHistory.filter(h => h.speaker === 'candidate').length
+    const interviewerUtterances = conversationHistory.filter(h => h.speaker === 'interviewer').length
+    const totalUtterances = conversationHistory.length || 8
+    
     return {
-      id: sessionId,
-      created_at: startTime.toISOString(),
-      updated_at: now.toISOString(),
-      application_id: 'mock-application',
-      local_camera_enabled: true,
-      stream_url: null,
-      config: {},
-      is_recording: false,
-      is_completed: true,
-      transcripts: [],
-      speaker_segments: [],
-      state_history: [],
+      session_id: sessionId,
       duration_seconds: durationSeconds,
-      interviewer_speak_ratio: 0.35,
-      candidate_speak_ratio: 0.65,
-      final_analysis: null,
-      candidate_name: candidateName,
-      position_title: positionTitle,
+      start_time: startTime.toISOString(),
+      end_time: now.toISOString(),
       statistics: {
-        total_segments: 8,
-        candidate_segments: 5,
-        interviewer_segments: 3,
-        candidate_speak_ratio: 0.65,
-        interviewer_speak_ratio: 0.35,
-        session_quality_score: 75,
-        avg_engagement: 72,
-        avg_confidence: 68,
-        avg_nervousness: 20
-      },
-      psychological_summary: {
-        final_big_five: cockpitData.bigFive,
-        depression_assessment: {
-          score: cockpitData.depressionScore * 100,
-          level: cockpitData.depressionScore < 0.3 ? 'low' : cockpitData.depressionScore < 0.6 ? 'medium' : 'high',
-          confidence: 0.85
-        },
-        psychological_wellness_score: 80,
-        trend_analysis: {
-          depression_risk_trend: 'stable',
-          latest_state: null
+        total_utterances: totalUtterances,
+        interviewer_utterances: interviewerUtterances || 3,
+        candidate_utterances: candidateUtterances || 5,
+        interviewer_ratio: 0.35,
+        candidate_ratio: 0.65,
+        overall_depression: {
+          avg_score: cockpitData.depressionScore * 100,
+          final_level: cockpitData.depressionScore < 0.3 ? 'low' : cockpitData.depressionScore < 0.6 ? 'medium' : 'high'
         }
       },
-      full_transcripts: [],
-      full_speaker_segments: [],
-      full_state_history: []
+      conversation_history: conversationHistory,
+      candidate_info: {
+        name: candidateName,
+        position_title: positionTitle
+      }
     }
   }
 }
@@ -450,9 +437,7 @@ export function useImmersiveInterview() {
 
   // 新增：批量同步队列和质量指标
   const syncQueue = ref<SyncDataRequest>({
-    transcripts: [],
-    speaker_segments: [],
-    state_records: []
+    utterances: []
   })
   const qualityMetrics = ref<QualityMetrics>({
     session_quality_score: 0,
@@ -473,20 +458,23 @@ export function useImmersiveInterview() {
   const errorHandler = new APIErrorHandler()
   const fallbackManager = new FallbackManager()
 
-  // 驾驶舱模拟数据
+  // 驾驶舱模拟数据 - 初始值为0，显示“待检测”
   const cockpitData = reactive<CockpitData>({
     bigFive: {
-      openness: 0.65,
-      conscientiousness: 0.60,
-      extraversion: 0.70,
-      agreeableness: 0.55,
-      neuroticism: 0.30
+      openness: 0,
+      conscientiousness: 0,
+      extraversion: 0,
+      agreeableness: 0,
+      neuroticism: 0
     },
-    deceptionScore: 0.2,
-    depressionScore: 0.15,
-    overallScore: 68,
+    deceptionScore: 0,
+    depressionScore: 0,
+    overallScore: 0,
     faceOutOfFrame: false
   })
+  
+  // 标记是否已开始检测（用于显示“待检测”状态）
+  const isAnalysisStarted = ref(false)
 
   // 驾驶舱定时器
   let cockpitTimer: number | null = null
@@ -1167,32 +1155,38 @@ export function useImmersiveInterview() {
     })
   }
 
+  // 获取当前候选人心理评分
+  const getCurrentCandidateScores = (): CandidateScores => {
+    return {
+      big_five: { ...cockpitData.bigFive },
+      deception: {
+        score: cockpitData.deceptionScore,
+        confidence: 0.85
+      },
+      depression: {
+        score: cockpitData.depressionScore * 100,
+        level: cockpitData.depressionScore < 0.3 ? 'low' : cockpitData.depressionScore < 0.6 ? 'medium' : 'high',
+        confidence: 0.88
+      }
+    }
+  }
+
   // 切换发言人 - 同步上一轮对话并切换
   const switchSpeaker = async (): Promise<void> => {
     console.log('[switchSpeaker] 切换发言人，当前:', currentSpeaker.value)
     
     // 同步上一轮对话
     if (pendingTranscript.value.trim() && sessionId.value && dataSyncManager) {
-      const transcriptRecord: TranscriptRecord = {
+      // 构建新版 utterance 结构
+      const utterance: Utterance = {
         speaker: currentSpeaker.value,
         text: pendingTranscript.value.trim(),
-        is_final: true
+        timestamp: Date.now(),
+        candidate_scores: getCurrentCandidateScores()
       }
       
       // 添加到同步队列
-      dataSyncManager.addTranscript(transcriptRecord)
-      
-      // 如果有开始时间，添加说话人片段
-      if (speakerStartTime.value) {
-        const segment: SpeakerSegment = {
-          speaker: currentSpeaker.value,
-          start_time: speakerStartTime.value.getTime(),
-          end_time: Date.now(),
-          text: pendingTranscript.value.trim(),
-          confidence: 0.9
-        }
-        dataSyncManager.addSpeakerSegment(segment)
-      }
+      dataSyncManager.addUtterance(utterance)
       
       // 立即执行同步
       console.log('[switchSpeaker] 执行同步，文本长度:', pendingTranscript.value.length)
@@ -1213,35 +1207,19 @@ export function useImmersiveInterview() {
     return currentSpeaker.value === 'interviewer' ? '面试官' : '候选人'
   }
 
-  // 添加说话人片段 - 使用批量同步
-  const addSpeakerSegment = async (segment: SpeakerSegment): Promise<void> => {
-    if (!sessionId.value || !dataSyncManager) return
+  // 添加发言记录 - 使用新版 utterance 结构
+  const addUtterance = async (speaker: 'interviewer' | 'candidate', text: string): Promise<void> => {
+    if (!sessionId.value || !dataSyncManager || !text.trim()) return
 
-    // 添加到本地显示
-    speakerSegments.value.push(segment)
-
-    // 添加到同步队列
-    dataSyncManager.addSpeakerSegment(segment)
-  }
-
-  // 添加状态记录 - 使用批量同步
-  const addStateRecord = async (state: CandidateState): Promise<void> => {
-    if (!sessionId.value || !dataSyncManager) return
-
-    const stateRecord: StateRecord = {
-      segment_id: `segment_${Date.now()}`,
-      emotion: state.emotion,
-      engagement: state.engagement,
-      nervousness: state.nervousness,
-      confidence_level: state.confidence_level,
-      eye_contact: state.eye_contact,
-      posture_score: state.posture_score,
-      speech_clarity: state.speech_clarity,
-      speech_pace: state.speech_pace
+    const utterance: Utterance = {
+      speaker,
+      text: text.trim(),
+      timestamp: Date.now(),
+      candidate_scores: getCurrentCandidateScores()
     }
 
     // 添加到同步队列
-    dataSyncManager.addStateRecord(stateRecord)
+    dataSyncManager.addUtterance(utterance)
   }
 
   // 手动触发数据同步
@@ -1255,9 +1233,7 @@ export function useImmersiveInterview() {
   const getSyncQueueStatus = () => {
     return dataSyncManager?.getQueueStatus() || {
       totalItems: 0,
-      transcripts: 0,
-      speakerSegments: 0,
-      stateRecords: 0,
+      utterances: 0,
       isEmpty: true
     }
   }
@@ -1371,10 +1347,26 @@ export function useImmersiveInterview() {
     
     // 清理新增的状态
     syncQueue.value = {
-      transcripts: [],
-      speaker_segments: [],
-      state_records: []
+      utterances: []
     }
+    
+    // 重置分析状态
+    isAnalysisStarted.value = false
+    
+    // 重置驾驶舱数据为0
+    Object.assign(cockpitData, {
+      bigFive: {
+        openness: 0,
+        conscientiousness: 0,
+        extraversion: 0,
+        agreeableness: 0,
+        neuroticism: 0
+      },
+      deceptionScore: 0,
+      depressionScore: 0,
+      overallScore: 0,
+      faceOutOfFrame: false
+    })
     qualityMetrics.value = {
       session_quality_score: 0,
       psychological_wellness_score: 0
@@ -1462,11 +1454,11 @@ export function useImmersiveInterview() {
     
     // 新增的数据管理方法
     addTranscript,
-    addSpeakerSegment,
-    addStateRecord,
+    addUtterance,
     syncDataNow,
     getSyncQueueStatus,
     getSyncStats,
+    getCurrentCandidateScores,
     
     // 新增的会话管理方法
     completeSession, // 新增

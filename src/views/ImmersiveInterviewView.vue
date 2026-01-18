@@ -915,7 +915,7 @@ const handleExportReport = () => {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `interview_report_${interviewResult.value.id}_${Date.now()}.json`
+    a.download = `interview_report_${interviewResult.value.session_id}_${Date.now()}.json`
     a.click()
     URL.revokeObjectURL(url)
     ElMessage.success('面试报告已导出')

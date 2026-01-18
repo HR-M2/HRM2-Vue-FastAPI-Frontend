@@ -48,12 +48,13 @@
         <!-- 左侧分析面板 -->
         <div class="left-analysis-panel">
           <!-- 大五人格分析 -->
-          <div class="analysis-card personality-card">
+          <div class="analysis-card personality-card" :class="{ 'pending-state': !isAnalysisActive }">
             <h4 class="card-title">
               <span class="title-icon">🧠</span>
               大五人格
+              <span v-if="!isAnalysisActive" class="pending-badge">待检测</span>
             </h4>
-            <div class="personality-mini-list">
+            <div v-if="isAnalysisActive" class="personality-mini-list">
               <div class="personality-mini-item">
                 <span class="trait-label">开放性</span>
                 <div class="trait-mini-bar">
@@ -90,32 +91,37 @@
                 <span class="trait-percent">{{ Math.round((bigFiveData?.neuroticism || 0) * 100) }}%</span>
               </div>
             </div>
+            <div v-else class="pending-content">
+              <span class="pending-text">面试开始后自动分析</span>
+            </div>
           </div>
 
           <!-- 检测区域 -->
           <div class="detection-cards">
             <!-- 欺骗检测 -->
-            <div class="analysis-card detection-card" :class="{ 'warning-state': deceptionScore > 0.5 }">
+            <div class="analysis-card detection-card" :class="{ 'warning-state': deceptionScore > 0.5, 'pending-state': !isAnalysisActive }">
               <h4 class="card-title">
                 <span class="title-icon">🔍</span>
                 欺骗检测
+                <span v-if="!isAnalysisActive" class="pending-badge">待检测</span>
               </h4>
               <div class="detection-meter">
-                <div class="meter-circle" :class="deceptionLevelClass">
-                  <span class="meter-value">{{ Math.round(deceptionScore * 100) }}%</span>
+                <div class="meter-circle" :class="isAnalysisActive ? deceptionLevelClass : 'pending'">
+                  <span class="meter-value">{{ isAnalysisActive ? Math.round(deceptionScore * 100) + '%' : '--' }}</span>
                 </div>
               </div>
             </div>
 
             <!-- 抑郁检测 -->
-            <div class="analysis-card detection-card">
+            <div class="analysis-card detection-card" :class="{ 'pending-state': !isAnalysisActive }">
               <h4 class="card-title">
                 <span class="title-icon">😔</span>
                 抑郁检测
+                <span v-if="!isAnalysisActive" class="pending-badge">待检测</span>
               </h4>
               <div class="detection-meter">
-                <div class="meter-circle depression-meter">
-                  <span class="meter-value">{{ Math.round((depressionScore || 0) * 100) }}%</span>
+                <div class="meter-circle" :class="isAnalysisActive ? 'depression-meter' : 'pending'">
+                  <span class="meter-value">{{ isAnalysisActive ? Math.round((depressionScore || 0) * 100) + '%' : '--' }}</span>
                 </div>
               </div>
             </div>
@@ -204,6 +210,19 @@ const isPipExpanded = ref(false)
 const isSwapped = ref(false)
 
 const hasLocalVideo = computed(() => props.localStream !== null)
+
+// 判断分析是否已开始（任一心理指标非0则视为已开始）
+const isAnalysisActive = computed(() => {
+  const bigFive = props.bigFiveData
+  const hasBigFiveData = bigFive && (
+    bigFive.openness > 0 ||
+    bigFive.conscientiousness > 0 ||
+    bigFive.extraversion > 0 ||
+    bigFive.agreeableness > 0 ||
+    bigFive.neuroticism > 0
+  )
+  return hasBigFiveData || props.deceptionScore > 0 || (props.depressionScore || 0) > 0
+})
 
 // 欺骗检测等级样式
 const deceptionLevelClass = computed(() => {
@@ -773,6 +792,11 @@ defineExpose({
         background: conic-gradient(#6b7280 0deg, rgba(255, 255, 255, 0.2) 0deg);
       }
       
+      &.pending {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px dashed rgba(255, 255, 255, 0.3);
+      }
+      
       .meter-value {
         font-size: 11px;
         font-weight: 700;
@@ -780,6 +804,35 @@ defineExpose({
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
       }
     }
+  }
+}
+
+// 待检测状态样式
+.analysis-card.pending-state {
+  opacity: 0.7;
+  
+  .card-title {
+    .pending-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      margin-left: auto;
+      font-weight: 500;
+    }
+  }
+}
+
+.pending-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+  
+  .pending-text {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
   }
 }
 
