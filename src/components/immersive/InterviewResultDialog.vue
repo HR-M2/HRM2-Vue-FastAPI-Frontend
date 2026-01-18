@@ -3,13 +3,27 @@
     v-model="visible"
     title="面试结果统计"
     width="800px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
+    :close-on-click-modal="!loading"
+    :close-on-press-escape="true"
+    :show-close="true"
     class="interview-result-dialog"
+    @close="handleClose"
   >
     <div v-if="loading" class="loading-container">
-      <el-loading-spinner />
+      <div class="loading-spinner">
+        <el-icon class="is-loading" :size="48" color="#409eff"><Loading /></el-icon>
+      </div>
       <p>正在生成面试报告...</p>
+      <el-button class="cancel-btn" @click="handleClose">退出面试界面</el-button>
+    </div>
+    
+    <div v-else-if="error" class="error-container">
+      <el-icon class="error-icon" color="#f56c6c" size="48"><CircleClose /></el-icon>
+      <h3 class="error-title">面试报告生成失败</h3>
+      <p class="error-message">{{ error }}</p>
+      <div class="error-actions">
+        <el-button type="primary" @click="handleClose">确定</el-button>
+      </div>
     </div>
     
     <div v-else-if="resultData" class="result-content">
@@ -19,19 +33,19 @@
         <div class="info-grid">
           <div class="info-item">
             <span class="label">候选人：</span>
-            <span class="value">{{ resultData.candidate_info.name }}</span>
+            <span class="value">{{ resultData.candidate_name }}</span>
           </div>
           <div class="info-item">
             <span class="label">应聘岗位：</span>
-            <span class="value">{{ resultData.candidate_info.position_title }}</span>
+            <span class="value">{{ resultData.position_title }}</span>
           </div>
           <div class="info-item">
             <span class="label">面试时长：</span>
-            <span class="value">{{ formatDuration(resultData.session_info.duration_seconds) }}</span>
+            <span class="value">{{ formatDuration(resultData.duration_seconds) }}</span>
           </div>
           <div class="info-item">
             <span class="label">开始时间：</span>
-            <span class="value">{{ formatDateTime(resultData.session_info.start_time) }}</span>
+            <span class="value">{{ formatDateTime(resultData.created_at) }}</span>
           </div>
         </div>
       </div>
@@ -70,7 +84,7 @@
             <div class="trait-item">
               <span class="trait-name">开放性</span>
               <el-progress 
-                :percentage="Math.round(resultData.psychological_summary.overall_big_five.openness * 100)"
+                :percentage="Math.round((resultData.psychological_summary.final_big_five?.openness || 0) * 100)"
                 :stroke-width="8"
                 :show-text="true"
               />
@@ -78,7 +92,7 @@
             <div class="trait-item">
               <span class="trait-name">尽责性</span>
               <el-progress 
-                :percentage="Math.round(resultData.psychological_summary.overall_big_five.conscientiousness * 100)"
+                :percentage="Math.round((resultData.psychological_summary.final_big_five?.conscientiousness || 0) * 100)"
                 :stroke-width="8"
                 :show-text="true"
               />
@@ -86,7 +100,7 @@
             <div class="trait-item">
               <span class="trait-name">外向性</span>
               <el-progress 
-                :percentage="Math.round(resultData.psychological_summary.overall_big_five.extraversion * 100)"
+                :percentage="Math.round((resultData.psychological_summary.final_big_five?.extraversion || 0) * 100)"
                 :stroke-width="8"
                 :show-text="true"
               />
@@ -94,7 +108,7 @@
             <div class="trait-item">
               <span class="trait-name">宜人性</span>
               <el-progress 
-                :percentage="Math.round(resultData.psychological_summary.overall_big_five.agreeableness * 100)"
+                :percentage="Math.round((resultData.psychological_summary.final_big_five?.agreeableness || 0) * 100)"
                 :stroke-width="8"
                 :show-text="true"
               />
@@ -102,7 +116,7 @@
             <div class="trait-item">
               <span class="trait-name">神经质</span>
               <el-progress 
-                :percentage="Math.round(resultData.psychological_summary.overall_big_five.neuroticism * 100)"
+                :percentage="Math.round((resultData.psychological_summary.final_big_five?.neuroticism || 0) * 100)"
                 :stroke-width="8"
                 :show-text="true"
                 color="#f56c6c"
@@ -115,13 +129,13 @@
         <div class="depression-section">
           <h4>心理健康评估</h4>
           <div class="depression-info">
-            <div class="risk-level" :class="getRiskLevelClass(resultData.psychological_summary.overall_depression_risk.level)">
+            <div class="risk-level" :class="getRiskLevelClass(resultData.psychological_summary.depression_assessment?.level || 'unknown')">
               <span class="risk-label">抑郁风险等级：</span>
-              <span class="risk-value">{{ getRiskLevelText(resultData.psychological_summary.overall_depression_risk.level) }}</span>
+              <span class="risk-value">{{ getRiskLevelText(resultData.psychological_summary.depression_assessment?.level || 'unknown') }}</span>
             </div>
             <div class="risk-score">
               <span class="score-label">风险评分：</span>
-              <span class="score-value">{{ resultData.psychological_summary.overall_depression_risk.score.toFixed(1) }}/100</span>
+              <span class="score-value">{{ (resultData.psychological_summary.depression_assessment?.score || 0).toFixed(1) }}/100</span>
             </div>
           </div>
         </div>
@@ -132,7 +146,7 @@
             <h4>积极特质</h4>
             <div class="trait-tags">
               <el-tag 
-                v-for="trait in resultData.psychological_summary.positive_traits" 
+                v-for="trait in []" 
                 :key="trait"
                 type="success"
                 class="trait-tag"
@@ -146,7 +160,7 @@
             <h4>关注点</h4>
             <div class="concern-tags">
               <el-tag 
-                v-for="concern in resultData.psychological_summary.areas_of_concern" 
+                v-for="concern in []" 
                 :key="concern"
                 type="warning"
                 class="concern-tag"
@@ -189,11 +203,11 @@
       </div>
     </div>
 
-    <template #footer>
+    <template v-if="!loading" #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="handleExport">导出报告</el-button>
-        <el-button type="success" @click="handleViewFullReport">查看详细报告</el-button>
+        <el-button @click="handleClose">退出面试界面</el-button>
+        <el-button v-if="resultData" type="primary" @click="handleExport">导出报告</el-button>
+        <el-button v-if="resultData" type="success" @click="handleViewFullReport">查看详细报告</el-button>
       </div>
     </template>
   </el-dialog>
@@ -202,24 +216,28 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { CircleClose, Loading } from '@element-plus/icons-vue'
 import type { CompleteSessionResponse } from '@/composables/useImmersiveInterview'
 
 interface Props {
   modelValue: boolean
   resultData?: CompleteSessionResponse | null
   loading?: boolean
+  error?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
   resultData: null,
-  loading: false
+  loading: false,
+  error: null
 })
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'export-report'): void
   (e: 'view-full-report'): void
+  (e: 'close'): void
 }>()
 
 const visible = computed({
@@ -267,9 +285,21 @@ const getRiskLevelText = (level: string): string => {
   }
 }
 
+// 获取趋势文本
+const getTrendText = (trend: string | undefined): string => {
+  switch (trend) {
+    case 'improving': return '改善中'
+    case 'stable': return '稳定'
+    case 'worsening': return '恶化中'
+    case 'insufficient_data': return '数据不足'
+    default: return '未知'
+  }
+}
+
 // 关闭弹窗
 const handleClose = () => {
   visible.value = false
+  emit('close')
 }
 
 // 导出报告
@@ -300,9 +330,62 @@ const handleViewFullReport = () => {
   align-items: center;
   padding: 40px 0;
   
+  .loading-spinner {
+    margin-bottom: 16px;
+    
+    .is-loading {
+      animation: rotating 2s linear infinite;
+    }
+  }
+  
   p {
-    margin-top: 16px;
+    margin: 0 0 20px 0;
     color: #666;
+    font-size: 14px;
+  }
+  
+  .cancel-btn {
+    margin-top: 8px;
+  }
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+  
+  .error-icon {
+    margin-bottom: 16px;
+  }
+  
+  .error-title {
+    margin: 0 0 12px 0;
+    color: #f56c6c;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .error-message {
+    margin: 0 0 24px 0;
+    color: #666;
+    line-height: 1.6;
+    max-width: 400px;
+  }
+  
+  .error-actions {
+    display: flex;
+    gap: 12px;
   }
 }
 

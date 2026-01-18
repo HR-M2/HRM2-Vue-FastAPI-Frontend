@@ -261,14 +261,17 @@
       v-model="showResultDialog"
       :result-data="interviewResult"
       :loading="isResultLoading"
+      :error="resultError"
       @export-report="handleExportReport"
       @view-full-report="handleViewFullReport"
+      @close="handleCloseResultDialog"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Setting,
@@ -422,6 +425,7 @@ const reportData = ref<ReportData | null>(null)
 // 面试结果弹窗相关
 const showResultDialog = ref(false)
 const isResultLoading = ref(false)
+const resultError = ref<string | null>(null) // 新增：错误状态
 const interviewResult = ref<CompleteSessionResponse | null>(null)
 
 // 聊天消息
@@ -573,26 +577,51 @@ const handleStopInterview = async () => {
     console.log('[ImmersiveInterviewView] 完成会话并获取数据')
     showResultDialog.value = true
     isResultLoading.value = true
+    resultError.value = null // 重置错误状态
+    interviewResult.value = null // 重置结果数据
     
     try {
-      const completeResult = await completeSession()
+      console.log('[ImmersiveInterviewView] 调用 completeSession...')
+      
+      // 添加超时机制，防止无限等待
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('API调用超时（30秒）')), 30000)
+      })
+      
+      const completeResult = await Promise.race([
+        completeSession(),
+        timeoutPromise
+      ])
+      
+      console.log('[ImmersiveInterviewView] completeSession 返回结果:', completeResult)
+      
       if (completeResult) {
         console.log('[ImmersiveInterviewView] 获取到完整会话数据:', completeResult)
         interviewResult.value = completeResult
         ElMessage.success('面试报告已生成')
       } else {
-        ElMessage.warning('无法获取完整的面试数据，但面试已正常结束')
+        console.warn('[ImmersiveInterviewView] completeSession 返回 null')
+        resultError.value = '无法获取面试数据，请检查网络连接或联系管理员'
+        ElMessage.error('生成面试报告失败')
       }
     } catch (error) {
       console.error('[ImmersiveInterviewView] 获取完整会话数据失败:', error)
-      ElMessage.error('生成面试报告时出现问题，但面试已正常结束')
+      resultError.value = `生成面试报告时发生错误: ${error instanceof Error ? error.message : '未知错误'}`
+      ElMessage.error('生成面试报告时出现问题')
     } finally {
+      // 确保loading状态总是被重置
       isResultLoading.value = false
+      console.log('[ImmersiveInterviewView] loading状态已重置为false')
     }
     
-  } catch {
-    // 用户取消
-    console.log('[ImmersiveInterviewView] 用户取消结束面试')
+  } catch (error) {
+    // 用户取消或其他错误
+    console.log('[ImmersiveInterviewView] 用户取消结束面试或发生错误:', error)
+    // 如果弹窗已经显示，需要重置loading状态
+    if (showResultDialog.value) {
+      isResultLoading.value = false
+      showResultDialog.value = false
+    }
   }
 }
 
@@ -827,21 +856,30 @@ const handleExportReport = () => {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `interview_report_${interviewResult.value.session_info.id}_${Date.now()}.json`
+    a.download = `interview_report_${interviewResult.value.id}_${Date.now()}.json`
     a.click()
     URL.revokeObjectURL(url)
     ElMessage.success('面试报告已导出')
   }
 }
 
-const handleViewFullReport = () => {
-  // 这里可以跳转到详细报告页面或打开新的弹窗
-  ElMessage.info('详细报告功能开发中...')
-}
+const router = useRouter()
 
 const handleCloseResultDialog = () => {
   showResultDialog.value = false
-  // 关闭弹窗后可以选择返回主页或保持在当前页面
+  resultError.value = null
+  interviewResult.value = null
+  
+  // 清理会话资源
+  cleanup()
+  
+  // 跳转到最终推荐界面
+  router.push({ name: 'recommend' })
+}
+
+const handleViewFullReport = () => {
+  // 这里可以跳转到详细报告页面或打开新的弹窗
+  ElMessage.info('详细报告功能开发中...')
 }
 
 // 下载报告

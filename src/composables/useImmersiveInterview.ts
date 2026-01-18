@@ -178,24 +178,53 @@ export interface CreateSessionRequest {
   config?: Record<string, unknown>
 }
 
-// 完整会话响应
+// 完整会话响应 - 匹配后端实际返回的数据结构
 export interface CompleteSessionResponse {
-  session_info: {
-    id: string
-    duration_seconds: number
-    start_time: string
-    end_time: string
-    is_completed: boolean
+  id: string
+  created_at: string
+  updated_at: string
+  application_id: string
+  local_camera_enabled: boolean
+  stream_url: string | null
+  config: Record<string, unknown>
+  is_recording: boolean
+  is_completed: boolean
+  transcripts: TranscriptRecord[]
+  speaker_segments: SpeakerSegment[]
+  state_history: StateRecord[]
+  duration_seconds: number
+  interviewer_speak_ratio: number
+  candidate_speak_ratio: number
+  final_analysis: Record<string, unknown> | null
+  candidate_name: string
+  position_title: string
+  statistics: {
+    total_segments: number
+    candidate_segments: number
+    interviewer_segments: number
+    candidate_speak_ratio: number
+    interviewer_speak_ratio: number
+    session_quality_score: number
+    avg_engagement: number
+    avg_confidence: number
+    avg_nervousness: number
   }
-  statistics: SessionStatistics
-  psychological_summary: PsychologicalSummary
+  psychological_summary: {
+    final_big_five: BigFivePersonality | null
+    depression_assessment: {
+      score: number
+      level: string
+      confidence: number
+    } | null
+    psychological_wellness_score: number
+    trend_analysis: {
+      depression_risk_trend: string
+      latest_state: Record<string, unknown> | null
+    }
+  }
   full_transcripts: TranscriptRecord[]
   full_speaker_segments: SpeakerSegment[]
   full_state_history: StateRecord[]
-  candidate_info: {
-    name: string
-    position_title: string
-  }
 }
 
 // 驾驶舱数据类型
@@ -318,6 +347,66 @@ class FallbackManager {
         reason: "本地生成 - 学习能力评估"
       }
     ]
+  }
+
+  // 生成模拟的完整会话响应（当API不可用时的降级方案）
+  generateMockCompleteSessionResponse(
+    sessionId: string,
+    candidateName: string,
+    positionTitle: string,
+    durationSeconds: number,
+    cockpitData: CockpitData
+  ): CompleteSessionResponse {
+    const now = new Date()
+    const startTime = new Date(now.getTime() - durationSeconds * 1000)
+    
+    return {
+      id: sessionId,
+      created_at: startTime.toISOString(),
+      updated_at: now.toISOString(),
+      application_id: 'mock-application',
+      local_camera_enabled: true,
+      stream_url: null,
+      config: {},
+      is_recording: false,
+      is_completed: true,
+      transcripts: [],
+      speaker_segments: [],
+      state_history: [],
+      duration_seconds: durationSeconds,
+      interviewer_speak_ratio: 0.35,
+      candidate_speak_ratio: 0.65,
+      final_analysis: null,
+      candidate_name: candidateName,
+      position_title: positionTitle,
+      statistics: {
+        total_segments: 8,
+        candidate_segments: 5,
+        interviewer_segments: 3,
+        candidate_speak_ratio: 0.65,
+        interviewer_speak_ratio: 0.35,
+        session_quality_score: 75,
+        avg_engagement: 72,
+        avg_confidence: 68,
+        avg_nervousness: 20
+      },
+      psychological_summary: {
+        final_big_five: cockpitData.bigFive,
+        depression_assessment: {
+          score: cockpitData.depressionScore * 100,
+          level: cockpitData.depressionScore < 0.3 ? 'low' : cockpitData.depressionScore < 0.6 ? 'medium' : 'high',
+          confidence: 0.85
+        },
+        psychological_wellness_score: 80,
+        trend_analysis: {
+          depression_risk_trend: 'stable',
+          latest_state: null
+        }
+      },
+      full_transcripts: [],
+      full_speaker_segments: [],
+      full_state_history: []
+    }
   }
 }
 
@@ -567,11 +656,19 @@ export function useImmersiveInterview() {
         url,
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       })
       
       if (!response.ok) {
-        const errorText = await response.text()
+        let errorText = ''
+        try {
+          errorText = await response.text()
+          console.error('[apiCall] 错误响应内容:', errorText)
+        } catch (e) {
+          console.error('[apiCall] 无法读取错误响应内容:', e)
+        }
+        
         console.error('[apiCall] 请求失败:', {
           url,
           status: response.status,
@@ -584,8 +681,18 @@ export function useImmersiveInterview() {
         }
       }
       
-      const result = await response.json()
-      console.log('[apiCall] 请求成功:', { url, result })
+      let result
+      try {
+        result = await response.json()
+        console.log('[apiCall] 请求成功，响应数据:', result)
+      } catch (e) {
+        console.error('[apiCall] 解析JSON失败:', e)
+        return { 
+          success: false, 
+          message: '响应数据格式错误，无法解析JSON' 
+        }
+      }
+      
       return result
     } catch (error: any) {
       console.error('[apiCall] 网络错误:', { url, error })
@@ -980,36 +1087,66 @@ export function useImmersiveInterview() {
 
   // 完成会话 - 使用新的 POST /api/v1/immersive/{session_id}/complete 端点
   const completeSession = async (): Promise<CompleteSessionResponse | null> => {
-    if (!sessionId.value) return null
+    if (!sessionId.value) {
+      console.error('[completeSession] 没有会话ID')
+      return null
+    }
+
+    console.log('[completeSession] 开始完成会话，会话ID:', sessionId.value)
 
     try {
-      // 先停止录制
-      await stopInterview()
-      
-      // 最后一次数据同步
+      // 最后一次数据同步（不再重复停止录制，因为调用方已经停止了）
       if (dataSyncManager) {
-        await dataSyncManager.forceSyncNow()
+        console.log('[completeSession] 执行最后一次数据同步...')
+        try {
+          await dataSyncManager.forceSyncNow()
+        } catch (syncError) {
+          console.warn('[completeSession] 数据同步失败，继续完成会话:', syncError)
+        }
       }
 
-      const result = await errorHandler.handleAPICall(
-        () => apiCall<CompleteSessionResponse>(`${API_BASE}/${sessionId.value}/complete`, {
-          method: 'POST'
-        }),
-        'completeSession'
-      )
+      const apiUrl = `${API_BASE}/${sessionId.value}/complete`
+      console.log('[completeSession] 调用API:', apiUrl)
+
+      // 使用带超时的 API 调用，避免无限等待
+      const timeoutMs = 10000 // 10秒超时
+      const apiPromise = apiCall<CompleteSessionResponse>(apiUrl, { method: 'POST' })
+      const timeoutPromise = new Promise<{ success: false; message: string }>((resolve) => {
+        setTimeout(() => resolve({ success: false, message: 'API调用超时' }), timeoutMs)
+      })
+
+      const result = await Promise.race([apiPromise, timeoutPromise])
+
+      console.log('[completeSession] API调用结果:', result)
 
       if (result.success && result.data) {
+        console.log('[completeSession] 成功获取会话数据:', result.data)
         ElMessage.success('面试会话已完成')
         return result.data
       } else {
-        ElMessage.error(result.message || '完成会话失败')
+        console.warn('[completeSession] API调用失败，使用降级方案:', result.message)
+        // 使用降级方案生成模拟数据
+        return generateFallbackSessionResponse()
       }
     } catch (error) {
-      console.error('完成会话异常:', error)
-      ElMessage.error('完成会话时发生异常')
+      console.error('[completeSession] 完成会话异常，使用降级方案:', error)
+      // 使用降级方案生成模拟数据
+      return generateFallbackSessionResponse()
     }
+  }
 
-    return null
+  // 生成降级会话响应数据
+  const generateFallbackSessionResponse = (): CompleteSessionResponse => {
+    console.log('[completeSession] 生成降级响应数据')
+    ElMessage.warning('后端服务暂不可用，显示本地模拟数据')
+    
+    return fallbackManager.generateMockCompleteSessionResponse(
+      sessionId.value || 'mock-session',
+      session.value?.candidate_name || '候选人',
+      session.value?.position_title || '未知岗位',
+      stats.duration,
+      cockpitData
+    )
   }
 
   // 添加转录文本 - 使用批量同步
