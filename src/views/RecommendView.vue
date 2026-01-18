@@ -65,17 +65,17 @@
               :analysis-progress="getAnalysisProgress(app.id)"
               :analysis-status-text="getAnalysisStatusText(app.id)"
               :is-generating-report="isGeneratingReportForApplication(app.id)"
+              :immersive-session="getImmersiveSessionForApp(app.id)"
               @view-resume="viewResumeDetail(app)"
               @view-screening-report="viewScreeningReport(app)"
-              @view-interview-records="viewInterviewRecords(app)"
-              @view-interview-report="viewInterviewReport(app)"
+              @view-immersive-records="viewImmersiveRecords(app)"
+              @view-immersive-report="viewImmersiveReport(app)"
               @view-final-report="viewFinalReport(app)"
               @view-video-analysis="viewVideoAnalysis(app)"
               @go-to-screening="goToScreening"
-              @go-to-interview="goToInterview(app)"
+              @go-to-immersive="goToImmersive(app)"
               @go-to-video="goToVideo(app)"
               @start-analysis="startCandidateAnalysis(app)"
-              @generate-interview-report="generateInterviewReportForApplication(app)"
             />
           </div>
         </div>
@@ -103,58 +103,19 @@
       :resume="selectedScreeningResumeData"
     />
     
-    <!-- 面试记录查看对话框 -->
-    <el-dialog
-      v-model="showInterviewDialog"
-      title="面试问答记录"
-      width="700px"
-      destroy-on-close
-    >
-      <div v-if="selectedInterviewSession" class="interview-records">
-        <div v-if="selectedInterviewSession.messages?.length">
-          <div 
-            v-for="(msg, index) in selectedInterviewSession.messages" 
-            :key="index"
-            class="message-item"
-            :class="msg.role"
-          >
-            <span class="message-label">{{ msg.role === 'interviewer' ? '面试官' : '候选人' }}:</span>
-            <span class="message-content">{{ msg.content }}</span>
-          </div>
-        </div>
-        <el-empty v-else description="暂无问答记录" />
-      </div>
-      <template #footer>
-        <el-button @click="showInterviewDialog = false">关闭</el-button>
-      </template>
-    </el-dialog>
+    <!-- 沉浸式面试问答记录弹窗 -->
+    <ImmersiveRecordsDialog
+      v-model="showImmersiveRecordsDialog"
+      :session-data="selectedImmersiveSession"
+      :loading="isLoadingImmersiveData"
+    />
     
-    <!-- 面试报告查看对话框 -->
-    <el-dialog
-      v-model="showInterviewReportDialog"
-      title="面试分析报告"
-      width="600px"
-      destroy-on-close
-    >
-      <div v-if="selectedInterviewReport" class="interview-report">
-        <div class="report-header">
-          <div class="report-score" :class="getReportScoreClass(selectedInterviewReport)">
-            <span class="score-value">{{ selectedInterviewReport.final_score !== null ? selectedInterviewReport.final_score : 'N/A' }}</span>
-            <span class="score-label">分</span>
-          </div>
-          <div class="report-recommendation">
-            {{ selectedInterviewReport.is_completed ? '面试已完成' : '面试进行中' }}
-          </div>
-        </div>
-        <div v-if="selectedInterviewReport.report_markdown" class="report-summary">
-          <h4>评估总结</h4>
-          <div class="summary-content markdown-body" v-html="formatReportContent(selectedInterviewReport.report_markdown)"></div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="showInterviewReportDialog = false">关闭</el-button>
-      </template>
-    </el-dialog>
+    <!-- 沉浸式面试分析报告弹窗 -->
+    <ImmersiveAnalysisReportDialog
+      v-model="showImmersiveReportDialog"
+      :report-data="selectedImmersiveReport"
+      :loading="isLoadingImmersiveData"
+    />
     
     <!-- 综合分析详情对话框 -->
     <el-dialog
@@ -241,6 +202,8 @@ import { TrophyBase, Plus } from '@element-plus/icons-vue'
 import { CandidateAnalysisCard } from '@/components/recommend'
 import PositionList from '@/components/common/PositionList.vue'
 import ResumeDetailDialog from '@/components/common/ResumeDetailDialog.vue'
+import ImmersiveRecordsDialog from '@/components/recommend/ImmersiveRecordsDialog.vue'
+import ImmersiveAnalysisReportDialog from '@/components/recommend/ImmersiveAnalysisReportDialog.vue'
 
 // Composables
 import { usePositionManagement } from '@/composables/usePositionManagement'
@@ -249,17 +212,15 @@ import { usePositionManagement } from '@/composables/usePositionManagement'
 import { 
   getApplications, 
   getApplication,
-  getInterviewSession,
   getAnalysis,
-  aiGenerateReport,
   createAnalysis,
   getScreeningTask,
   getStatsOverview
 } from '@/api'
+import axios from 'axios'
 import type { ResumeData } from '@/types'
 import type { 
   ApplicationDetailResponse,
-  InterviewSessionResponse,
   ComprehensiveAnalysisResponse,
   DimensionScoreItem
 } from '@/api/types.gen'
@@ -308,7 +269,11 @@ const loadApplicationsForPosition = async (positionId: string) => {
         include_details: true
       } 
     })
-    currentApplications.value = (result.data?.data?.items || []) as ApplicationDetailResponse[]
+    const applications = (result.data?.data?.items || []) as ApplicationDetailResponse[]
+    currentApplications.value = applications
+    
+    // 加载沉浸式面试会话数据
+    await loadImmersiveSessionsForApplications(applications)
   } catch (err) {
     console.error('加载申请列表失败:', err)
     currentApplications.value = []
@@ -329,9 +294,9 @@ const goToScreening = () => {
   router.push('/screening')
 }
 
-// 跳转到面试
-const goToInterview = (app: ApplicationDetailResponse) => {
-  router.push('/interview')
+// 跳转到沉浸式面试
+const goToImmersive = (app: ApplicationDetailResponse) => {
+  router.push('/immersive')
 }
 
 // 跳转到视频分析
@@ -365,39 +330,6 @@ const isGeneratingReportForApplication = (applicationId: string) => {
   return generatingReportApplications.value.has(applicationId)
 }
 
-// 为指定申请生成面试分析报告
-const generateInterviewReportForApplication = async (app: ApplicationDetailResponse) => {
-  if (!app.interview_session?.id) {
-    ElMessage.warning('未找到面试会话')
-    return
-  }
-  
-  generatingReportApplications.value.add(app.id)
-  
-  try {
-    ElMessage.info('正在生成面试分析报告...')
-    
-    // 调用 AI 生成报告
-    await aiGenerateReport({ body: { session_id: app.interview_session.id } })
-    
-    // 重新加载申请详情
-    const detailResult = await getApplication({ path: { application_id: app.id } })
-    if (detailResult.data?.data) {
-      const index = currentApplications.value.findIndex((a: ApplicationDetailResponse) => a.id === app.id)
-      if (index !== -1) {
-        currentApplications.value[index] = detailResult.data.data
-      }
-    }
-    
-    ElMessage.success('面试分析报告已生成')
-    
-  } catch (err: any) {
-    console.error('生成面试报告失败:', err)
-    ElMessage.error(err.message || '生成面试报告失败')
-  } finally {
-    generatingReportApplications.value.delete(app.id)
-  }
-}
 
 // ========== 综合分析 ==========
 const startCandidateAnalysis = async (app: ApplicationDetailResponse) => {
@@ -443,13 +375,17 @@ const startCandidateAnalysis = async (app: ApplicationDetailResponse) => {
 const showResumeDialog = ref(false)
 const showScreeningDialog = ref(false)
 const selectedScreeningResumeData = ref<ResumeData | null>(null)
-const showInterviewDialog = ref(false)
-const showInterviewReportDialog = ref(false)
 const showComprehensiveDialog = ref(false)
 const selectedResumeContent = ref<string>('')
-const selectedInterviewSession = ref<InterviewSessionResponse | null>(null)
-const selectedInterviewReport = ref<InterviewSessionResponse | null>(null)
 const selectedComprehensiveAnalysis = ref<ComprehensiveAnalysisResponse | null>(null)
+
+// 沉浸式面试相关状态
+const showImmersiveRecordsDialog = ref(false)
+const showImmersiveReportDialog = ref(false)
+const selectedImmersiveSession = ref<any>(null)
+const selectedImmersiveReport = ref<any>(null)
+const isLoadingImmersiveData = ref(false)
+const immersiveSessionsMap = ref<Record<string, any>>({})
 
 // 查看简历详情
 const viewResumeDetail = async (app: ApplicationDetailResponse) => {
@@ -526,41 +462,131 @@ const viewScreeningReport = async (app: ApplicationDetailResponse) => {
   }
 }
 
-// 查看面试记录
-const viewInterviewRecords = async (app: ApplicationDetailResponse) => {
-  if (!app.interview_session?.id) {
-    ElMessage.warning('暂无面试记录')
-    return
-  }
-  
-  try {
-    const result = await getInterviewSession({ path: { session_id: app.interview_session.id } })
-    if (result.data?.data) {
-      selectedInterviewSession.value = result.data.data
-      showInterviewDialog.value = true
+// 获取应用的沉浸式会话数据
+const getImmersiveSessionForApp = (appId: string) => {
+  return immersiveSessionsMap.value[appId] || null
+}
+
+// 加载沉浸式面试会话列表
+const loadImmersiveSessionsForApplications = async (applications: ApplicationDetailResponse[]) => {
+  for (const app of applications) {
+    try {
+      // 1. 先获取会话列表
+      const listResponse = await axios.get(`/api/v1/immersive`, {
+        params: { application_id: app.id }
+      })
+      
+      const items = listResponse.data?.data?.items || []
+      if (items.length === 0) continue
+      
+      // 2. 查找已完成的会话（优先）或最新的会话
+      const completedSession = items.find((s: any) => s.is_completed === true)
+      const targetSession = completedSession || items[0]
+      
+      if (!targetSession) continue
+      
+      // 3. 如果会话已完成，获取详情以获取 final_analysis
+      if (targetSession.is_completed) {
+        try {
+          const detailResponse = await axios.get(`/api/v1/immersive/${targetSession.id}`)
+          const detail = detailResponse.data?.data
+          if (detail) {
+            immersiveSessionsMap.value[app.id] = {
+              id: detail.id,
+              is_completed: detail.is_completed,
+              utterance_count: detail.final_analysis?.statistics?.total_utterances || 0,
+              has_final_analysis: !!detail.final_analysis
+            }
+            continue
+          }
+        } catch (detailErr) {
+          console.error(`获取会话 ${targetSession.id} 详情失败:`, detailErr)
+        }
+      }
+      
+      // 4. 未完成的会话或详情获取失败，使用列表数据
+      immersiveSessionsMap.value[app.id] = {
+        id: targetSession.id,
+        is_completed: targetSession.is_completed,
+        utterance_count: 0,
+        has_final_analysis: false
+      }
+    } catch (err) {
+      console.error(`加载应用 ${app.id} 的沉浸式会话失败:`, err)
     }
-  } catch (err) {
-    ElMessage.warning('获取面试记录失败')
   }
 }
 
-// 查看面试报告
-const viewInterviewReport = async (app: ApplicationDetailResponse) => {
-  if (!app.interview_session?.id) {
-    ElMessage.warning('暂无面试报告')
+// 查看沉浸式面试问答记录
+const viewImmersiveRecords = async (app: ApplicationDetailResponse) => {
+  const session = immersiveSessionsMap.value[app.id]
+  if (!session?.id) {
+    ElMessage.warning('暂无沉浸式面试记录')
     return
   }
   
+  isLoadingImmersiveData.value = true
+  showImmersiveRecordsDialog.value = true
+  
   try {
-    const result = await getInterviewSession({ path: { session_id: app.interview_session.id } })
-    if (result.data?.data) {
-      selectedInterviewReport.value = result.data.data
-      showInterviewReportDialog.value = true
+    const response = await axios.get(`/api/v1/immersive/${session.id}`)
+    if (response.data?.data) {
+      const data = response.data.data
+      selectedImmersiveSession.value = {
+        session_id: data.id,
+        duration_seconds: data.final_analysis?.duration_seconds || 0,
+        start_time: data.started_at || data.created_at,
+        candidate_info: {
+          name: app.candidate_name || '未知',
+          position_title: app.position_title || '未知'
+        },
+        statistics: data.final_analysis?.statistics,
+        conversation_history: data.final_analysis?.conversation_history || []
+      }
     }
   } catch (err) {
-    ElMessage.warning('获取面试报告失败')
+    console.error('获取沉浸式面试记录失败:', err)
+    ElMessage.error('获取沉浸式面试记录失败')
+  } finally {
+    isLoadingImmersiveData.value = false
   }
 }
+
+// 查看沉浸式面试分析报告
+const viewImmersiveReport = async (app: ApplicationDetailResponse) => {
+  const session = immersiveSessionsMap.value[app.id]
+  if (!session?.id || !session.has_final_analysis) {
+    ElMessage.warning('暂无沉浸式面试分析报告')
+    return
+  }
+  
+  isLoadingImmersiveData.value = true
+  showImmersiveReportDialog.value = true
+  
+  try {
+    const response = await axios.get(`/api/v1/immersive/${session.id}`)
+    if (response.data?.data) {
+      const data = response.data.data
+      selectedImmersiveReport.value = {
+        session_id: data.id,
+        duration_seconds: data.final_analysis?.duration_seconds || 0,
+        start_time: data.started_at || data.created_at,
+        candidate_info: {
+          name: app.candidate_name || '未知',
+          position_title: app.position_title || '未知'
+        },
+        statistics: data.final_analysis?.statistics,
+        psychological_analysis: data.final_analysis?.psychological_analysis
+      }
+    }
+  } catch (err) {
+    console.error('获取沉浸式面试分析报告失败:', err)
+    ElMessage.error('获取沉浸式面试分析报告失败')
+  } finally {
+    isLoadingImmersiveData.value = false
+  }
+}
+
 
 // 查看视频分析
 const viewVideoAnalysis = (app: ApplicationDetailResponse) => {
@@ -589,13 +615,6 @@ const viewFinalReport = async (app: ApplicationDetailResponse) => {
   }
 }
 
-// 获取报告分数样式
-const getReportScoreClass = (report: InterviewSessionResponse) => {
-  const score = report?.final_score || 0
-  if (score >= 80) return 'score-high'
-  if (score >= 60) return 'score-medium'
-  return 'score-low'
-}
 
 // 综合分析详情相关函数
 const getComprehensiveScoreClass = (score: number) => {

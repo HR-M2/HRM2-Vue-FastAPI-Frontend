@@ -81,47 +81,38 @@
             </el-button>
           </div>
           
-          <!-- 3. 面试记录 -->
-          <div class="data-item" :class="{ 'available': hasInterviewRecords }">
+          <!-- 3. 沉浸式面试问答记录 -->
+          <div class="data-item" :class="{ 'available': hasImmersiveRecords }">
             <div class="item-icon">
               <el-icon><ChatDotRound /></el-icon>
             </div>
             <div class="item-info">
-              <span class="item-name">面试问答记录</span>
+              <span class="item-name">沉浸式面试问答记录</span>
               <span class="item-status">
-                {{ hasInterviewRecords ? `${interviewMessageCount} 条消息` : '无记录' }}
+                {{ hasImmersiveRecords ? `${immersiveUtteranceCount} 条对话` : '无记录' }}
               </span>
             </div>
-            <el-button v-if="hasInterviewRecords" size="small" text type="primary" @click.stop="$emit('viewInterviewRecords')">
+            <el-button v-if="hasImmersiveRecords" size="small" text type="primary" @click.stop="$emit('viewImmersiveRecords')">
               查看
             </el-button>
-            <el-button v-else size="small" text @click.stop="$emit('goToInterview')">
+            <el-button v-else size="small" text @click.stop="$emit('goToImmersive')">
               去面试
             </el-button>
           </div>
           
-          <!-- 4. 面试分析报告 -->
-          <div class="data-item" :class="{ 'available': hasInterviewReport }">
+          <!-- 4. 沉浸式面试分析报告 -->
+          <div class="data-item" :class="{ 'available': hasImmersiveReport }">
             <div class="item-icon">
               <el-icon><Memo /></el-icon>
             </div>
             <div class="item-info">
-              <span class="item-name">面试分析报告</span>
+              <span class="item-name">沉浸式面试分析报告</span>
               <span class="item-status">
-                {{ hasInterviewReport ? '已生成' : (hasInterviewRecords ? '有问答记录，可生成' : '未生成') }}
+                {{ hasImmersiveReport ? '已生成' : (hasImmersiveRecords ? '有对话记录，可生成' : '未生成') }}
               </span>
             </div>
-            <el-button v-if="hasInterviewReport" size="small" text type="primary" @click.stop="$emit('viewInterviewReport')">
+            <el-button v-if="hasImmersiveReport" size="small" text type="primary" @click.stop="$emit('viewImmersiveReport')">
               查看
-            </el-button>
-            <el-button 
-              v-else-if="hasInterviewRecords" 
-              size="small" 
-              type="primary"
-              :loading="isGeneratingReport"
-              @click.stop="$emit('generateInterviewReport')"
-            >
-              生成报告
             </el-button>
           </div>
           
@@ -166,9 +157,9 @@
                   <el-icon><Check v-if="hasScreeningReport" /><Close v-else /></el-icon>
                   简历初筛报告
                 </li>
-                <li :class="{ 'met': hasInterviewReport }">
-                  <el-icon><Check v-if="hasInterviewReport" /><Close v-else /></el-icon>
-                  面试分析报告
+                <li :class="{ 'met': hasImmersiveReport }">
+                  <el-icon><Check v-if="hasImmersiveReport" /><Close v-else /></el-icon>
+                  沉浸式面试分析报告
                 </li>
               </ul>
             </el-alert>
@@ -213,7 +204,7 @@
               <el-icon><MagicStick /></el-icon>
               开始综合分析
             </el-button>
-            <p class="action-hint">将综合简历、初筛报告、面试记录生成最终录用建议</p>
+            <p class="action-hint">将综合简历、初筛报告、沉浸式面试分析报告生成最终录用建议</p>
           </div>
         </div>
       </div>
@@ -230,7 +221,6 @@ import {
 import type { 
   ApplicationDetailResponse, 
   ComprehensiveAnalysisBrief,
-  InterviewSessionBrief,
   ScreeningTaskBrief,
   VideoAnalysisBrief
 } from '@/api/types.gen'
@@ -241,20 +231,26 @@ const props = defineProps<{
   analysisProgress?: number
   analysisStatusText?: string
   isGeneratingReport?: boolean
+  // 沉浸式面试数据
+  immersiveSession?: {
+    id: string
+    is_completed: boolean
+    utterance_count: number
+    has_final_analysis: boolean
+  } | null
 }>()
 
 defineEmits<{
   viewResume: []
   viewScreeningReport: []
-  viewInterviewRecords: []
-  viewInterviewReport: []
+  viewImmersiveRecords: []
+  viewImmersiveReport: []
   viewFinalReport: []
   viewVideoAnalysis: []
   goToScreening: []
-  goToInterview: []
+  goToImmersive: []
   goToVideo: []
   startAnalysis: []
-  generateInterviewReport: []
 }>()
 
 const isExpanded = ref(false)
@@ -265,7 +261,6 @@ const toggleExpand = () => {
 
 // 获取关联数据
 const screeningTask = computed<ScreeningTaskBrief | null | undefined>(() => props.application.screening_task)
-const interviewSession = computed<InterviewSessionBrief | null | undefined>(() => props.application.interview_session)
 const videoAnalysis = computed<VideoAnalysisBrief | null | undefined>(() => props.application.video_analysis)
 const comprehensiveAnalysis = computed<ComprehensiveAnalysisBrief | null | undefined>(() => props.application.comprehensive_analysis)
 
@@ -280,16 +275,18 @@ const screeningScore = computed(() => {
   return screeningTask.value?.score ?? 'N/A'
 })
 
-const hasInterviewRecords = computed(() => {
-  return interviewSession.value && (interviewSession.value.message_count ?? 0) > 0
+// 沉浸式面试数据状态
+const hasImmersiveRecords = computed(() => {
+  return props.immersiveSession && (props.immersiveSession.utterance_count ?? 0) > 0
 })
 
-const interviewMessageCount = computed(() => {
-  return interviewSession.value?.message_count || 0
+const immersiveUtteranceCount = computed(() => {
+  return props.immersiveSession?.utterance_count || 0
 })
 
-const hasInterviewReport = computed(() => {
-  return interviewSession.value?.has_report ?? false
+const hasImmersiveReport = computed(() => {
+  // 沉浸式面试已完成且有最终分析数据
+  return props.immersiveSession?.is_completed && props.immersiveSession?.has_final_analysis
 })
 
 const hasVideoAnalysis = computed(() => {
@@ -301,15 +298,15 @@ const completenessPercent = computed(() => {
   let count = 0
   if (hasResume.value) count++
   if (hasScreeningReport.value) count++
-  if (hasInterviewRecords.value) count++
-  if (hasInterviewReport.value) count++
+  if (hasImmersiveRecords.value) count++
+  if (hasImmersiveReport.value) count++
   if (hasVideoAnalysis.value) count++
   return Math.round((count / 5) * 100)
 })
 
 // 是否可以进行综合分析
 const canAnalyze = computed(() => {
-  return hasResume.value && hasScreeningReport.value && hasInterviewReport.value
+  return hasResume.value && hasScreeningReport.value && hasImmersiveReport.value
 })
 
 // 分析状态
