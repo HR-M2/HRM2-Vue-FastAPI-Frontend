@@ -63,12 +63,12 @@
             <div class="stat-label">候选人发言比例</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ (resultData.statistics.avg_engagement * 100).toFixed(1) }}%</div>
-            <div class="stat-label">平均参与度</div>
+            <div class="stat-value">{{ (resultData.statistics.interviewer_speak_ratio * 100).toFixed(1) }}%</div>
+            <div class="stat-label">面试官发言比例</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ (resultData.statistics.avg_confidence * 100).toFixed(1) }}%</div>
-            <div class="stat-label">平均自信度</div>
+            <div class="stat-value">{{ Math.round(resultData.statistics.session_quality_score) }}</div>
+            <div class="stat-label">会话质量分</div>
           </div>
         </div>
       </div>

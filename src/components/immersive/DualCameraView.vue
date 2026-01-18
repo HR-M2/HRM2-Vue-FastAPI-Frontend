@@ -44,31 +44,6 @@
         </div>
         -->
 
-        <!-- 情绪标签 -->
-        <transition name="fade">
-          <div v-if="emotionLabel" class="emotion-badge" :class="emotionClass">
-            {{ emotionLabel }}
-          </div>
-        </transition>
-
-        <!-- 警告横幅区域 -->
-        <div class="warning-banners">
-          <!-- 读稿检测警告 -->
-          <transition name="slide-down">
-            <div v-if="showDeceptionWarning" class="warning-banner deception-warning">
-              <span class="warning-icon">⚠️</span>
-              <span class="warning-text">检测到候选人可能正在读稿</span>
-            </div>
-          </transition>
-          
-          <!-- 面部离框警告 -->
-          <transition name="slide-down">
-            <div v-if="faceOutOfFrame" class="warning-banner face-warning">
-              <span class="warning-icon">⚠️</span>
-              <span class="warning-text">候选人面部不在画面中</span>
-            </div>
-          </transition>
-        </div>
 
         <!-- 左侧分析面板 -->
         <div class="left-analysis-panel">
@@ -173,10 +148,10 @@ interface Props {
   streamUrl?: string
   isRecording?: boolean
   candidateState?: CandidateState | null
-  emotionLabel?: string
+  // emotionLabel?: string // 已移除
   localStream?: MediaStream | null
   deceptionScore?: number
-  faceOutOfFrame?: boolean
+  // faceOutOfFrame?: boolean // 已移除
   duration?: number
   speechTranscript?: string
   speechInterim?: string
@@ -197,10 +172,10 @@ const props = withDefaults(defineProps<Props>(), {
   streamUrl: '',
   isRecording: false,
   candidateState: null,
-  emotionLabel: '',
+  // emotionLabel: '', // 已移除
   localStream: null,
   deceptionScore: 0,
-  faceOutOfFrame: false,
+  // faceOutOfFrame: false, // 已移除
   duration: undefined,
   speechTranscript: '',
   speechInterim: '',
@@ -216,16 +191,6 @@ const props = withDefaults(defineProps<Props>(), {
   depressionScore: 0
 })
 
-// 欺骗警告显示（分数 > 0.5）
-const showDeceptionWarning = computed(() => props.deceptionScore > 0.5)
-
-// 欺骗检测等级样式
-const deceptionLevelClass = computed(() => {
-  const score = props.deceptionScore
-  if (score > 0.7) return 'level-danger'
-  if (score > 0.5) return 'level-warning'
-  return 'level-normal'
-})
 
 const emit = defineEmits<{
   (e: 'init-camera'): void
@@ -239,6 +204,14 @@ const isPipExpanded = ref(false)
 const isSwapped = ref(false)
 
 const hasLocalVideo = computed(() => props.localStream !== null)
+
+// 欺骗检测等级样式
+const deceptionLevelClass = computed(() => {
+  const score = props.deceptionScore
+  if (score > 0.7) return 'level-danger'
+  if (score > 0.5) return 'level-warning'
+  return 'level-normal'
+})
 
 const emotionClass = computed(() => {
   const emotion = props.candidateState?.emotion?.emotion || 'neutral'

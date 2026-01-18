@@ -154,10 +154,8 @@
               :stream-url="config.streamUrl"
               :is-recording="isRecording"
               :candidate-state="currentState"
-              :emotion-label="emotionLabel"
               :local-stream="localStream"
               :deception-score="cockpitData.deceptionScore"
-              :face-out-of-frame="cockpitData.faceOutOfFrame"
               :duration="stats.duration"
               :speech-transcript="accumulatedTranscript"
               :speech-interim="speechInterim"
@@ -181,6 +179,7 @@
               :messages="chatMessages"
               :speech-supported="speechSupported"
               :is-speech-listening="isSpeechListening"
+              :current-speaker="currentSpeaker"
               @refresh-suggestions="handleRefreshSuggestions"
               @use-suggestion="handleUseSuggestion"
               @toggle-speech="handleToggleSpeechRecognition"
@@ -342,7 +341,11 @@ const {
   completeSession,
   deleteSession,
   cleanup,
-  triggerDeceptionAlert
+  triggerDeceptionAlert,
+  // 发言人切换相关
+  currentSpeaker,
+  switchSpeaker,
+  getSpeakerLabel
 } = useImmersiveInterview()
 
 // 语音识别相关
@@ -368,28 +371,42 @@ const {
         accumulatedTranscript.value = text.trim()
       }
       
-      // 处理候选人对话消息
+      // 根据当前发言人处理消息
+      const speaker = currentSpeaker.value
+      const role = speaker === 'interviewer' ? 'interviewer' : 'candidate'
+      
+      // 处理对话消息
       if (currentCandidateMessageId.value) {
-        // 如果有当前候选人消息，追加内容
+        // 如果有当前消息，追加内容
         const existingMessage = chatMessages.value.find(msg => msg.id === currentCandidateMessageId.value)
-        if (existingMessage) {
+        if (existingMessage && existingMessage.role === role) {
           existingMessage.content += ' ' + text.trim()
-          existingMessage.timestamp = new Date() // 更新时间戳
+          existingMessage.timestamp = new Date()
+        } else {
+          // 角色变了，创建新消息
+          const newMessageId = generateMessageId()
+          chatMessages.value.push({
+            id: newMessageId,
+            role,
+            content: text.trim(),
+            timestamp: new Date()
+          })
+          currentCandidateMessageId.value = newMessageId
         }
       } else {
-        // 如果没有当前候选人消息，创建新消息
+        // 创建新消息
         const newMessageId = generateMessageId()
         chatMessages.value.push({
           id: newMessageId,
-          role: 'candidate',
+          role,
           content: text.trim(),
           timestamp: new Date()
         })
         currentCandidateMessageId.value = newMessageId
       }
       
-      // 同时添加到转录记录
-      addTranscript('candidate', text.trim())
+      // 添加到转录记录（使用当前发言人）
+      addTranscript(speaker, text.trim())
     }
   },
   onError: (errorMsg) => {
@@ -795,19 +812,26 @@ const handleExportConversation = () => {
   ElMessage.success('对话记录已导出')
 }
 
-// 手动切换语音识别
+// 切换发言人（原"开始转录"按钮改为切换发言人）
 const handleToggleSpeechRecognition = async () => {
-  if (isSpeechListening.value) {
-    stopSpeech()
-    ElMessage.info('语音转录已停止')
-  } else {
+  // 如果语音识别未启动，先启动它
+  if (!isSpeechListening.value) {
     const success = await startSpeech()
-    if (success) {
-      ElMessage.success('语音转录已启动')
-    } else {
+    if (!success) {
       ElMessage.error('语音转录启动失败，请检查麦克风权限')
+      return
     }
+    ElMessage.success('语音转录已启动，当前发言人：' + getSpeakerLabel())
+    return
   }
+  
+  // 切换发言人并同步数据
+  await switchSpeaker()
+  
+  // 重置当前消息ID，下一条消息将创建新的
+  currentCandidateMessageId.value = null
+  
+  ElMessage.success('已切换到：' + getSpeakerLabel())
 }
 
 // 清空转录文本

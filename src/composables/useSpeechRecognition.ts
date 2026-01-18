@@ -87,7 +87,9 @@ export function useSpeechRecognition(options: SpeechRecognitionOptions = {}) {
   let recognition: ISpeechRecognition | null = null
   let shouldBeListening = false // 用于追踪用户是否希望继续录音
   let restartAttempts = 0
+  let networkErrorRetries = 0 // 网络错误重试计数
   const MAX_RESTART_ATTEMPTS = 5
+  const MAX_NETWORK_RETRIES = 3 // 网络错误最大重试次数
 
   const checkSupport = () => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -130,10 +132,9 @@ export function useSpeechRecognition(options: SpeechRecognitionOptions = {}) {
     recognition.onstart = () => {
       isListening.value = true
       error.value = null
-      // 成功启动后重置重试计数
-      if (restartAttempts > 0) {
-        restartAttempts = 0
-      }
+      // 成功启动后重置所有重试计数
+      restartAttempts = 0
+      networkErrorRetries = 0
       onStart?.()
     }
 
@@ -201,10 +202,13 @@ export function useSpeechRecognition(options: SpeechRecognitionOptions = {}) {
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       let errorMessage = ''
+      let shouldRetry = false
+      
       switch (event.error) {
         case 'no-speech':
-          errorMessage = '未检测到语音，请对着麦克风说话'
-          break
+          // 无语音检测，静默处理，自动继续
+          console.log('未检测到语音，继续监听...')
+          return
         case 'audio-capture':
           errorMessage = '未找到麦克风，请确保麦克风已连接'
           break
@@ -212,20 +216,40 @@ export function useSpeechRecognition(options: SpeechRecognitionOptions = {}) {
           errorMessage = '麦克风权限被拒绝，请在浏览器设置中允许访问麦克风'
           break
         case 'network':
-          errorMessage = '网络错误，语音识别需要网络连接'
+          // 网络错误，尝试自动重试
+          if (networkErrorRetries < MAX_NETWORK_RETRIES && shouldBeListening) {
+            networkErrorRetries++
+            console.log(`网络错误，自动重试 (${networkErrorRetries}/${MAX_NETWORK_RETRIES})...`)
+            setTimeout(() => {
+              if (shouldBeListening) {
+                destroyRecognition()
+                if (initRecognition()) {
+                  try {
+                    recognition?.start()
+                  } catch (err) {
+                    console.error('网络错误重试失败:', err)
+                  }
+                }
+              }
+            }, 1000 * networkErrorRetries) // 递增延迟重试
+            return
+          }
+          errorMessage = '网络连接异常，请检查网络后重试（语音识别需要访问 Google 服务）'
           break
         case 'aborted':
           return
+        case 'service-not-allowed':
+          errorMessage = '语音识别服务不可用，请稍后重试'
+          break
         default:
           errorMessage = `语音识别错误: ${event.error}`
       }
+      
       error.value = errorMessage
       isListening.value = false
+      shouldBeListening = false
       onError?.(errorMessage)
-      
-      if (event.error !== 'no-speech') {
-        ElMessage.warning(errorMessage)
-      }
+      ElMessage.warning(errorMessage)
     }
 
     recognition.onspeechstart = () => {}
@@ -254,6 +278,7 @@ export function useSpeechRecognition(options: SpeechRecognitionOptions = {}) {
       interimTranscript.value = ''
       shouldBeListening = true
       restartAttempts = 0
+      networkErrorRetries = 0
       recognition?.start()
       return true
     } catch (err) {

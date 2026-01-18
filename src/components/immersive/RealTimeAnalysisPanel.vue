@@ -62,19 +62,22 @@
       <!-- 输入控制区域 -->
       <div class="chat-controls">
         <div class="control-row">
-          <!-- 语音转录控制 -->
+          <!-- 发言人切换控制 -->
           <div class="speech-controls">
             <el-button
-              :type="isSpeechListening ? 'danger' : 'primary'"
+              :type="isSpeechListening ? 'success' : 'primary'"
               size="small"
-              :icon="isSpeechListening ? VideoPause : Microphone"
+              :icon="isSpeechListening ? Switch : Microphone"
               @click="$emit('toggle-speech')"
               :disabled="!speechSupported"
             >
-              {{ isSpeechListening ? '停止转录' : '开始转录' }}
+              {{ isSpeechListening ? '切换发言人' : '开始转录' }}
             </el-button>
-            <span class="speech-status" :class="{ 'listening': isSpeechListening }">
-              {{ isSpeechListening ? '🎤 录音中' : '⏸️ 已暂停' }}
+            <span v-if="isSpeechListening" class="current-speaker" :class="currentSpeaker">
+              {{ currentSpeaker === 'interviewer' ? '👔' : '👤' }} {{ speakerLabel }}发言中
+            </span>
+            <span v-else class="speech-status">
+              ⏸️ 未开始
             </span>
           </div>
           
@@ -251,7 +254,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { User, InfoFilled, Document, DataLine, Microphone, VideoPause, Promotion, Right, ArrowUp, ArrowDown, Close } from '@element-plus/icons-vue'
+import { User, InfoFilled, Document, DataLine, Microphone, VideoPause, Promotion, Right, ArrowUp, ArrowDown, Close, Switch } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { ResumeDetailDialog } from '@/components/common'
 import { getResume, getScreeningTask } from '@/api/sdk.gen'
@@ -290,6 +293,7 @@ interface Props {
   messages?: Message[]
   speechSupported?: boolean
   isSpeechListening?: boolean
+  currentSpeaker?: 'interviewer' | 'candidate'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -298,7 +302,13 @@ const props = withDefaults(defineProps<Props>(), {
   candidateInfo: () => ({ name: '', position: '' }),
   messages: () => [],
   speechSupported: false,
-  isSpeechListening: false
+  isSpeechListening: false,
+  currentSpeaker: 'interviewer'
+})
+
+// 当前发言人显示文本
+const speakerLabel = computed(() => {
+  return props.currentSpeaker === 'interviewer' ? '面试官' : '候选人'
 })
 
 // 弹窗状态
@@ -752,11 +762,23 @@ const typeLabels: Record<string, string> = {
     padding: 4px 8px;
     background: #f3f4f6;
     border-radius: 6px;
+  }
+  
+  .current-speaker {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+    animation: pulse 1.5s infinite;
     
-    &.listening {
-      color: #dc2626;
-      background: #fef2f2;
-      animation: pulse 1.5s infinite;
+    &.interviewer {
+      color: #1d4ed8;
+      background: #dbeafe;
+    }
+    
+    &.candidate {
+      color: #047857;
+      background: #d1fae5;
     }
   }
 }

@@ -443,6 +443,11 @@ export function useImmersiveInterview() {
   const insights = ref<InterviewInsight[]>([])
   const speakerSegments = ref<SpeakerSegment[]>([])
 
+  // 发言人切换相关
+  const currentSpeaker = ref<'interviewer' | 'candidate'>('interviewer')
+  const pendingTranscript = ref<string>('')
+  const speakerStartTime = ref<Date | null>(null)
+
   // 新增：批量同步队列和质量指标
   const syncQueue = ref<SyncDataRequest>({
     transcripts: [],
@@ -915,37 +920,25 @@ export function useImmersiveInterview() {
     return false
   }
 
-  // 启动自动分析
+  // 已移除：自动分析定时轮询
+  // 改为在发言人切换时手动触发同步
   const startAutoAnalyze = () => {
-    if (analyzeTimer) return
-    
-    analyzeTimer = window.setInterval(async () => {
-      if (isRecording.value && !isAnalyzing.value) {
-        await analyzeCurrentState()
-      }
-    }, config.analyzeInterval * 1000)
+    // 不再使用定时轮询
+    console.log('[startAutoAnalyze] 已禁用定时轮询，改为发言人切换时同步')
   }
 
-  // 停止自动分析
   const stopAutoAnalyze = () => {
+    // 清理遗留的定时器（如果有）
     if (analyzeTimer) {
       clearInterval(analyzeTimer)
       analyzeTimer = null
     }
   }
 
-  // 分析当前状态 - 修复：使用正确的 insights API
+  // 已移除：定时分析
   const analyzeCurrentState = async (): Promise<void> => {
-    if (!sessionId.value || isAnalyzing.value) return
-    
-    isAnalyzing.value = true
-    
-    try {
-      // 使用正确的 insights API 获取实时洞察
-      await fetchInsights()
-    } finally {
-      isAnalyzing.value = false
-    }
+    // 不再自动调用，保留方法签名以兼容现有代码
+    console.log('[analyzeCurrentState] 已禁用自动分析')
   }
 
   // 获取提问建议 - 使用新的 POST /api/v1/immersive/{session_id}/questions 端点
@@ -1149,30 +1142,75 @@ export function useImmersiveInterview() {
     )
   }
 
-  // 添加转录文本 - 使用批量同步
+  // 添加转录文本 - 累积到当前发言人的待处理文本
   const addTranscript = async (
     speaker: 'interviewer' | 'candidate',
     text: string,
     isFinal: boolean = true
   ): Promise<void> => {
-    if (!sessionId.value || !dataSyncManager) return
+    if (!text.trim()) return
 
-    const transcriptRecord: TranscriptRecord = {
-      speaker,
-      text,
-      is_final: isFinal
+    // 累积到待处理文本
+    if (pendingTranscript.value) {
+      pendingTranscript.value += ' ' + text.trim()
+    } else {
+      pendingTranscript.value = text.trim()
+      speakerStartTime.value = new Date()
     }
 
-    // 添加到本地显示
+    // 添加到本地显示（实时显示）
     transcripts.value.push({
-      speaker,
+      speaker: currentSpeaker.value,
       text,
       timestamp: new Date().toISOString(),
       is_final: isFinal
     })
+  }
 
-    // 添加到同步队列
-    dataSyncManager.addTranscript(transcriptRecord)
+  // 切换发言人 - 同步上一轮对话并切换
+  const switchSpeaker = async (): Promise<void> => {
+    console.log('[switchSpeaker] 切换发言人，当前:', currentSpeaker.value)
+    
+    // 同步上一轮对话
+    if (pendingTranscript.value.trim() && sessionId.value && dataSyncManager) {
+      const transcriptRecord: TranscriptRecord = {
+        speaker: currentSpeaker.value,
+        text: pendingTranscript.value.trim(),
+        is_final: true
+      }
+      
+      // 添加到同步队列
+      dataSyncManager.addTranscript(transcriptRecord)
+      
+      // 如果有开始时间，添加说话人片段
+      if (speakerStartTime.value) {
+        const segment: SpeakerSegment = {
+          speaker: currentSpeaker.value,
+          start_time: speakerStartTime.value.getTime(),
+          end_time: Date.now(),
+          text: pendingTranscript.value.trim(),
+          confidence: 0.9
+        }
+        dataSyncManager.addSpeakerSegment(segment)
+      }
+      
+      // 立即执行同步
+      console.log('[switchSpeaker] 执行同步，文本长度:', pendingTranscript.value.length)
+      await dataSyncManager.forceSyncNow()
+    }
+    
+    // 切换发言人
+    currentSpeaker.value = currentSpeaker.value === 'interviewer' ? 'candidate' : 'interviewer'
+    console.log('[switchSpeaker] 切换后:', currentSpeaker.value)
+    
+    // 重置待处理文本
+    pendingTranscript.value = ''
+    speakerStartTime.value = new Date()
+  }
+
+  // 获取当前发言人显示文本
+  const getSpeakerLabel = (): string => {
+    return currentSpeaker.value === 'interviewer' ? '面试官' : '候选人'
   }
 
   // 添加说话人片段 - 使用批量同步
@@ -1401,6 +1439,12 @@ export function useImmersiveInterview() {
     speakerSegments,
     stats,
     cockpitData,
+
+    // 发言人切换相关
+    currentSpeaker,
+    pendingTranscript,
+    switchSpeaker,
+    getSpeakerLabel,
 
     // 新增：批量同步和质量指标
     syncQueue,
