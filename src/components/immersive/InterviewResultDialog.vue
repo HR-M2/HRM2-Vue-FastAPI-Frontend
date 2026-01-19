@@ -55,31 +55,87 @@
         <h3><el-icon><DataAnalysis /></el-icon> 对话概要统计</h3>
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-value">{{ resultData.statistics.total_utterances }}</div>
+            <div class="stat-value">{{ getUtteranceTotal }}</div>
             <div class="stat-label">总发言数</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ resultData.statistics.candidate_utterances }}</div>
+            <div class="stat-value">{{ getUtteranceCandidate }}</div>
             <div class="stat-label">候选人发言</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ resultData.statistics.interviewer_utterances }}</div>
+            <div class="stat-value">{{ getUtteranceInterviewer }}</div>
             <div class="stat-label">面试官发言</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ (resultData.statistics.candidate_ratio * 100).toFixed(0) }}%</div>
-            <div class="stat-label">候选人占比</div>
+            <div class="stat-value">{{ getCharTotal }}</div>
+            <div class="stat-label">总字数</div>
           </div>
         </div>
         
-        <!-- 抑郁风险概览 -->
-        <div class="depression-summary">
-          <div class="depression-item">
-            <span class="label">整体抑郁风险：</span>
-            <el-tag :type="getDepressionTagType(resultData.statistics.overall_depression.final_level)">
-              {{ getRiskLevelText(resultData.statistics.overall_depression.final_level) }}
-            </el-tag>
-            <span class="score">(平均评分: {{ resultData.statistics.overall_depression.avg_score.toFixed(1) }})</span>
+        <!-- 发言占比进度条 -->
+        <div class="speaking-ratio-section">
+          <div class="ratio-row">
+            <span class="ratio-label">发言占比（按次数）</span>
+            <div class="ratio-bars">
+              <div class="ratio-bar candidate" :style="{ width: getSpeakingRatioByCount.candidate + '%' }">
+                候选人 {{ getSpeakingRatioByCount.candidate }}%
+              </div>
+              <div class="ratio-bar interviewer" :style="{ width: getSpeakingRatioByCount.interviewer + '%' }">
+                面试官 {{ getSpeakingRatioByCount.interviewer }}%
+              </div>
+            </div>
+          </div>
+          <div class="ratio-row">
+            <span class="ratio-label">发言占比（按字数）</span>
+            <div class="ratio-bars">
+              <div class="ratio-bar candidate" :style="{ width: getSpeakingRatioByChars.candidate + '%' }">
+                候选人 {{ getSpeakingRatioByChars.candidate }}%
+              </div>
+              <div class="ratio-bar interviewer" :style="{ width: getSpeakingRatioByChars.interviewer + '%' }">
+                面试官 {{ getSpeakingRatioByChars.interviewer }}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 3. 心理分析概览 -->
+      <div class="section-card psychological-card">
+        <h3><el-icon><TrendCharts /></el-icon> 心理分析概览</h3>
+        <div class="psychological-grid">
+          <!-- 大五人格雷达图 -->
+          <div class="big-five-section">
+            <div class="sub-title">大五人格平均值</div>
+            <BigFiveRadarChart 
+              v-if="getBigFiveAverage"
+              :data="getBigFiveAverage" 
+              height="220px"
+              color="#667eea"
+            />
+            <div v-else class="no-data">暂无大五人格数据</div>
+          </div>
+          
+          <!-- 抑郁风险指示器 -->
+          <div class="depression-section">
+            <div class="sub-title">抑郁风险评估</div>
+            <div class="depression-indicator">
+              <div class="depression-gauge">
+                <div class="gauge-track">
+                  <div class="gauge-fill" :style="{ width: getDepressionPercent + '%' }" :class="getDepressionLevel"></div>
+                </div>
+                <div class="gauge-labels">
+                  <span>低风险</span>
+                  <span>中风险</span>
+                  <span>高风险</span>
+                </div>
+              </div>
+              <div class="depression-result">
+                <div class="depression-score">{{ getDepressionScore.toFixed(1) }}</div>
+                <el-tag :type="getDepressionTagType(getDepressionLevel)" size="large">
+                  {{ getRiskLevelText(getDepressionLevel) }}
+                </el-tag>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -199,8 +255,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { CircleClose, Loading, User, DataAnalysis, Clock } from '@element-plus/icons-vue'
+import { CircleClose, Loading, User, DataAnalysis, Clock, TrendCharts } from '@element-plus/icons-vue'
 import type { CompleteSessionResponse } from '@/composables/useImmersiveInterview'
+import BigFiveRadarChart from '@/components/common/BigFiveRadarChart.vue'
 
 interface Props {
   modelValue: boolean
@@ -281,6 +338,82 @@ const getDeceptionClass = (score: number): string => {
   return 'level-high'
 }
 
+// 兼容新旧API的统计数据计算属性
+const getUtteranceTotal = computed(() => {
+  if (!props.resultData?.statistics) return 0
+  return props.resultData.statistics.utterance_count?.total 
+    ?? props.resultData.statistics.total_utterances 
+    ?? 0
+})
+
+const getUtteranceCandidate = computed(() => {
+  if (!props.resultData?.statistics) return 0
+  return props.resultData.statistics.utterance_count?.candidate 
+    ?? props.resultData.statistics.candidate_utterances 
+    ?? 0
+})
+
+const getUtteranceInterviewer = computed(() => {
+  if (!props.resultData?.statistics) return 0
+  return props.resultData.statistics.utterance_count?.interviewer 
+    ?? props.resultData.statistics.interviewer_utterances 
+    ?? 0
+})
+
+const getCharTotal = computed(() => {
+  if (!props.resultData?.statistics?.char_count) return '-'
+  return props.resultData.statistics.char_count.total.toLocaleString()
+})
+
+const getSpeakingRatioByCount = computed(() => {
+  if (!props.resultData?.statistics) return { candidate: 50, interviewer: 50 }
+  if (props.resultData.statistics.speaking_ratio?.by_count) {
+    return {
+      candidate: Math.round(props.resultData.statistics.speaking_ratio.by_count.candidate * 100),
+      interviewer: Math.round(props.resultData.statistics.speaking_ratio.by_count.interviewer * 100)
+    }
+  }
+  // 降级使用旧字段
+  const candidateRatio = props.resultData.statistics.candidate_ratio ?? 0.5
+  return {
+    candidate: Math.round(candidateRatio * 100),
+    interviewer: Math.round((1 - candidateRatio) * 100)
+  }
+})
+
+const getSpeakingRatioByChars = computed(() => {
+  if (!props.resultData?.statistics?.speaking_ratio?.by_chars) {
+    return getSpeakingRatioByCount.value // 降级使用按次数的比例
+  }
+  return {
+    candidate: Math.round(props.resultData.statistics.speaking_ratio.by_chars.candidate * 100),
+    interviewer: Math.round(props.resultData.statistics.speaking_ratio.by_chars.interviewer * 100)
+  }
+})
+
+const getBigFiveAverage = computed(() => {
+  return props.resultData?.statistics?.big_five_average ?? null
+})
+
+const getDepressionScore = computed(() => {
+  if (props.resultData?.statistics?.depression_average) {
+    return props.resultData.statistics.depression_average.score
+  }
+  return props.resultData?.statistics?.overall_depression?.avg_score ?? 0
+})
+
+const getDepressionLevel = computed(() => {
+  if (props.resultData?.statistics?.depression_average) {
+    return props.resultData.statistics.depression_average.level
+  }
+  return props.resultData?.statistics?.overall_depression?.final_level ?? 'low'
+})
+
+const getDepressionPercent = computed(() => {
+  // 抑郁分数范围 0-100，直接作为百分比
+  return Math.min(100, Math.max(0, getDepressionScore.value))
+})
+
 // 关闭弹窗
 const handleClose = () => {
   visible.value = false
@@ -312,21 +445,11 @@ const handleExport = () => {
   
   .loading-spinner {
     margin-bottom: 16px;
-    
-    .is-loading {
-      animation: rotating 2s linear infinite;
-    }
+    .is-loading { animation: rotating 2s linear infinite; }
   }
   
-  p {
-    margin: 0 0 20px 0;
-    color: #666;
-    font-size: 14px;
-  }
-  
-  .cancel-btn {
-    margin-top: 8px;
-  }
+  p { margin: 0 0 20px 0; color: #666; font-size: 14px; }
+  .cancel-btn { margin-top: 8px; }
 }
 
 @keyframes rotating {
@@ -366,7 +489,6 @@ const handleExport = () => {
     display: flex;
     align-items: center;
     gap: 8px;
-    
     .el-icon { color: #3b82f6; }
   }
 }
@@ -399,28 +521,91 @@ const handleExport = () => {
       .stat-label { font-size: 12px; color: #6b7280; }
     }
   }
+  
+  .speaking-ratio-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed #e5e7eb;
+    
+    .ratio-row {
+      margin-bottom: 12px;
+      &:last-child { margin-bottom: 0; }
+      
+      .ratio-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; display: block; }
+      
+      .ratio-bars {
+        display: flex;
+        height: 24px;
+        border-radius: 4px;
+        overflow: hidden;
+        
+        .ratio-bar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 500;
+          color: white;
+          min-width: 60px;
+          &.candidate { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
+          &.interviewer { background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); }
+        }
+      }
+    }
+  }
 }
 
-.depression-summary {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed #e5e7eb;
+.psychological-card {
+  .psychological-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
   
-  .depression-item {
+  .sub-title { font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 12px; text-align: center; }
+  
+  .big-five-section {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
-    .label { color: #6b7280; }
-    .score { color: #9ca3af; font-size: 13px; }
+    .no-data { color: #9ca3af; font-size: 13px; padding: 40px 0; }
+  }
+  
+  .depression-section {
+    .depression-indicator { display: flex; flex-direction: column; gap: 16px; }
+    
+    .depression-gauge {
+      .gauge-track {
+        height: 12px;
+        background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+        border-radius: 6px;
+        position: relative;
+      }
+      
+      .gauge-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.6);
+        border-right: 3px solid #1f2937;
+      }
+      
+      .gauge-labels { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: #9ca3af; }
+    }
+    
+    .depression-result {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      .depression-score { font-size: 32px; font-weight: 700; color: #1f2937; }
+    }
   }
 }
 
 .timeline-card {
-  .timeline-container {
-    max-height: 400px;
-    overflow-y: auto;
-    padding-right: 8px;
-  }
+  .timeline-container { max-height: 400px; overflow-y: auto; padding-right: 8px; }
   
   .timeline-item {
     display: flex;
@@ -445,13 +630,7 @@ const handleExport = () => {
       &.candidate { background: #10b981; }
     }
     
-    &::after {
-      content: '';
-      flex: 1;
-      width: 2px;
-      background: #e5e7eb;
-      margin-top: 4px;
-    }
+    &::after { content: ''; flex: 1; width: 2px; background: #e5e7eb; margin-top: 4px; }
   }
   
   .timeline-item:last-child .timeline-line::after { display: none; }
@@ -506,7 +685,7 @@ const handleExport = () => {
         gap: 6px;
         .bar-label { width: 14px; font-size: 10px; color: #6b7280; text-align: center; }
         .bar-track { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
-        .bar-fill { height: 100%; background: #3b82f6; border-radius: 3px; transition: width 0.3s ease; &.warning { background: #f59e0b; } }
+        .bar-fill { height: 100%; background: #3b82f6; border-radius: 3px; &.warning { background: #f59e0b; } }
         .bar-value { width: 24px; font-size: 10px; color: #6b7280; text-align: right; }
       }
     }

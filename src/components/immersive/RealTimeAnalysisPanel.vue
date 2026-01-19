@@ -72,8 +72,9 @@
                 @click="sendQuestionAndSwitch"
                 :disabled="!questionInput.trim()"
                 size="small"
-              >
-                发送并切换
+                style="margin: 0 1px;"
+              >发送
+                
               </el-button>
             </template>
           </el-input>
@@ -108,14 +109,6 @@
               <span class="suggestions-title">💡 问题建议</span>
               <div class="header-actions">
                 <el-button 
-                  type="primary" 
-                  size="small"
-                  :loading="isLoadingSuggestions"
-                  @click="handleGetSuggestions"
-                >
-                  {{ isLoadingSuggestions ? '生成中...' : '获取建议' }}
-                </el-button>
-                <el-button 
                   v-if="suggestions.length > 1"
                   type="text" 
                   size="small"
@@ -127,14 +120,22 @@
                   </el-icon>
                   {{ isSuggestionsExpanded ? '收起' : `展开 (${suggestions.length - 1}条)` }}
                 </el-button>
+                <el-button 
+                  type="primary" 
+                  size="small"
+                  :loading="isLoadingState"
+                  @click="handleGetSuggestions"
+                >
+                  {{ isLoadingState ? '生成中...' : '获取建议' }}
+                </el-button>
               </div>
             </div>
             
-            <div v-if="isLoadingSuggestions" class="suggestions-loading">
+            <div v-if="isLoadingState" class="suggestions-loading">
               <div class="loading-text">正在根据候选人回答生成问题建议...</div>
             </div>
             
-            <div v-else-if="suggestions.length > 0" class="suggestions-container">
+            <div v-else-if="!isLoadingState && suggestions.length > 0" class="suggestions-container">
               <!-- 默认显示的第一条建议 -->
               <div v-if="suggestions[0]" class="suggestions-list primary">
                 <div 
@@ -295,6 +296,7 @@ interface Props {
   speechSupported?: boolean
   isSpeechListening?: boolean
   currentSpeaker?: 'interviewer' | 'candidate'
+  isLoadingSuggestions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -304,7 +306,8 @@ const props = withDefaults(defineProps<Props>(), {
   messages: () => [],
   speechSupported: false,
   isSpeechListening: false,
-  currentSpeaker: 'interviewer'
+  currentSpeaker: 'interviewer',
+  isLoadingSuggestions: false
 })
 
 // 当前发言人显示文本
@@ -321,8 +324,11 @@ const resumeDetailData = ref<ResumeData | null>(null)
 const questionInput = ref('')
 const chatContainerRef = ref<HTMLElement | null>(null)
 
-// 是否正在获取建议
-const isLoadingSuggestions = ref(false)
+// 是否正在获取建议（使用父组件传递的状态，本地状态作为备用）
+const localLoadingSuggestions = ref(false)
+
+// 计算属性：统一的加载状态
+const isLoadingState = computed(() => props.isLoadingSuggestions || localLoadingSuggestions.value)
 
 // 问题建议展开状态
 const isSuggestionsExpanded = ref(false)
@@ -357,57 +363,10 @@ const handleUseSuggestionAndClose = (suggestion: QuestionSuggestion) => {
 // 获取问题建议
 const handleGetSuggestions = async () => {
   console.log('[RealTimeAnalysisPanel] 用户点击获取建议按钮')
-  isLoadingSuggestions.value = true
   
-  try {
-    // 记录当前建议的数量和内容，用于检测变化
-    const initialSuggestionsCount = props.suggestions.length
-    const initialSuggestionsContent = JSON.stringify(props.suggestions)
-    
-    console.log('[RealTimeAnalysisPanel] 当前建议数量:', initialSuggestionsCount)
-    
-    // 发出事件通知父组件开始获取建议
-    console.log('[RealTimeAnalysisPanel] 发出 refresh-suggestions 事件')
-    emit('refresh-suggestions')
-    
-    // 等待建议数据真正更新
-    await new Promise<void>((resolve) => {
-      let checkCount = 0
-      const maxChecks = 1000 // 最多检查1000次
-      
-      const checkForUpdates = () => {
-        checkCount++
-        
-        // 检查建议是否真正发生了变化
-        const currentSuggestionsContent = JSON.stringify(props.suggestions)
-        const hasNewSuggestions = currentSuggestionsContent !== initialSuggestionsContent
-        
-        console.log(`[RealTimeAnalysisPanel] 检查更新 ${checkCount}/${maxChecks}, 有新建议:`, hasNewSuggestions)
-        
-        if (hasNewSuggestions) {
-          // 建议内容发生了变化，说明API调用完成
-          console.log('[RealTimeAnalysisPanel] 检测到建议更新，结束等待')
-          resolve()
-        } else if (checkCount >= maxChecks) {
-          // 超时，强制结束
-          console.warn('[RealTimeAnalysisPanel] 获取建议超时')
-          resolve()
-        } else {
-          // 继续检查
-          setTimeout(checkForUpdates, 300) // 每100ms检查一次
-        }
-      }
-      
-      // 延迟开始检查，给API调用一些时间
-      setTimeout(checkForUpdates, 200)
-    })
-    
-  } catch (error) {
-    console.error('[RealTimeAnalysisPanel] 获取问题建议失败:', error)
-  } finally {
-    console.log('[RealTimeAnalysisPanel] 获取建议完成，最终建议数量:', props.suggestions.length)
-    isLoadingSuggestions.value = false
-  }
+  // 发出事件通知父组件开始获取建议（父组件会管理加载状态）
+  console.log('[RealTimeAnalysisPanel] 发出 refresh-suggestions 事件')
+  emit('refresh-suggestions')
 }
 
 // 格式化时间
@@ -656,10 +615,10 @@ const typeLabels: Record<string, string> = {
 }
 
 .chat-input-area {
-  padding: 8px 0;
+  padding: 8px 6px;
   border-top: 1px solid #e5e7eb;
   margin-top: auto;
-  background: #fff;
+  background: #f8fafc;
   
   :deep(.el-input-group__append) {
     padding: 0 8px;

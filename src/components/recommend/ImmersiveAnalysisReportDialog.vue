@@ -47,20 +47,35 @@
         <h3><el-icon><DataAnalysis /></el-icon> 对话概要统计</h3>
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-value">{{ reportData.statistics?.total_utterances || 0 }}</div>
+            <div class="stat-value">{{ getUtteranceTotal }}</div>
             <div class="stat-label">总发言数</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ reportData.statistics?.candidate_utterances || 0 }}</div>
+            <div class="stat-value">{{ getUtteranceCandidate }}</div>
             <div class="stat-label">候选人发言</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ reportData.statistics?.interviewer_utterances || 0 }}</div>
+            <div class="stat-value">{{ getUtteranceInterviewer }}</div>
             <div class="stat-label">面试官发言</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ ((reportData.statistics?.candidate_ratio || 0) * 100).toFixed(0) }}%</div>
-            <div class="stat-label">候选人占比</div>
+            <div class="stat-value">{{ getCharTotal }}</div>
+            <div class="stat-label">总字数</div>
+          </div>
+        </div>
+        
+        <!-- 发言占比 -->
+        <div class="speaking-ratio-section">
+          <div class="ratio-row">
+            <span class="ratio-label">发言占比（按次数）</span>
+            <div class="ratio-bars">
+              <div class="ratio-bar candidate" :style="{ width: getSpeakingRatioByCount.candidate + '%' }">
+                候选人 {{ getSpeakingRatioByCount.candidate }}%
+              </div>
+              <div class="ratio-bar interviewer" :style="{ width: getSpeakingRatioByCount.interviewer + '%' }">
+                面试官 {{ getSpeakingRatioByCount.interviewer }}%
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -81,47 +96,13 @@
             <span class="summary-text">{{ psychologicalAnalysis.big_five.personality_summary || '暂无' }}</span>
           </div>
           
-          <div class="personality-bars">
-            <div class="bar-item">
-              <span class="bar-label">开放性</span>
-              <el-progress 
-                :percentage="(psychologicalAnalysis.big_five.scores?.openness || 0) * 100" 
-                :stroke-width="12"
-                :color="'#667eea'"
-              />
-            </div>
-            <div class="bar-item">
-              <span class="bar-label">尽责性</span>
-              <el-progress 
-                :percentage="(psychologicalAnalysis.big_five.scores?.conscientiousness || 0) * 100" 
-                :stroke-width="12"
-                :color="'#10b981'"
-              />
-            </div>
-            <div class="bar-item">
-              <span class="bar-label">外向性</span>
-              <el-progress 
-                :percentage="(psychologicalAnalysis.big_five.scores?.extraversion || 0) * 100" 
-                :stroke-width="12"
-                :color="'#f59e0b'"
-              />
-            </div>
-            <div class="bar-item">
-              <span class="bar-label">宜人性</span>
-              <el-progress 
-                :percentage="(psychologicalAnalysis.big_five.scores?.agreeableness || 0) * 100" 
-                :stroke-width="12"
-                :color="'#06b6d4'"
-              />
-            </div>
-            <div class="bar-item">
-              <span class="bar-label">神经质</span>
-              <el-progress 
-                :percentage="(psychologicalAnalysis.big_five.scores?.neuroticism || 0) * 100" 
-                :stroke-width="12"
-                :color="'#ef4444'"
-              />
-            </div>
+          <div class="personality-chart">
+            <BigFiveRadarChart 
+              v-if="psychologicalAnalysis.big_five.scores"
+              :data="psychologicalAnalysis.big_five.scores" 
+              height="220px"
+              color="#667eea"
+            />
           </div>
           
           <div class="personality-details">
@@ -225,6 +206,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Loading, User, DataAnalysis, TrendCharts } from '@element-plus/icons-vue'
+import BigFiveRadarChart from '@/components/common/BigFiveRadarChart.vue'
 
 interface BigFiveScores {
   openness: number
@@ -282,11 +264,27 @@ interface ImmersiveReportData {
     position_title: string
   }
   statistics?: {
-    total_utterances: number
-    interviewer_utterances: number
-    candidate_utterances: number
-    interviewer_ratio: number
-    candidate_ratio: number
+    // 新API结构
+    utterance_count?: { total: number; interviewer: number; candidate: number }
+    char_count?: { total: number; interviewer: number; candidate: number }
+    speaking_ratio?: {
+      by_count?: { interviewer: number; candidate: number }
+      by_chars?: { interviewer: number; candidate: number }
+    }
+    big_five_average?: {
+      openness: number
+      conscientiousness: number
+      extraversion: number
+      agreeableness: number
+      neuroticism: number
+    }
+    depression_average?: { score: number; level: string }
+    // 旧API结构（向后兼容）
+    total_utterances?: number
+    interviewer_utterances?: number
+    candidate_utterances?: number
+    interviewer_ratio?: number
+    candidate_ratio?: number
   }
   psychological_analysis?: PsychologicalAnalysis
 }
@@ -314,6 +312,65 @@ const visible = computed({
 })
 
 const psychologicalAnalysis = computed(() => props.reportData?.psychological_analysis)
+
+// 统计数据计算属性（兼容新旧API结构）
+const getUtteranceTotal = computed(() => {
+  const stats = props.reportData?.statistics
+  if (!stats) return 0
+  // 新API结构
+  if (stats.utterance_count?.total !== undefined) return stats.utterance_count.total
+  // 旧API结构
+  return stats.total_utterances || 0
+})
+
+const getUtteranceCandidate = computed(() => {
+  const stats = props.reportData?.statistics
+  if (!stats) return 0
+  if (stats.utterance_count?.candidate !== undefined) return stats.utterance_count.candidate
+  return stats.candidate_utterances || 0
+})
+
+const getUtteranceInterviewer = computed(() => {
+  const stats = props.reportData?.statistics
+  if (!stats) return 0
+  if (stats.utterance_count?.interviewer !== undefined) return stats.utterance_count.interviewer
+  return stats.interviewer_utterances || 0
+})
+
+const getCharTotal = computed(() => {
+  const stats = props.reportData?.statistics
+  if (!stats) return 0
+  if (stats.char_count?.total !== undefined) return stats.char_count.total
+  return 0
+})
+
+const getSpeakingRatioByCount = computed(() => {
+  const stats = props.reportData?.statistics
+  if (!stats) return { candidate: 50, interviewer: 50 }
+  
+  // 新API结构
+  if (stats.speaking_ratio?.by_count) {
+    return {
+      candidate: Math.round((stats.speaking_ratio.by_count.candidate || 0) * 100),
+      interviewer: Math.round((stats.speaking_ratio.by_count.interviewer || 0) * 100)
+    }
+  }
+  
+  // 旧API结构
+  if (stats.candidate_ratio !== undefined) {
+    const candidateRatio = Math.round((stats.candidate_ratio || 0) * 100)
+    return { candidate: candidateRatio, interviewer: 100 - candidateRatio }
+  }
+  
+  // 从发言次数计算
+  const total = getUtteranceTotal.value
+  if (total > 0) {
+    const candidateRatio = Math.round((getUtteranceCandidate.value / total) * 100)
+    return { candidate: candidateRatio, interviewer: 100 - candidateRatio }
+  }
+  
+  return { candidate: 50, interviewer: 50 }
+})
 
 // 格式化时长
 const formatDuration = (seconds: number): string => {
@@ -441,6 +498,33 @@ const handleClose = () => {
       .stat-label { font-size: 12px; color: #6b7280; }
     }
   }
+  
+  .speaking-ratio-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed #e5e7eb;
+    
+    .ratio-row {
+      .ratio-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; display: block; }
+      .ratio-bars {
+        display: flex;
+        height: 24px;
+        border-radius: 4px;
+        overflow: hidden;
+        .ratio-bar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 500;
+          color: white;
+          min-width: 60px;
+          &.candidate { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
+          &.interviewer { background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); }
+        }
+      }
+    }
+  }
 }
 
 .psychological-card {
@@ -482,24 +566,13 @@ const handleClose = () => {
     .summary-text { color: #1f2937; font-weight: 500; }
   }
   
-  .personality-bars {
-    display: grid;
-    gap: 12px;
+  .personality-chart {
+    display: flex;
+    justify-content: center;
     margin-bottom: 16px;
-    
-    .bar-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      
-      .bar-label {
-        width: 60px;
-        font-size: 13px;
-        color: #6b7280;
-      }
-      
-      .el-progress { flex: 1; }
-    }
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
   }
   
   .personality-details {

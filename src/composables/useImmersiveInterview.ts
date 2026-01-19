@@ -216,14 +216,41 @@ export interface CompleteSessionResponse {
   start_time: string
   end_time: string
   statistics: {
-    total_utterances: number
-    interviewer_utterances: number
-    candidate_utterances: number
-    interviewer_ratio: number
-    candidate_ratio: number
-    overall_depression: {
+    // 旧版字段（向后兼容）
+    total_utterances?: number
+    interviewer_utterances?: number
+    candidate_utterances?: number
+    interviewer_ratio?: number
+    candidate_ratio?: number
+    overall_depression?: {
       avg_score: number
       final_level: string
+    }
+    // 新版字段
+    utterance_count?: {
+      total: number
+      interviewer: number
+      candidate: number
+    }
+    char_count?: {
+      total: number
+      interviewer: number
+      candidate: number
+    }
+    speaking_ratio?: {
+      by_count: {
+        interviewer: number
+        candidate: number
+      }
+      by_chars: {
+        interviewer: number
+        candidate: number
+      }
+    }
+    big_five_average?: BigFivePersonality
+    depression_average?: {
+      score: number
+      level: 'low' | 'medium' | 'high'
     }
   }
   conversation_history: ConversationHistoryItem[]
@@ -940,7 +967,7 @@ export function useImmersiveInterview() {
 
     try {
       const requestOptions: QuestionOptions = {
-        count: 5,
+        count: 4,
         question_type: 'mixed',
         use_psychological_context: config.psychologicalAnalysisEnabled,
         use_conversation_history: true,

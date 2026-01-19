@@ -103,7 +103,7 @@
               <h4 class="card-title">
                 <span class="title-icon">🔍</span>
                 欺骗检测
-                <span v-if="!isAnalysisActive" class="pending-badge">待检测</span>
+                <!-- <span v-if="!isAnalysisActive" class="pending-badge">待检测</span> -->
               </h4>
               <div class="detection-meter">
                 <div class="meter-circle" :class="isAnalysisActive ? deceptionLevelClass : 'pending'">
@@ -117,7 +117,7 @@
               <h4 class="card-title">
                 <span class="title-icon">😔</span>
                 抑郁检测
-                <span v-if="!isAnalysisActive" class="pending-badge">待检测</span>
+                <!-- <span v-if="!isAnalysisActive" class="pending-badge">待检测</span> -->
               </h4>
               <div class="detection-meter">
                 <div class="meter-circle" :class="isAnalysisActive ? 'depression-meter' : 'pending'">
@@ -653,8 +653,8 @@ defineExpose({
   position: absolute;
   top: 80px;
   left: 20px;
-  width: 22%;
-  max-width: 280px;
+  width: 28%;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -662,7 +662,7 @@ defineExpose({
 }
 
 .analysis-card {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(100, 100, 150, 0.3);
   backdrop-filter: blur(20px);
   border-radius: 12px;
   padding: 12px;

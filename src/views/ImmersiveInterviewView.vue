@@ -180,6 +180,7 @@
               :speech-supported="speechSupported"
               :is-speech-listening="isSpeechListening"
               :current-speaker="currentSpeaker"
+              :is-loading-suggestions="isLoadingSuggestions"
               @refresh-suggestions="handleRefreshSuggestions"
               @use-suggestion="handleUseSuggestion"
               @toggle-speech="handleToggleSpeechRecognition"
@@ -446,6 +447,9 @@ const isResultLoading = ref(false)
 const resultError = ref<string | null>(null) // 新增：错误状态
 const interviewResult = ref<CompleteSessionResponse | null>(null)
 
+// 问题建议加载状态（在父组件统一管理）
+const isLoadingSuggestions = ref(false)
+
 // 聊天消息
 const chatMessages = ref<Array<{
   id: string
@@ -520,6 +524,13 @@ const handleCreateSession = async () => {
     if (config.localCameraEnabled) {
       await handleInitCamera()
     }
+    
+    // 进入面试界面后立即申请第一次问题建议
+    if (config.showSuggestions) {
+      setTimeout(() => {
+        handleFetchSuggestions()
+      }, 500) // 延迟500ms，确保会话已完全创建
+    }
   }
 }
 
@@ -550,12 +561,6 @@ const handleStartInterview = async () => {
     }
   }
   
-  // 自动获取基于简历的初始问题建议
-  if (config.showSuggestions) {
-    setTimeout(() => {
-      handleFetchSuggestions()
-    }, 1000) // 延迟1秒获取，确保界面已完全加载
-  }
 }
 
 // 结束面试
@@ -687,6 +692,10 @@ const handleRefreshSuggestions = async () => {
 // 获取建议
 const handleFetchSuggestions = async () => {
   console.log('[ImmersiveInterviewView] 开始获取建议')
+  
+  // 设置加载状态
+  isLoadingSuggestions.value = true
+  
   try {
     await fetchQuestionSuggestions()
     console.log('[ImmersiveInterviewView] fetchQuestionSuggestions 调用完成，当前建议数量:', suggestions.value.length)
@@ -705,6 +714,9 @@ const handleFetchSuggestions = async () => {
     const resumeBasedSuggestions = generateResumeBasedSuggestions()
     suggestions.value = resumeBasedSuggestions
     console.log('[ImmersiveInterviewView] 错误降级，生成了', resumeBasedSuggestions.length, '条基于简历的建议')
+  } finally {
+    // 重置加载状态
+    isLoadingSuggestions.value = false
   }
 }
 
@@ -865,6 +877,11 @@ const handleToggleSpeechRecognition = async () => {
   
   // 重置当前消息ID，下一条消息将创建新的
   currentCandidateMessageId.value = null
+  
+  // 如果切换到面试官发言，自动请求问题建议
+  if (currentSpeaker.value === 'interviewer' && config.showSuggestions) {
+    handleFetchSuggestions()
+  }
   
   ElMessage.success('已切换到：' + getSpeakerLabel())
 }

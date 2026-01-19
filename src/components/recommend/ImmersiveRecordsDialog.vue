@@ -47,20 +47,87 @@
         <h3><el-icon><DataAnalysis /></el-icon> 对话概要统计</h3>
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-value">{{ sessionData.statistics?.total_utterances || 0 }}</div>
+            <div class="stat-value">{{ getUtteranceTotal }}</div>
             <div class="stat-label">总发言数</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ sessionData.statistics?.candidate_utterances || 0 }}</div>
+            <div class="stat-value">{{ getUtteranceCandidate }}</div>
             <div class="stat-label">候选人发言</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ sessionData.statistics?.interviewer_utterances || 0 }}</div>
+            <div class="stat-value">{{ getUtteranceInterviewer }}</div>
             <div class="stat-label">面试官发言</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ ((sessionData.statistics?.candidate_ratio || 0) * 100).toFixed(0) }}%</div>
-            <div class="stat-label">候选人占比</div>
+            <div class="stat-value">{{ getCharTotal }}</div>
+            <div class="stat-label">总字数</div>
+          </div>
+        </div>
+        
+        <!-- 发言占比进度条 -->
+        <div class="speaking-ratio-section">
+          <div class="ratio-row">
+            <span class="ratio-label">发言占比（按次数）</span>
+            <div class="ratio-bars">
+              <div class="ratio-bar candidate" :style="{ width: getSpeakingRatioByCount.candidate + '%' }">
+                候选人 {{ getSpeakingRatioByCount.candidate }}%
+              </div>
+              <div class="ratio-bar interviewer" :style="{ width: getSpeakingRatioByCount.interviewer + '%' }">
+                面试官 {{ getSpeakingRatioByCount.interviewer }}%
+              </div>
+            </div>
+          </div>
+          <div class="ratio-row">
+            <span class="ratio-label">发言占比（按字数）</span>
+            <div class="ratio-bars">
+              <div class="ratio-bar candidate" :style="{ width: getSpeakingRatioByChars.candidate + '%' }">
+                候选人 {{ getSpeakingRatioByChars.candidate }}%
+              </div>
+              <div class="ratio-bar interviewer" :style="{ width: getSpeakingRatioByChars.interviewer + '%' }">
+                面试官 {{ getSpeakingRatioByChars.interviewer }}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 心理分析概览 -->
+      <div v-if="getBigFiveAverage || sessionData.statistics?.depression_average" class="section-card psychological-card">
+        <h3><el-icon><TrendCharts /></el-icon> 心理分析概览</h3>
+        <div class="psychological-grid">
+          <!-- 大五人格雷达图 -->
+          <div class="big-five-section">
+            <div class="sub-title">大五人格平均值</div>
+            <BigFiveRadarChart 
+              v-if="getBigFiveAverage"
+              :data="getBigFiveAverage" 
+              height="200px"
+              color="#667eea"
+            />
+            <div v-else class="no-data">暂无数据</div>
+          </div>
+          
+          <!-- 抑郁风险指示器 -->
+          <div class="depression-section">
+            <div class="sub-title">抑郁风险评估</div>
+            <div class="depression-indicator">
+              <div class="depression-gauge">
+                <div class="gauge-track">
+                  <div class="gauge-fill" :style="{ width: getDepressionPercent + '%' }"></div>
+                </div>
+                <div class="gauge-labels">
+                  <span>低风险</span>
+                  <span>中风险</span>
+                  <span>高风险</span>
+                </div>
+              </div>
+              <div class="depression-result">
+                <div class="depression-score">{{ getDepressionScore.toFixed(1) }}</div>
+                <el-tag :type="getDepressionTagType(getDepressionLevel)" size="large">
+                  {{ getRiskLevelText(getDepressionLevel) }}
+                </el-tag>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -93,6 +160,71 @@
               
               <!-- 发言内容 -->
               <div class="content-text">{{ item.text }}</div>
+              
+              <!-- 心理评分指标（仅候选人发言显示） -->
+              <div v-if="item.speaker === 'candidate' && item.candidate_scores" class="scores-panel">
+                <!-- 大五人格 -->
+                <div v-if="item.candidate_scores.big_five" class="score-group big-five">
+                  <div class="group-title">大五人格</div>
+                  <div class="mini-bars">
+                    <div class="mini-bar-item" title="开放性">
+                      <span class="bar-label">开</span>
+                      <div class="bar-track">
+                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.openness * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.openness * 100).toFixed(0) }}</span>
+                    </div>
+                    <div class="mini-bar-item" title="尽责性">
+                      <span class="bar-label">责</span>
+                      <div class="bar-track">
+                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.conscientiousness * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.conscientiousness * 100).toFixed(0) }}</span>
+                    </div>
+                    <div class="mini-bar-item" title="外向性">
+                      <span class="bar-label">外</span>
+                      <div class="bar-track">
+                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.extraversion * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.extraversion * 100).toFixed(0) }}</span>
+                    </div>
+                    <div class="mini-bar-item" title="宜人性">
+                      <span class="bar-label">宜</span>
+                      <div class="bar-track">
+                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.agreeableness * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.agreeableness * 100).toFixed(0) }}</span>
+                    </div>
+                    <div class="mini-bar-item neuroticism" title="神经质">
+                      <span class="bar-label">神</span>
+                      <div class="bar-track">
+                        <div class="bar-fill warning" :style="{ width: (item.candidate_scores.big_five.neuroticism * 100) + '%' }"></div>
+                      </div>
+                      <span class="bar-value">{{ (item.candidate_scores.big_five.neuroticism * 100).toFixed(0) }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 欺骗检测 -->
+                <div v-if="item.candidate_scores.deception" class="score-group deception">
+                  <div class="group-title">欺骗检测</div>
+                  <div class="score-indicator" :class="getDeceptionClass(item.candidate_scores.deception.score)">
+                    <span class="score-value">{{ (item.candidate_scores.deception.score * 100).toFixed(0) }}%</span>
+                    <span class="confidence">(置信度: {{ (item.candidate_scores.deception.confidence * 100).toFixed(0) }}%)</span>
+                  </div>
+                </div>
+                
+                <!-- 抑郁风险 -->
+                <div v-if="item.candidate_scores.depression" class="score-group depression">
+                  <div class="group-title">抑郁风险</div>
+                  <div class="score-indicator">
+                    <el-tag size="small" :type="getDepressionTagType(item.candidate_scores.depression.level)">
+                      {{ getRiskLevelText(item.candidate_scores.depression.level) }}
+                    </el-tag>
+                    <span class="score-num">{{ item.candidate_scores.depression.score.toFixed(0) }}/100</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -109,12 +241,33 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Loading, User, DataAnalysis, Clock } from '@element-plus/icons-vue'
+import { Loading, User, DataAnalysis, Clock, TrendCharts } from '@element-plus/icons-vue'
+import BigFiveRadarChart from '@/components/common/BigFiveRadarChart.vue'
+
+interface CandidateScores {
+  big_five?: {
+    openness: number
+    conscientiousness: number
+    extraversion: number
+    agreeableness: number
+    neuroticism: number
+  }
+  deception?: {
+    score: number
+    confidence: number
+  }
+  depression?: {
+    score: number
+    level: 'low' | 'medium' | 'high'
+    confidence: number
+  }
+}
 
 interface ConversationHistoryItem {
   speaker: 'interviewer' | 'candidate'
   text: string
   timestamp: string
+  candidate_scores?: CandidateScores | null
 }
 
 interface ImmersiveSessionData {
@@ -127,11 +280,28 @@ interface ImmersiveSessionData {
     position_title: string
   }
   statistics?: {
-    total_utterances: number
-    interviewer_utterances: number
-    candidate_utterances: number
-    interviewer_ratio: number
-    candidate_ratio: number
+    total_utterances?: number
+    interviewer_utterances?: number
+    candidate_utterances?: number
+    interviewer_ratio?: number
+    candidate_ratio?: number
+    utterance_count?: { total: number; interviewer: number; candidate: number }
+    char_count?: { total: number; interviewer: number; candidate: number }
+    speaking_ratio?: {
+      by_count: { interviewer: number; candidate: number }
+      by_chars: { interviewer: number; candidate: number }
+    }
+    big_five_average?: {
+      openness: number
+      conscientiousness: number
+      extraversion: number
+      agreeableness: number
+      neuroticism: number
+    }
+    depression_average?: {
+      score: number
+      level: 'low' | 'medium' | 'high'
+    }
   }
   conversation_history?: ConversationHistoryItem[]
 }
@@ -189,6 +359,98 @@ const formatTime = (dateString: string): string => {
 const handleClose = () => {
   visible.value = false
   emit('close')
+}
+
+// 兼容新旧API的统计数据计算属性
+const getUtteranceTotal = computed(() => {
+  if (!props.sessionData?.statistics) return 0
+  return props.sessionData.statistics.utterance_count?.total 
+    ?? props.sessionData.statistics.total_utterances 
+    ?? 0
+})
+
+const getUtteranceCandidate = computed(() => {
+  if (!props.sessionData?.statistics) return 0
+  return props.sessionData.statistics.utterance_count?.candidate 
+    ?? props.sessionData.statistics.candidate_utterances 
+    ?? 0
+})
+
+const getUtteranceInterviewer = computed(() => {
+  if (!props.sessionData?.statistics) return 0
+  return props.sessionData.statistics.utterance_count?.interviewer 
+    ?? props.sessionData.statistics.interviewer_utterances 
+    ?? 0
+})
+
+const getCharTotal = computed(() => {
+  if (!props.sessionData?.statistics?.char_count) return '-'
+  return props.sessionData.statistics.char_count.total.toLocaleString()
+})
+
+const getSpeakingRatioByCount = computed(() => {
+  if (!props.sessionData?.statistics) return { candidate: 50, interviewer: 50 }
+  if (props.sessionData.statistics.speaking_ratio?.by_count) {
+    return {
+      candidate: Math.round(props.sessionData.statistics.speaking_ratio.by_count.candidate * 100),
+      interviewer: Math.round(props.sessionData.statistics.speaking_ratio.by_count.interviewer * 100)
+    }
+  }
+  const candidateRatio = props.sessionData.statistics.candidate_ratio ?? 0.5
+  return {
+    candidate: Math.round(candidateRatio * 100),
+    interviewer: Math.round((1 - candidateRatio) * 100)
+  }
+})
+
+const getSpeakingRatioByChars = computed(() => {
+  if (!props.sessionData?.statistics?.speaking_ratio?.by_chars) {
+    return getSpeakingRatioByCount.value
+  }
+  return {
+    candidate: Math.round(props.sessionData.statistics.speaking_ratio.by_chars.candidate * 100),
+    interviewer: Math.round(props.sessionData.statistics.speaking_ratio.by_chars.interviewer * 100)
+  }
+})
+
+const getBigFiveAverage = computed(() => {
+  return props.sessionData?.statistics?.big_five_average ?? null
+})
+
+const getDepressionScore = computed(() => {
+  return props.sessionData?.statistics?.depression_average?.score ?? 0
+})
+
+const getDepressionLevel = computed(() => {
+  return props.sessionData?.statistics?.depression_average?.level ?? 'low'
+})
+
+const getDepressionPercent = computed(() => {
+  return Math.min(100, Math.max(0, getDepressionScore.value))
+})
+
+const getRiskLevelText = (level: string): string => {
+  switch (level) {
+    case 'low': return '低风险'
+    case 'medium': return '中等风险'
+    case 'high': return '高风险'
+    default: return '未知'
+  }
+}
+
+const getDepressionTagType = (level: string): 'success' | 'warning' | 'danger' | 'info' => {
+  switch (level) {
+    case 'low': return 'success'
+    case 'medium': return 'warning'
+    case 'high': return 'danger'
+    default: return 'info'
+  }
+}
+
+const getDeceptionClass = (score: number): string => {
+  if (score < 0.3) return 'level-low'
+  if (score < 0.6) return 'level-medium'
+  return 'level-high'
 }
 </script>
 
@@ -266,6 +528,73 @@ const handleClose = () => {
       .stat-label { font-size: 12px; color: #6b7280; }
     }
   }
+  
+  .speaking-ratio-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed #e5e7eb;
+    
+    .ratio-row {
+      margin-bottom: 12px;
+      &:last-child { margin-bottom: 0; }
+      .ratio-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; display: block; }
+      .ratio-bars {
+        display: flex;
+        height: 24px;
+        border-radius: 4px;
+        overflow: hidden;
+        .ratio-bar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 500;
+          color: white;
+          min-width: 60px;
+          &.candidate { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
+          &.interviewer { background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); }
+        }
+      }
+    }
+  }
+}
+
+.psychological-card {
+  .psychological-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .sub-title { font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 12px; text-align: center; }
+  .big-five-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    .no-data { color: #9ca3af; font-size: 13px; padding: 40px 0; }
+  }
+  .depression-section {
+    .depression-indicator { display: flex; flex-direction: column; gap: 16px; }
+    .depression-gauge {
+      .gauge-track {
+        height: 12px;
+        background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+        border-radius: 6px;
+        position: relative;
+      }
+      .gauge-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.6);
+        border-right: 3px solid #1f2937;
+      }
+      .gauge-labels { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: #9ca3af; }
+    }
+    .depression-result {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      .depression-score { font-size: 32px; font-weight: 700; color: #1f2937; }
+    }
+  }
 }
 
 .timeline-card {
@@ -334,6 +663,53 @@ const handleClose = () => {
     }
     
     .content-text { color: #374151; line-height: 1.6; font-size: 14px; }
+  }
+  
+  .scores-panel {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e5e7eb;
+    flex-wrap: wrap;
+    
+    .score-group {
+      flex: 1;
+      min-width: 150px;
+      .group-title { font-size: 11px; color: #9ca3af; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    }
+    
+    .big-five {
+      min-width: 200px;
+      .mini-bars { display: flex; flex-direction: column; gap: 4px; }
+      .mini-bar-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        .bar-label { width: 14px; font-size: 10px; color: #6b7280; text-align: center; }
+        .bar-track { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; background: #3b82f6; border-radius: 3px; &.warning { background: #f59e0b; } }
+        .bar-value { width: 24px; font-size: 10px; color: #6b7280; text-align: right; }
+      }
+    }
+    
+    .deception .score-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      .score-value { font-weight: 600; font-size: 16px; }
+      .confidence { font-size: 11px; color: #9ca3af; }
+      &.level-low .score-value { color: #10b981; }
+      &.level-medium .score-value { color: #f59e0b; }
+      &.level-high .score-value { color: #ef4444; }
+    }
+    
+    .depression .score-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      .score-num { font-size: 12px; color: #6b7280; }
+    }
   }
   
   .empty-timeline { padding: 20px 0; }

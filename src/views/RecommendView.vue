@@ -467,121 +467,158 @@ const getImmersiveSessionForApp = (appId: string) => {
   return immersiveSessionsMap.value[appId] || null
 }
 
-// 加载沉浸式面试会话列表
+// 加载沉浸式面试会话列表（使用新API by-application）
 const loadImmersiveSessionsForApplications = async (applications: ApplicationDetailResponse[]) => {
   for (const app of applications) {
     try {
-      // 1. 先获取会话列表
-      const listResponse = await axios.get(`/api/v1/immersive`, {
-        params: { application_id: app.id }
-      })
+      // 使用新API直接按application_id获取面试记录
+      const response = await axios.get(`/api/v1/immersive/by-application/${app.id}/record`)
+      const data = response.data?.data
       
-      const items = listResponse.data?.data?.items || []
-      if (items.length === 0) continue
-      
-      // 2. 查找已完成的会话（优先）或最新的会话
-      const completedSession = items.find((s: any) => s.is_completed === true)
-      const targetSession = completedSession || items[0]
-      
-      if (!targetSession) continue
-      
-      // 3. 如果会话已完成，获取详情以获取 final_analysis
-      if (targetSession.is_completed) {
-        try {
-          const detailResponse = await axios.get(`/api/v1/immersive/${targetSession.id}`)
-          const detail = detailResponse.data?.data
-          if (detail) {
-            immersiveSessionsMap.value[app.id] = {
-              id: detail.id,
-              is_completed: detail.is_completed,
-              utterance_count: detail.final_analysis?.statistics?.total_utterances || 0,
-              has_final_analysis: !!detail.final_analysis
-            }
-            continue
-          }
-        } catch (detailErr) {
-          console.error(`获取会话 ${targetSession.id} 详情失败:`, detailErr)
+      if (data) {
+        immersiveSessionsMap.value[app.id] = {
+          id: data.id,
+          is_completed: data.is_completed,
+          utterance_count: data.statistics?.utterance_count?.total || 0,
+          has_final_analysis: true,
+          // 缓存完整数据供后续使用
+          _cachedData: data
         }
       }
-      
-      // 4. 未完成的会话或详情获取失败，使用列表数据
-      immersiveSessionsMap.value[app.id] = {
-        id: targetSession.id,
-        is_completed: targetSession.is_completed,
-        utterance_count: 0,
-        has_final_analysis: false
+    } catch (err: any) {
+      // 404表示没有已完成的面试记录，不是错误
+      if (err.response?.status !== 404) {
+        console.error(`加载应用 ${app.id} 的沉浸式会话失败:`, err)
       }
-    } catch (err) {
-      console.error(`加载应用 ${app.id} 的沉浸式会话失败:`, err)
     }
   }
 }
 
-// 查看沉浸式面试问答记录
+// 查看沉浸式面试问答记录（使用新API by-application）
 const viewImmersiveRecords = async (app: ApplicationDetailResponse) => {
-  const session = immersiveSessionsMap.value[app.id]
-  if (!session?.id) {
-    ElMessage.warning('暂无沉浸式面试记录')
-    return
-  }
-  
   isLoadingImmersiveData.value = true
   showImmersiveRecordsDialog.value = true
   
   try {
-    const response = await axios.get(`/api/v1/immersive/${session.id}`)
-    if (response.data?.data) {
-      const data = response.data.data
+    // 优先使用缓存数据
+    const cachedSession = immersiveSessionsMap.value[app.id]
+    let data = cachedSession?._cachedData
+    
+    // 如果没有缓存，重新请求
+    if (!data) {
+      const response = await axios.get(`/api/v1/immersive/by-application/${app.id}/record`)
+      data = response.data?.data
+    }
+    
+    if (data) {
       selectedImmersiveSession.value = {
         session_id: data.id,
-        duration_seconds: data.final_analysis?.duration_seconds || 0,
-        start_time: data.started_at || data.created_at,
+        duration_seconds: data.duration_seconds || 0,
+        start_time: data.start_time || data.created_at,
         candidate_info: {
-          name: app.candidate_name || '未知',
-          position_title: app.position_title || '未知'
+          name: data.candidate_name || app.candidate_name || '未知',
+          position_title: data.position_title || app.position_title || '未知'
         },
-        statistics: data.final_analysis?.statistics,
-        conversation_history: data.final_analysis?.conversation_history || []
+        statistics: data.statistics,
+        conversation_history: data.conversation_history || []
       }
+    } else {
+      ElMessage.warning('暂无沉浸式面试记录')
+      showImmersiveRecordsDialog.value = false
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('获取沉浸式面试记录失败:', err)
-    ElMessage.error('获取沉浸式面试记录失败')
+    if (err.response?.status === 404) {
+      ElMessage.warning('暂无已完成的沉浸式面试记录')
+    } else {
+      ElMessage.error('获取沉浸式面试记录失败')
+    }
+    showImmersiveRecordsDialog.value = false
   } finally {
     isLoadingImmersiveData.value = false
   }
 }
 
-// 查看沉浸式面试分析报告
+// 查看沉浸式面试分析报告（需要从综合分析API获取心理分析数据）
 const viewImmersiveReport = async (app: ApplicationDetailResponse) => {
-  const session = immersiveSessionsMap.value[app.id]
-  if (!session?.id || !session.has_final_analysis) {
-    ElMessage.warning('暂无沉浸式面试分析报告')
-    return
-  }
-  
   isLoadingImmersiveData.value = true
   showImmersiveReportDialog.value = true
   
   try {
-    const response = await axios.get(`/api/v1/immersive/${session.id}`)
-    if (response.data?.data) {
-      const data = response.data.data
-      selectedImmersiveReport.value = {
-        session_id: data.id,
-        duration_seconds: data.final_analysis?.duration_seconds || 0,
-        start_time: data.started_at || data.created_at,
-        candidate_info: {
-          name: app.candidate_name || '未知',
-          position_title: app.position_title || '未知'
-        },
-        statistics: data.final_analysis?.statistics,
-        psychological_analysis: data.final_analysis?.psychological_analysis
+    // 1. 获取面试记录基础数据
+    const cachedSession = immersiveSessionsMap.value[app.id]
+    let recordData = cachedSession?._cachedData
+    
+    if (!recordData) {
+      const recordResponse = await axios.get(`/api/v1/immersive/by-application/${app.id}/record`)
+      recordData = recordResponse.data?.data
+    }
+    
+    if (!recordData) {
+      ElMessage.warning('暂无沉浸式面试记录')
+      showImmersiveReportDialog.value = false
+      return
+    }
+    
+    // 2. 尝试从综合分析获取心理分析数据
+    let psychologicalAnalysis = null
+    if (app.comprehensive_analysis?.id) {
+      try {
+        const analysisResult = await getAnalysis({ path: { analysis_id: app.comprehensive_analysis.id } })
+        const analysisData = analysisResult.data?.data
+        if (analysisData?.input_snapshot?.psychological_analysis) {
+          psychologicalAnalysis = analysisData.input_snapshot.psychological_analysis
+        }
+      } catch (analysisErr) {
+        console.warn('获取综合分析心理数据失败，将使用面试记录数据:', analysisErr)
       }
     }
-  } catch (err) {
+    
+    // 3. 如果没有综合分析，从面试记录的统计数据构建心理分析
+    if (!psychologicalAnalysis && recordData.statistics) {
+      const stats = recordData.statistics
+      psychologicalAnalysis = {
+        big_five: stats.big_five_average ? {
+          scores: stats.big_five_average,
+          personality_summary: '基于面试对话分析的大五人格评估',
+          strengths: [],
+          potential_concerns: [],
+          work_style: '',
+          team_fit: '',
+          detailed_analysis: ''
+        } : null,
+        credibility: null,
+        depression: stats.depression_average ? {
+          overall_score: stats.depression_average.score,
+          level: stats.depression_average.level,
+          level_label: stats.depression_average.level === 'low' ? '低风险' : 
+                       stats.depression_average.level === 'medium' ? '中等风险' : '高风险',
+          level_distribution: null,
+          interpretation: '基于面试对话的抑郁风险评估'
+        } : null
+      }
+    }
+    
+    // 4. 构建报告数据
+    selectedImmersiveReport.value = {
+      session_id: recordData.id,
+      duration_seconds: recordData.duration_seconds || 0,
+      start_time: recordData.start_time || recordData.created_at,
+      candidate_info: {
+        name: recordData.candidate_name || app.candidate_name || '未知',
+        position_title: recordData.position_title || app.position_title || '未知'
+      },
+      statistics: recordData.statistics,
+      psychological_analysis: psychologicalAnalysis
+    }
+  } catch (err: any) {
     console.error('获取沉浸式面试分析报告失败:', err)
-    ElMessage.error('获取沉浸式面试分析报告失败')
+    if (err.response?.status === 404) {
+      ElMessage.warning('暂无已完成的沉浸式面试记录')
+    } else {
+      ElMessage.error('获取沉浸式面试分析报告失败')
+    }
+    showImmersiveReportDialog.value = false
   } finally {
     isLoadingImmersiveData.value = false
   }
