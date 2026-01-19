@@ -56,9 +56,78 @@
             <span class="candidate-count">共 {{ currentApplications.length }} 人</span>
           </div>
           
-          <div class="candidates-list">
+          <!-- 有待完善的候选人时显示选项卡 -->
+          <el-tabs v-if="showCandidateTabs" v-model="candidateTab" class="candidate-tabs">
+            <el-tab-pane name="pending">
+              <template #label>
+                <span class="tab-label">
+                  <el-icon><Warning /></el-icon>
+                  待完善信息
+                  <el-badge :value="pendingCandidates.length" type="warning" />
+                </span>
+              </template>
+              <div class="candidates-list">
+                <CandidateAnalysisCard
+                  v-for="app in pendingCandidates"
+                  :key="app.id"
+                  :application="app"
+                  :is-analyzing="isAnalyzingApplication(app.id)"
+                  :analysis-progress="getAnalysisProgress(app.id)"
+                  :analysis-status-text="getAnalysisStatusText(app.id)"
+                  :is-generating-report="isGeneratingReportForApplication(app.id)"
+                  :is-generating-psych-report="isGeneratingPsychReportForApp(app.id)"
+                  :immersive-session="getImmersiveSessionForApp(app.id)"
+                  @view-resume="viewResumeDetail(app)"
+                  @view-screening-report="viewScreeningReport(app)"
+                  @view-immersive-records="viewImmersiveRecords(app)"
+                  @view-immersive-report="viewImmersiveReport(app)"
+                  @view-psychological-report="viewPsychologicalReport(app)"
+                  @generate-psychological-report="generatePsychologicalReport(app)"
+                  @view-final-report="viewFinalReport(app)"
+                  @go-to-screening="goToScreening"
+                  @go-to-immersive="goToImmersive(app)"
+                  @start-analysis="startCandidateAnalysis(app)"
+                />
+              </div>
+            </el-tab-pane>
+            <el-tab-pane name="completed">
+              <template #label>
+                <span class="tab-label">
+                  <el-icon><CircleCheck /></el-icon>
+                  已完成分析
+                  <el-badge :value="completedCandidates.length" type="success" />
+                </span>
+              </template>
+              <div class="candidates-list">
+                <CandidateAnalysisCard
+                  v-for="app in completedCandidates"
+                  :key="app.id"
+                  :application="app"
+                  :is-analyzing="isAnalyzingApplication(app.id)"
+                  :analysis-progress="getAnalysisProgress(app.id)"
+                  :analysis-status-text="getAnalysisStatusText(app.id)"
+                  :is-generating-report="isGeneratingReportForApplication(app.id)"
+                  :is-generating-psych-report="isGeneratingPsychReportForApp(app.id)"
+                  :immersive-session="getImmersiveSessionForApp(app.id)"
+                  @view-resume="viewResumeDetail(app)"
+                  @view-screening-report="viewScreeningReport(app)"
+                  @view-immersive-records="viewImmersiveRecords(app)"
+                  @view-immersive-report="viewImmersiveReport(app)"
+                  @view-psychological-report="viewPsychologicalReport(app)"
+                  @generate-psychological-report="generatePsychologicalReport(app)"
+                  @view-final-report="viewFinalReport(app)"
+                  @go-to-screening="goToScreening"
+                  @go-to-immersive="goToImmersive(app)"
+                  @start-analysis="startCandidateAnalysis(app)"
+                />
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+          
+          <!-- 所有人都已完成分析时，直接显示列表（按分数排序） -->
+          <div v-else class="candidates-list">
             <CandidateAnalysisCard
-              v-for="app in currentApplications"
+              v-for="app in sortedAllCandidates"
               :key="app.id"
               :application="app"
               :is-analyzing="isAnalyzingApplication(app.id)"
@@ -74,10 +143,8 @@
               @view-psychological-report="viewPsychologicalReport(app)"
               @generate-psychological-report="generatePsychologicalReport(app)"
               @view-final-report="viewFinalReport(app)"
-              @view-video-analysis="viewVideoAnalysis(app)"
               @go-to-screening="goToScreening"
               @go-to-immersive="goToImmersive(app)"
-              @go-to-video="goToVideo(app)"
               @start-analysis="startCandidateAnalysis(app)"
             />
           </div>
@@ -209,7 +276,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { TrophyBase, Plus } from '@element-plus/icons-vue'
+import { TrophyBase, Plus, Warning, CircleCheck } from '@element-plus/icons-vue'
+import { marked } from 'marked'
 
 // 组件导入
 import { CandidateAnalysisCard } from '@/components/recommend'
@@ -251,6 +319,39 @@ const {
 
 const currentApplications = ref<ApplicationDetailResponse[]>([])
 const isLoadingApplications = ref(false)
+
+// ========== 候选人分类选项卡 ==========
+const candidateTab = ref('pending')
+
+// 待完善信息的候选人（没有综合分析结果）
+const pendingCandidates = computed(() => {
+  return currentApplications.value.filter(app => !app.comprehensive_analysis)
+})
+
+// 已完成分析的候选人（有综合分析结果，按分数从高到低排序）
+const completedCandidates = computed(() => {
+  return currentApplications.value
+    .filter(app => app.comprehensive_analysis)
+    .sort((a, b) => {
+      const scoreA = a.comprehensive_analysis?.final_score ?? 0
+      const scoreB = b.comprehensive_analysis?.final_score ?? 0
+      return scoreB - scoreA
+    })
+})
+
+// 是否显示选项卡（有待完善的候选人时才显示）
+const showCandidateTabs = computed(() => {
+  return pendingCandidates.value.length > 0 && completedCandidates.value.length > 0
+})
+
+// 所有候选人按分数排序（当所有人都已完成分析时使用）
+const sortedAllCandidates = computed(() => {
+  return [...currentApplications.value].sort((a, b) => {
+    const scoreA = a.comprehensive_analysis?.final_score ?? 0
+    const scoreB = b.comprehensive_analysis?.final_score ?? 0
+    return scoreB - scoreA
+  })
+})
 
 // 统计数据
 const totalCandidates = computed(() => {
@@ -843,13 +944,8 @@ const formatDateTime = (isoString: string) => {
 
 const formatReportContent = (content: string) => {
   if (!content) return ''
-  // 简单的 markdown 转 HTML
-  return content
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^/, '<p>')
-    .replace(/$/, '</p>')
+  // 使用marked渲染markdown
+  return marked(content)
 }
 
 // ========== 生命周期 ==========
@@ -1059,6 +1155,47 @@ onMounted(async () => {
       .candidate-count {
         font-size: 14px;
         color: #6b7280;
+      }
+    }
+    
+    .candidate-tabs {
+      :deep(.el-tabs__header) {
+        margin-bottom: 16px;
+        
+        .el-tabs__nav-wrap::after {
+          height: 1px;
+          background: #e5e7eb;
+        }
+        
+        .el-tabs__item {
+          font-size: 14px;
+          font-weight: 500;
+          
+          &.is-active {
+            font-weight: 600;
+          }
+        }
+      }
+      
+      .tab-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        
+        .el-icon {
+          font-size: 16px;
+        }
+        
+        .el-badge {
+          margin-left: 4px;
+          
+          :deep(.el-badge__content) {
+            font-size: 11px;
+            height: 18px;
+            line-height: 18px;
+            padding: 0 6px;
+          }
+        }
       }
     }
     

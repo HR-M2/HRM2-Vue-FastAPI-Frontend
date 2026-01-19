@@ -132,24 +132,6 @@
             </el-button>
           </div>
           
-          <!-- 5. 面试视频分析（预留） -->
-          <div class="data-item" :class="{ 'available': hasVideoAnalysis }">
-            <div class="item-icon">
-              <el-icon><VideoCamera /></el-icon>
-            </div>
-            <div class="item-info">
-              <span class="item-name">面试视频分析</span>
-              <span class="item-status">
-                {{ hasVideoAnalysis ? '已完成' : '未分析' }}
-              </span>
-            </div>
-            <el-button v-if="hasVideoAnalysis" size="small" text type="primary" @click.stop="$emit('viewVideoAnalysis')">
-              查看
-            </el-button>
-            <el-button v-else size="small" text @click.stop="$emit('goToVideo')">
-              去分析
-            </el-button>
-          </div>
         </div>
         
         <!-- 综合分析操作区 -->
@@ -181,9 +163,19 @@
             </el-alert>
           </div>
           
-          <div v-else-if="isAnalyzing" class="analysis-progress">
-            <el-progress :percentage="analysisProgress" :status="analysisStatus" :stroke-width="12" />
-            <p class="progress-text">{{ analysisStatusText }}</p>
+          <div v-else-if="isAnalyzing" class="analysis-progress-animated">
+            <div class="ai-analysis-animation">
+              <div class="pulse-ring"></div>
+              <div class="pulse-ring delay-1"></div>
+              <div class="pulse-ring delay-2"></div>
+              <div class="brain-icon">🧠</div>
+            </div>
+            <div class="analysis-status">
+              <p class="progress-text">{{ analysisStatusText || 'AI 正在深度分析中...' }}</p>
+              <div class="typing-dots">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
           </div>
           
           <div v-else-if="comprehensiveAnalysis" class="analysis-result">
@@ -232,13 +224,12 @@
 import { ref, computed } from 'vue'
 import { 
   User, Trophy, Clock, ArrowDown, Document, DataAnalysis, 
-  ChatDotRound, Memo, VideoCamera, MagicStick, Check, Close, Refresh 
+  ChatDotRound, Memo, MagicStick, Check, Close, Refresh 
 } from '@element-plus/icons-vue'
 import type { 
   ApplicationDetailResponse, 
   ComprehensiveAnalysisBrief,
-  ScreeningTaskBrief,
-  VideoAnalysisBrief
+  ScreeningTaskBrief
 } from '@/api/types.gen'
 
 const props = defineProps<{
@@ -265,10 +256,8 @@ defineEmits<{
   viewImmersiveReport: []
   viewPsychologicalReport: []
   viewFinalReport: []
-  viewVideoAnalysis: []
   goToScreening: []
   goToImmersive: []
-  goToVideo: []
   startAnalysis: []
   generatePsychologicalReport: []
 }>()
@@ -281,7 +270,6 @@ const toggleExpand = () => {
 
 // 获取关联数据
 const screeningTask = computed<ScreeningTaskBrief | null | undefined>(() => props.application.screening_task)
-const videoAnalysis = computed<VideoAnalysisBrief | null | undefined>(() => props.application.video_analysis)
 const comprehensiveAnalysis = computed<ComprehensiveAnalysisBrief | null | undefined>(() => props.application.comprehensive_analysis)
 
 // 数据状态计算
@@ -314,19 +302,14 @@ const hasPsychologicalReport = computed(() => {
   return props.immersiveSession?.has_psychological_report === true
 })
 
-const hasVideoAnalysis = computed(() => {
-  return videoAnalysis.value?.status === 'completed'
-})
-
-// 数据完整度
+// 数据完整度（4项：简历、初筛报告、面试记录、心理报告）
 const completenessPercent = computed(() => {
   let count = 0
   if (hasResume.value) count++
   if (hasScreeningReport.value) count++
   if (hasImmersiveRecords.value) count++
-  if (hasImmersiveReport.value) count++
-  if (hasVideoAnalysis.value) count++
-  return Math.round((count / 5) * 100)
+  if (hasPsychologicalReport.value) count++
+  return Math.round((count / 4) * 100)
 })
 
 // 是否可以进行综合分析（需要心理分析报告）
@@ -609,16 +592,108 @@ const recommendationClass = computed(() => {
     }
   }
   
-  .analysis-progress {
-    padding: 20px;
-    background: #f0f9ff;
+  .analysis-progress-animated {
+    padding: 24px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 50%, #f5f3ff 100%);
     border-radius: 12px;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
     
-    .progress-text {
-      margin: 12px 0 0;
-      font-size: 13px;
-      color: #3b82f6;
+    .ai-analysis-animation {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      .pulse-ring {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 2px solid #3b82f6;
+        animation: pulse-expand 2s ease-out infinite;
+        opacity: 0;
+        
+        &.delay-1 { animation-delay: 0.4s; }
+        &.delay-2 { animation-delay: 0.8s; }
+      }
+      
+      .brain-icon {
+        font-size: 36px;
+        animation: float-bounce 2s ease-in-out infinite;
+        filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+      }
+    }
+    
+    .analysis-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .progress-text {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 500;
+        color: #3b82f6;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradient-shift 3s linear infinite;
+      }
+      
+      .typing-dots {
+        display: flex;
+        gap: 4px;
+        
+        span {
+          width: 6px;
+          height: 6px;
+          background: #3b82f6;
+          border-radius: 50%;
+          animation: typing-dot 1.4s ease-in-out infinite;
+          
+          &:nth-child(2) { animation-delay: 0.2s; }
+          &:nth-child(3) { animation-delay: 0.4s; }
+        }
+      }
+    }
+  }
+  
+  @keyframes pulse-expand {
+    0% {
+      transform: scale(0.5);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes float-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  
+  @keyframes gradient-shift {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
+  }
+  
+  @keyframes typing-dot {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-6px);
+      opacity: 1;
     }
   }
   
