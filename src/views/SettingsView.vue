@@ -61,6 +61,93 @@
         </el-form>
       </el-card>
 
+      <!-- 语音识别设置 -->
+      <el-card class="settings-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">语音识别设置</span>
+            <el-tag v-if="speechSettings.currentProvider" size="small" type="info">
+              当前: {{ speechSettings.currentProviderName }}
+            </el-tag>
+          </div>
+        </template>
+        <el-form label-width="120px" :model="speechSettings">
+          <el-form-item label="识别引擎">
+            <el-select 
+              v-model="speechSettings.providerType" 
+              style="width: 300px"
+              @change="onProviderTypeChange"
+            >
+              <el-option 
+                v-for="provider in availableProviders" 
+                :key="provider.type"
+                :label="provider.name" 
+                :value="provider.type"
+              >
+                <div class="provider-option">
+                  <span>{{ provider.name }}</span>
+                  <span class="provider-desc">{{ provider.description }}</span>
+                </div>
+              </el-option>
+            </el-select>
+            <div class="form-tip">选择语音识别服务提供商</div>
+          </el-form-item>
+
+          <!-- 阿里云配置 -->
+          <template v-if="speechSettings.providerType === 'aliyun'">
+            <el-divider content-position="left">阿里云配置</el-divider>
+            <el-alert 
+              type="info" 
+              :closable="false"
+              style="margin-bottom: 16px"
+            >
+              <template #title>
+                <span>配置信息仅保存在浏览器本地，不会上传到服务器</span>
+              </template>
+              <div style="margin-top: 8px; font-size: 12px;">
+                获取方式：登录<a href="https://nls-portal.console.aliyun.com/" target="_blank" style="color: #409eff;">阿里云智能语音交互控制台</a>
+                → 创建项目获取 AppKey → 点击"获取Token"获取临时Token（有效期24小时）
+              </div>
+            </el-alert>
+            <el-form-item label="AppKey" required>
+              <el-input 
+                v-model="speechSettings.aliyunConfig.appKey" 
+                placeholder="从阿里云智能语音交互控制台获取"
+                style="width: 300px"
+              />
+              <div class="form-tip">在智能语音交互控制台创建项目后获取</div>
+            </el-form-item>
+            <el-form-item label="Token" required>
+              <el-input 
+                v-model="speechSettings.aliyunConfig.token" 
+                type="password"
+                show-password
+                placeholder="从阿里云控制台获取，有效期24小时"
+                style="width: 300px"
+              />
+              <div class="form-tip">Token 有效期为24小时，过期后需要重新获取</div>
+            </el-form-item>
+            <el-form-item label="服务地址">
+              <el-input 
+                v-model="speechSettings.aliyunConfig.url" 
+                placeholder="可选，默认使用阿里云上海节点"
+                style="width: 300px"
+              />
+              <div class="form-tip">默认: wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1</div>
+            </el-form-item>
+          </template>
+
+          <el-form-item>
+            <el-button type="primary" @click="saveSpeechSettings" :loading="savingSpeechSettings">
+              保存设置
+            </el-button>
+            <el-button @click="testSpeechRecognition" :loading="testingSpeech">
+              测试语音识别
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+
       <!-- 数据管理 -->
       <el-card class="settings-card" shadow="hover">
         <template #header>
@@ -120,9 +207,19 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { client } from '@/api/client.gen'
+import { 
+  getAvailableProviders, 
+  getSpeechProviderRegistry 
+} from '@/services/speech'
+import { 
+  getSpeechSettings, 
+  saveSpeechSettings as saveSpeechSettingsToStorage,
+  type SpeechSettings,
+  type SpeechProviderType
+} from '@/composables/useSpeechRecognition'
 
 // 测试连接状态
 const testingConnection = ref(false)
@@ -140,6 +237,120 @@ const systemSettings = reactive({
   notifications: true,
   language: 'zh-CN'
 })
+
+// 语音识别设置
+const availableProviders = getAvailableProviders()
+const savingSpeechSettings = ref(false)
+const testingSpeech = ref(false)
+
+const speechSettings = reactive({
+  providerType: 'browser' as SpeechProviderType,
+  currentProvider: 'browser',
+  currentProviderName: '浏览器原生',
+  aliyunConfig: {
+    appKey: '',
+    token: '',
+    url: ''
+  }
+})
+
+// 初始化语音识别设置
+const initSpeechSettings = () => {
+  const saved = getSpeechSettings()
+  speechSettings.providerType = saved.providerType
+  speechSettings.currentProvider = saved.providerType
+  
+  const provider = availableProviders.find(p => p.type === saved.providerType)
+  speechSettings.currentProviderName = provider?.name || '浏览器原生'
+  
+  if (saved.providerConfig) {
+    if (saved.providerType === 'aliyun') {
+      speechSettings.aliyunConfig = {
+        appKey: (saved.providerConfig.appKey as string) || '',
+        token: (saved.providerConfig.token as string) || '',
+        url: (saved.providerConfig.url as string) || ''
+      }
+    }
+  }
+}
+
+// Provider 类型变更处理
+const onProviderTypeChange = (type: SpeechProviderType) => {
+  speechSettings.providerType = type
+}
+
+// 保存语音识别设置
+const saveSpeechSettings = async () => {
+  savingSpeechSettings.value = true
+  try {
+    const settings: SpeechSettings = {
+      providerType: speechSettings.providerType,
+      providerConfig: {}
+    }
+    
+    if (speechSettings.providerType === 'aliyun') {
+      if (!speechSettings.aliyunConfig.appKey || !speechSettings.aliyunConfig.token) {
+        ElMessage.warning('请填写完整的阿里云配置信息（AppKey 和 Token）')
+        return
+      }
+      settings.providerConfig = {
+        appKey: speechSettings.aliyunConfig.appKey,
+        token: speechSettings.aliyunConfig.token,
+        url: speechSettings.aliyunConfig.url || undefined
+      }
+    }
+    
+    saveSpeechSettingsToStorage(settings)
+    
+    speechSettings.currentProvider = speechSettings.providerType
+    const provider = availableProviders.find(p => p.type === speechSettings.providerType)
+    speechSettings.currentProviderName = provider?.name || '浏览器原生'
+    
+    ElMessage.success('语音识别设置已保存')
+  } catch (err) {
+    ElMessage.error('保存语音识别设置失败')
+    console.error(err)
+  } finally {
+    savingSpeechSettings.value = false
+  }
+}
+
+// 测试语音识别
+const testSpeechRecognition = async () => {
+  testingSpeech.value = true
+  try {
+    // 先保存当前设置
+    await saveSpeechSettings()
+    
+    // 检查麦克风权限
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch (err) {
+      ElMessage.error('无法访问麦克风，请确保已授予权限')
+      return
+    }
+    
+    // 创建临时 Provider 进行测试
+    const registry = getSpeechProviderRegistry()
+    const config = {
+      type: speechSettings.providerType,
+      ...speechSettings.aliyunConfig
+    }
+    const provider = registry.createProvider(config as any)
+    
+    if (!provider.checkSupport()) {
+      ElMessage.error(`当前 Provider (${provider.name}) 不受支持`)
+      return
+    }
+    
+    ElMessage.success(`${provider.name} 可用，麦克风权限正常`)
+  } catch (err) {
+    ElMessage.error('测试语音识别失败')
+    console.error(err)
+  } finally {
+    testingSpeech.value = false
+  }
+}
 
 // 保存 API 配置
 const saveApiSettings = () => {
@@ -256,6 +467,9 @@ const initSettings = () => {
       Object.assign(systemSettings, JSON.parse(savedSystemSettings))
     } catch {}
   }
+  
+  // 初始化语音识别设置
+  initSpeechSettings()
 }
 
 initSettings()
@@ -374,6 +588,19 @@ initSettings()
       color: #303133;
       font-size: 14px;
     }
+  }
+}
+
+// 语音识别 Provider 选项
+.provider-option {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+
+  .provider-desc {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 2px;
   }
 }
 </style>

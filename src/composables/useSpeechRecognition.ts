@@ -1,59 +1,60 @@
 /**
  * 语音识别 Composable
- * 使用 Web Speech API 实现实时语音转文字
+ * 支持多种语音识别 Provider（浏览器原生、阿里云等）
+ * 
+ * 使用方法：
+ * 1. 默认使用浏览器原生 Web Speech API
+ * 2. 可通过系统设置切换到其他 Provider
+ * 3. 支持自定义 Provider 扩展
  */
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import type {
+  ISpeechRecognitionProvider,
+  ProviderConfig,
+  SpeechProviderType
+} from '@/services/speech'
+import { createSpeechProvider, getAvailableProviders } from '@/services/speech'
 
-interface SpeechRecognitionEvent extends Event {
-  resultIndex: number
-  results: SpeechRecognitionResultList
+/** 语音识别设置存储 key */
+const SPEECH_SETTINGS_KEY = 'speechRecognitionSettings'
+
+/** 语音识别设置接口 */
+export interface SpeechSettings {
+  providerType: SpeechProviderType
+  providerConfig?: Record<string, unknown>
 }
 
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string
-  message: string
-}
-
-interface SpeechRecognitionResult {
-  isFinal: boolean
-  [index: number]: SpeechRecognitionAlternative
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string
-  confidence: number
-}
-
-interface SpeechRecognitionResultList {
-  length: number
-  item(index: number): SpeechRecognitionResult
-  [index: number]: SpeechRecognitionResult
-}
-
-interface ISpeechRecognition extends EventTarget {
-  continuous: boolean
-  interimResults: boolean
-  lang: string
-  maxAlternatives: number
-  start(): void
-  stop(): void
-  abort(): void
-  onaudiostart: ((this: ISpeechRecognition, ev: Event) => void) | null
-  onaudioend: ((this: ISpeechRecognition, ev: Event) => void) | null
-  onstart: ((this: ISpeechRecognition, ev: Event) => void) | null
-  onend: ((this: ISpeechRecognition, ev: Event) => void) | null
-  onerror: ((this: ISpeechRecognition, ev: SpeechRecognitionErrorEvent) => void) | null
-  onresult: ((this: ISpeechRecognition, ev: SpeechRecognitionEvent) => void) | null
-  onspeechstart: ((this: ISpeechRecognition, ev: Event) => void) | null
-  onspeechend: ((this: ISpeechRecognition, ev: Event) => void) | null
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: new () => ISpeechRecognition
-    webkitSpeechRecognition: new () => ISpeechRecognition
+/** 获取保存的语音识别设置 */
+export function getSpeechSettings(): SpeechSettings {
+  try {
+    const saved = localStorage.getItem(SPEECH_SETTINGS_KEY)
+    if (saved) {
+      return JSON.parse(saved)
+    }
+  } catch (e) {
+    console.error('读取语音识别设置失败:', e)
   }
+  return { providerType: 'browser' }
+}
+
+/** 保存语音识别设置 */
+export function saveSpeechSettings(settings: SpeechSettings): void {
+  try {
+    localStorage.setItem(SPEECH_SETTINGS_KEY, JSON.stringify(settings))
+  } catch (e) {
+    console.error('保存语音识别设置失败:', e)
+  }
+}
+
+/** 获取当前 Provider 配置 */
+function getCurrentProviderConfig(): ProviderConfig {
+  const settings = getSpeechSettings()
+  const config: ProviderConfig = {
+    type: settings.providerType,
+    ...settings.providerConfig
+  } as ProviderConfig
+  return config
 }
 
 export interface SpeechRecognitionOptions {
@@ -64,6 +65,7 @@ export interface SpeechRecognitionOptions {
   onError?: (error: string) => void
   onStart?: () => void
   onEnd?: () => void
+  onAudioLevel?: (level: number) => void
 }
 
 export function useSpeechRecognition(options: SpeechRecognitionOptions = {}) {
@@ -74,7 +76,8 @@ export function useSpeechRecognition(options: SpeechRecognitionOptions = {}) {
     onResult,
     onError,
     onStart,
-    onEnd
+    onEnd,
+    onAudioLevel
   } = options
 
   const isSupported = ref(false)
@@ -83,248 +86,199 @@ export function useSpeechRecognition(options: SpeechRecognitionOptions = {}) {
   const interimTranscript = ref('')
   const finalTranscript = ref('')
   const error = ref<string | null>(null)
+  const currentProviderType = ref<SpeechProviderType>('browser')
 
-  let recognition: ISpeechRecognition | null = null
-  let shouldBeListening = false // 用于追踪用户是否希望继续录音
-  let restartAttempts = 0
-  let networkErrorRetries = 0 // 网络错误重试计数
-  const MAX_RESTART_ATTEMPTS = 5
-  const MAX_NETWORK_RETRIES = 3 // 网络错误最大重试次数
+  let provider: ISpeechRecognitionProvider | null = null
 
-  const checkSupport = () => {
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
-    isSupported.value = !!SpeechRecognitionAPI
-    return isSupported.value
-  }
-
-  const destroyRecognition = () => {
-    if (recognition) {
-      recognition.onstart = null
-      recognition.onend = null
-      recognition.onresult = null
-      recognition.onerror = null
-      recognition.onspeechstart = null
-      recognition.onspeechend = null
-      try {
-        recognition.abort()
-      } catch (_e) {
-        // ignore
-      }
-      recognition = null
+  /** 内部回调处理 */
+  const handleResult = (text: string, isFinal: boolean) => {
+    if (isFinal) {
+      finalTranscript.value += text
+    } else {
+      interimTranscript.value = text
     }
+    transcript.value = finalTranscript.value + interimTranscript.value
+    onResult?.(text, isFinal)
   }
 
-  const initRecognition = () => {
-    if (!checkSupport()) {
-      error.value = '您的浏览器不支持语音识别，请使用 Chrome 或 Edge 浏览器'
-      ElMessage.error(error.value)
+  const handleError = (errorMessage: string) => {
+    error.value = errorMessage
+    isListening.value = false
+    onError?.(errorMessage)
+    ElMessage.warning(errorMessage)
+  }
+
+  const handleStart = () => {
+    isListening.value = true
+    error.value = null
+    onStart?.()
+  }
+
+  const handleEnd = () => {
+    isListening.value = false
+    onEnd?.()
+  }
+
+  /** 初始化 Provider */
+  const initProvider = async (): Promise<boolean> => {
+    // 销毁现有 Provider
+    if (provider) {
+      provider.destroy()
+      provider = null
+    }
+
+    // 创建新 Provider
+    const config = getCurrentProviderConfig()
+    currentProviderType.value = config.type
+    provider = createSpeechProvider(config)
+
+    // 检查支持性
+    isSupported.value = provider.checkSupport()
+    if (!isSupported.value) {
+      error.value = `当前 Provider (${provider.name}) 不受支持`
       return false
     }
 
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
-    recognition = new SpeechRecognitionAPI()
+    // 初始化
+    const success = await provider.initialize(
+      { lang, continuous, interimResults },
+      {
+        onResult: handleResult,
+        onError: handleError,
+        onStart: handleStart,
+        onEnd: handleEnd,
+        onAudioLevel
+      }
+    )
 
-    recognition.lang = lang
-    recognition.continuous = continuous
-    recognition.interimResults = interimResults
-    recognition.maxAlternatives = 1
-
-    recognition.onstart = () => {
-      isListening.value = true
-      error.value = null
-      // 成功启动后重置所有重试计数
-      restartAttempts = 0
-      networkErrorRetries = 0
-      onStart?.()
+    if (!success) {
+      const state = provider.getState()
+      error.value = state.error || '初始化语音识别失败'
+      return false
     }
-
-    recognition.onend = () => {
-      isListening.value = false
-      
-      // 如果用户希望继续录音，自动重启
-      if (shouldBeListening && restartAttempts < MAX_RESTART_ATTEMPTS) {
-        restartAttempts++
-        console.log(`语音识别自动重启 (${restartAttempts}/${MAX_RESTART_ATTEMPTS})`)
-        setTimeout(() => {
-          if (shouldBeListening) {
-            // 完全重建 recognition 对象以绕过 Chrome 60秒限制
-            destroyRecognition()
-            if (initRecognition()) {
-              try {
-                recognition?.start()
-              } catch (err) {
-                console.error('重启语音识别失败:', err)
-                shouldBeListening = false
-                onEnd?.()
-              }
-            } else {
-              shouldBeListening = false
-              onEnd?.()
-            }
-          }
-        }, 100)
-      } else {
-        restartAttempts = 0
-        onEnd?.()
-      }
-    }
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = ''
-      let final = ''
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i]
-        if (result) {
-          const transcriptText = result[0]?.transcript || ''
-          if (result.isFinal) {
-            final += transcriptText
-          } else {
-            interim += transcriptText
-          }
-        }
-      }
-
-      interimTranscript.value = interim
-
-      if (final) {
-        finalTranscript.value += final
-      }
-
-      transcript.value = finalTranscript.value + interimTranscript.value
-
-      if (final) {
-        onResult?.(final, true)
-      } else if (interim) {
-        onResult?.(interim, false)
-      }
-    }
-
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      let errorMessage = ''
-      let shouldRetry = false
-      
-      switch (event.error) {
-        case 'no-speech':
-          // 无语音检测，静默处理，自动继续
-          console.log('未检测到语音，继续监听...')
-          return
-        case 'audio-capture':
-          errorMessage = '未找到麦克风，请确保麦克风已连接'
-          break
-        case 'not-allowed':
-          errorMessage = '麦克风权限被拒绝，请在浏览器设置中允许访问麦克风'
-          break
-        case 'network':
-          // 网络错误，尝试自动重试
-          if (networkErrorRetries < MAX_NETWORK_RETRIES && shouldBeListening) {
-            networkErrorRetries++
-            console.log(`网络错误，自动重试 (${networkErrorRetries}/${MAX_NETWORK_RETRIES})...`)
-            setTimeout(() => {
-              if (shouldBeListening) {
-                destroyRecognition()
-                if (initRecognition()) {
-                  try {
-                    recognition?.start()
-                  } catch (err) {
-                    console.error('网络错误重试失败:', err)
-                  }
-                }
-              }
-            }, 1000 * networkErrorRetries) // 递增延迟重试
-            return
-          }
-          errorMessage = '网络连接异常，请检查网络后重试（语音识别需要访问 Google 服务）'
-          break
-        case 'aborted':
-          return
-        case 'service-not-allowed':
-          errorMessage = '语音识别服务不可用，请稍后重试'
-          break
-        default:
-          errorMessage = `语音识别错误: ${event.error}`
-      }
-      
-      error.value = errorMessage
-      isListening.value = false
-      shouldBeListening = false
-      onError?.(errorMessage)
-      ElMessage.warning(errorMessage)
-    }
-
-    recognition.onspeechstart = () => {}
-    recognition.onspeechend = () => {}
 
     return true
   }
 
-  const start = async () => {
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true })
-    } catch (err) {
-      error.value = '无法访问麦克风，请确保已授予权限'
-      ElMessage.error(error.value)
-      onError?.(error.value)
-      return false
-    }
-
-    if (!recognition) {
-      if (!initRecognition()) {
+  /** 启动识别 */
+  const start = async (): Promise<boolean> => {
+    // 确保 Provider 已初始化
+    if (!provider) {
+      const initialized = await initProvider()
+      if (!initialized) {
         return false
       }
     }
 
-    try {
-      interimTranscript.value = ''
-      shouldBeListening = true
-      restartAttempts = 0
-      networkErrorRetries = 0
-      recognition?.start()
-      return true
-    } catch (err) {
-      console.error('Start recognition error:', err)
-      shouldBeListening = false
-      return false
+    // 重置中间结果
+    interimTranscript.value = ''
+
+    // 启动识别
+    const success = await provider!.start()
+    if (!success) {
+      const state = provider!.getState()
+      if (state.error) {
+        error.value = state.error
+        ElMessage.error(state.error)
+      }
     }
+    return success
   }
 
+  /** 停止识别 */
   const stop = () => {
-    shouldBeListening = false
-    restartAttempts = 0
-    if (recognition && isListening.value) {
-      recognition.stop()
+    if (provider) {
+      provider.stop()
     }
+    isListening.value = false
   }
 
+  /** 重置 */
   const reset = () => {
     stop()
     transcript.value = ''
     interimTranscript.value = ''
     finalTranscript.value = ''
     error.value = null
+    if (provider) {
+      provider.reset()
+    }
   }
 
+  /** 清理资源 */
   const cleanup = () => {
-    shouldBeListening = false
-    destroyRecognition()
+    if (provider) {
+      provider.destroy()
+      provider = null
+    }
   }
 
+  /** 切换 Provider */
+  const switchProvider = async (providerType: SpeechProviderType): Promise<boolean> => {
+    // 停止当前识别
+    stop()
+    cleanup()
+
+    // 更新设置
+    const settings = getSpeechSettings()
+    settings.providerType = providerType
+    saveSpeechSettings(settings)
+
+    // 重新初始化
+    return await initProvider()
+  }
+
+  /** 更新 Provider 配置 */
+  const updateProviderConfig = async (config: Record<string, unknown>): Promise<boolean> => {
+    const settings = getSpeechSettings()
+    settings.providerConfig = { ...settings.providerConfig, ...config }
+    saveSpeechSettings(settings)
+
+    // 如果已有 Provider，需要重新初始化
+    if (provider) {
+      return await initProvider()
+    }
+    return true
+  }
+
+  /** 获取可用的 Provider 列表 */
+  const getProviders = () => {
+    return getAvailableProviders()
+  }
+
+  // 组件卸载时清理
   onUnmounted(() => {
     cleanup()
   })
 
-  checkSupport()
+  // 初始化检查支持性
+  const config = getCurrentProviderConfig()
+  currentProviderType.value = config.type
+  const tempProvider = createSpeechProvider(config)
+  isSupported.value = tempProvider.checkSupport()
 
   return {
+    // 状态
     isSupported,
     isListening,
     transcript,
     interimTranscript,
     finalTranscript,
     error,
+    currentProviderType,
+    // 方法
     start,
     stop,
     reset,
-    cleanup
+    cleanup,
+    // Provider 管理
+    switchProvider,
+    updateProviderConfig,
+    getProviders,
+    initProvider
   }
 }
+
+// 导出 Provider 相关类型和工具
+export { getAvailableProviders } from '@/services/speech'
+export type { SpeechProviderType, ProviderConfig } from '@/services/speech'
