@@ -1476,23 +1476,159 @@ onMounted(async () => {
     }
     
     .report-content {
-      padding: 16px;
+      padding: 20px 24px;
       background: #f9fafb;
       border-radius: 12px;
       font-size: 14px;
       color: #374151;
       line-height: 1.8;
+      max-height: 500px;
+      overflow-y: auto;
       
-      p {
-        margin: 0 0 12px;
+      // Markdown 标题样式
+      :deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6) {
+        margin: 20px 0 12px;
+        font-weight: 600;
+        color: #1a1a2e;
+        line-height: 1.4;
+        
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+      
+      :deep(h1) { font-size: 20px; }
+      :deep(h2) { font-size: 18px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+      :deep(h3) { font-size: 16px; color: #4b5563; }
+      :deep(h4) { font-size: 15px; color: #6b7280; }
+      
+      // 段落样式
+      :deep(p) {
+        margin: 0 0 16px;
+        word-wrap: break-word;
         
         &:last-child {
           margin-bottom: 0;
         }
       }
       
-      strong {
+      // 列表样式
+      :deep(ul), :deep(ol) {
+        margin: 12px 0;
+        padding-left: 24px;
+        
+        li {
+          margin-bottom: 8px;
+          line-height: 1.7;
+          
+          &::marker {
+            color: #667eea;
+          }
+        }
+      }
+      
+      :deep(ul) {
+        list-style-type: disc;
+        
+        ul {
+          list-style-type: circle;
+          margin: 8px 0;
+        }
+      }
+      
+      :deep(ol) {
+        list-style-type: decimal;
+      }
+      
+      // 强调样式
+      :deep(strong) {
         color: #1a1a2e;
+        font-weight: 600;
+      }
+      
+      :deep(em) {
+        color: #4b5563;
+        font-style: italic;
+      }
+      
+      // 代码块样式
+      :deep(code) {
+        background: #e5e7eb;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 13px;
+        color: #dc2626;
+      }
+      
+      :deep(pre) {
+        background: #1f2937;
+        color: #e5e7eb;
+        padding: 16px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 16px 0;
+        
+        code {
+          background: transparent;
+          color: inherit;
+          padding: 0;
+        }
+      }
+      
+      // 引用样式
+      :deep(blockquote) {
+        margin: 16px 0;
+        padding: 12px 20px;
+        border-left: 4px solid #667eea;
+        background: #eff6ff;
+        color: #4b5563;
+        border-radius: 0 8px 8px 0;
+        
+        p {
+          margin: 0;
+        }
+      }
+      
+      // 分割线
+      :deep(hr) {
+        border: none;
+        border-top: 1px solid #e5e7eb;
+        margin: 20px 0;
+      }
+      
+      // 表格样式
+      :deep(table) {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 13px;
+        
+        th, td {
+          border: 1px solid #e5e7eb;
+          padding: 10px 12px;
+          text-align: left;
+        }
+        
+        th {
+          background: #f3f4f6;
+          font-weight: 600;
+          color: #374151;
+        }
+        
+        tr:hover td {
+          background: #f9fafb;
+        }
+      }
+      
+      // 链接样式
+      :deep(a) {
+        color: #667eea;
+        text-decoration: none;
+        
+        &:hover {
+          text-decoration: underline;
+        }
       }
     }
   }

@@ -84,7 +84,7 @@
               </el-select>
             </el-form-item>
 
-            <!-- 推流设置 -->
+            <!-- 推流设置（暂时隐藏）
             <el-form-item label="面试官视频源（可选）">
               <el-input
                 v-model="config.streamUrl"
@@ -99,6 +99,7 @@
                 支持RTMP、HLS等常见推流协议，可连接远程面试官摄像头
               </div>
             </el-form-item>
+            -->
 
             <!-- 功能开关 -->
             <el-form-item label="功能设置">

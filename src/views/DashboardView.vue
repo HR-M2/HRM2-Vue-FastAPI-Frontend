@@ -251,18 +251,18 @@ const quickActions = [
     bgColor: '#f0f9eb'
   },
   {
-    to: '/video',
-    label: '视频分析',
-    desc: '分析候选人视频',
+    to: '/immersive',
+    label: '沉浸式面试',
+    desc: '开始沉浸式面试',
     icon: markRaw(VideoCamera),
     color: '#e6a23c',
     bgColor: '#fdf6ec'
   },
   {
-    to: '/interview',
-    label: '面试辅助',
-    desc: '开始面试会话',
-    icon: markRaw(ChatDotRound),
+    to: '/recommend',
+    label: '最终推荐',
+    desc: '查看综合分析推荐',
+    icon: markRaw(Trophy),
     color: '#9b59b6',
     bgColor: '#f5f0ff'
   }

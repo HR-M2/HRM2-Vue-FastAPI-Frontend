@@ -77,9 +77,10 @@ const navItems = [
   { path: '/positions', label: '岗位设置', icon: Briefcase },
   { path: '/library', label: '简历库', icon: FolderOpened },
   { path: '/screening', label: '简历筛选', icon: Document },
-  { path: '/video', label: '视频分析', icon: VideoCamera },
-  { path: '/interview', label: '面试辅助', icon: ChatDotRound },
-  { path: '/immersive', label: '沉浸式面试', icon: Monitor },
+  // { path: '/video', label: '视频分析', icon: VideoCamera },
+  // { path: '/interview', label: '面试辅助', icon: ChatDotRound },
+  // { path: '/immersive', label: '沉浸式面试', icon: Monitor },
+  { path: '/immersive', label: '沉浸式面试', icon: VideoCamera },
   { path: '/recommend', label: '最终推荐', icon: Trophy }
 ]
 
