@@ -65,11 +65,14 @@
               :analysis-progress="getAnalysisProgress(app.id)"
               :analysis-status-text="getAnalysisStatusText(app.id)"
               :is-generating-report="isGeneratingReportForApplication(app.id)"
+              :is-generating-psych-report="isGeneratingPsychReportForApp(app.id)"
               :immersive-session="getImmersiveSessionForApp(app.id)"
               @view-resume="viewResumeDetail(app)"
               @view-screening-report="viewScreeningReport(app)"
               @view-immersive-records="viewImmersiveRecords(app)"
               @view-immersive-report="viewImmersiveReport(app)"
+              @view-psychological-report="viewPsychologicalReport(app)"
+              @generate-psychological-report="generatePsychologicalReport(app)"
               @view-final-report="viewFinalReport(app)"
               @view-video-analysis="viewVideoAnalysis(app)"
               @go-to-screening="goToScreening"
@@ -115,6 +118,16 @@
       v-model="showImmersiveReportDialog"
       :report-data="selectedImmersiveReport"
       :loading="isLoadingImmersiveData"
+    />
+    
+    <!-- 心理分析报告弹窗 -->
+    <PsychologicalReportDialog
+      v-model="showPsychologicalReportDialog"
+      :report-data="selectedPsychologicalReport"
+      :loading="isLoadingPsychReport"
+      :is-generating="isGeneratingPsychReport"
+      :candidate-name="selectedPsychReportCandidateName"
+      @generate="handleGeneratePsychReport"
     />
     
     <!-- 综合分析详情对话框 -->
@@ -204,6 +217,7 @@ import PositionList from '@/components/common/PositionList.vue'
 import ResumeDetailDialog from '@/components/common/ResumeDetailDialog.vue'
 import ImmersiveRecordsDialog from '@/components/recommend/ImmersiveRecordsDialog.vue'
 import ImmersiveAnalysisReportDialog from '@/components/recommend/ImmersiveAnalysisReportDialog.vue'
+import PsychologicalReportDialog from '@/components/recommend/PsychologicalReportDialog.vue'
 
 // Composables
 import { usePositionManagement } from '@/composables/usePositionManagement'
@@ -476,11 +490,21 @@ const loadImmersiveSessionsForApplications = async (applications: ApplicationDet
       const data = response.data?.data
       
       if (data) {
+        // 检查心理报告是否存在
+        let hasPsychReport = false
+        try {
+          const psychExistsResponse = await axios.get(`/api/v1/psychological/${data.id}/exists`)
+          hasPsychReport = psychExistsResponse.data?.data?.exists === true
+        } catch {
+          // 忽略错误，默认为不存在
+        }
+        
         immersiveSessionsMap.value[app.id] = {
           id: data.id,
           is_completed: data.is_completed,
           utterance_count: data.statistics?.utterance_count?.total || 0,
           has_final_analysis: true,
+          has_psychological_report: hasPsychReport,
           // 缓存完整数据供后续使用
           _cachedData: data
         }
@@ -624,6 +648,136 @@ const viewImmersiveReport = async (app: ApplicationDetailResponse) => {
   }
 }
 
+
+// ========== 心理分析报告 ==========
+const showPsychologicalReportDialog = ref(false)
+const selectedPsychologicalReport = ref<any>(null)
+const isLoadingPsychReport = ref(false)
+const isGeneratingPsychReport = ref(false)
+const selectedPsychReportCandidateName = ref('')
+const selectedPsychReportAppId = ref('')
+const generatingPsychReportApps = ref<Set<string>>(new Set())
+
+// 是否正在为某个应用生成心理报告
+const isGeneratingPsychReportForApp = (appId: string) => {
+  return generatingPsychReportApps.value.has(appId)
+}
+
+// 查看心理分析报告
+const viewPsychologicalReport = async (app: ApplicationDetailResponse) => {
+  const session = immersiveSessionsMap.value[app.id]
+  if (!session?.id) {
+    ElMessage.warning('暂无沉浸式面试记录')
+    return
+  }
+  
+  isLoadingPsychReport.value = true
+  showPsychologicalReportDialog.value = true
+  selectedPsychReportCandidateName.value = app.candidate_name || '未知'
+  selectedPsychReportAppId.value = app.id
+  
+  try {
+    // 获取心理分析报告
+    const response = await axios.get(`/api/v1/psychological/${session.id}`)
+    if (response.data?.data) {
+      selectedPsychologicalReport.value = response.data.data
+    }
+  } catch (err: any) {
+    console.error('获取心理分析报告失败:', err)
+    if (err.response?.status === 404) {
+      selectedPsychologicalReport.value = null
+    } else {
+      ElMessage.error('获取心理分析报告失败')
+      showPsychologicalReportDialog.value = false
+    }
+  } finally {
+    isLoadingPsychReport.value = false
+  }
+}
+
+// 生成心理分析报告
+const generatePsychologicalReport = async (app: ApplicationDetailResponse) => {
+  const session = immersiveSessionsMap.value[app.id]
+  if (!session?.id) {
+    ElMessage.warning('暂无沉浸式面试记录')
+    return
+  }
+  
+  generatingPsychReportApps.value.add(app.id)
+  
+  try {
+    ElMessage.info('正在生成心理分析报告，预计需要 10-30 秒...')
+    
+    const response = await axios.post(
+      `/api/v1/psychological/${session.id}/generate`,
+      {},
+      { timeout: 60000 }
+    )
+    
+    if (response.data?.data) {
+      // 更新缓存中的心理报告状态
+      if (immersiveSessionsMap.value[app.id]) {
+        immersiveSessionsMap.value[app.id].has_psychological_report = true
+      }
+      
+      ElMessage.success('心理分析报告生成成功')
+      
+      // 打开弹窗显示报告
+      selectedPsychologicalReport.value = response.data.data
+      selectedPsychReportCandidateName.value = app.candidate_name || '未知'
+      selectedPsychReportAppId.value = app.id
+      showPsychologicalReportDialog.value = true
+    }
+  } catch (err: any) {
+    console.error('生成心理分析报告失败:', err)
+    if (err.response?.status === 404) {
+      ElMessage.error('面试会话不存在或未完成')
+    } else if (err.response?.status === 400) {
+      ElMessage.error(err.response.data?.message || '生成失败')
+    } else {
+      ElMessage.error('生成心理分析报告失败，请重试')
+    }
+  } finally {
+    generatingPsychReportApps.value.delete(app.id)
+  }
+}
+
+// 在弹窗内触发生成报告
+const handleGeneratePsychReport = async () => {
+  if (!selectedPsychReportAppId.value) return
+  
+  const app = currentApplications.value.find(a => a.id === selectedPsychReportAppId.value)
+  if (!app) return
+  
+  const session = immersiveSessionsMap.value[app.id]
+  if (!session?.id) return
+  
+  isGeneratingPsychReport.value = true
+  
+  try {
+    const response = await axios.post(
+      `/api/v1/psychological/${session.id}/generate`,
+      {},
+      { timeout: 60000 }
+    )
+    
+    if (response.data?.data) {
+      selectedPsychologicalReport.value = response.data.data
+      
+      // 更新缓存
+      if (immersiveSessionsMap.value[app.id]) {
+        immersiveSessionsMap.value[app.id].has_psychological_report = true
+      }
+      
+      ElMessage.success('心理分析报告生成成功')
+    }
+  } catch (err: any) {
+    console.error('生成心理分析报告失败:', err)
+    ElMessage.error(err.response?.data?.message || '生成失败，请重试')
+  } finally {
+    isGeneratingPsychReport.value = false
+  }
+}
 
 // 查看视频分析
 const viewVideoAnalysis = (app: ApplicationDetailResponse) => {

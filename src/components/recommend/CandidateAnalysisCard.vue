@@ -100,19 +100,35 @@
             </el-button>
           </div>
           
-          <!-- 4. 沉浸式面试分析报告 -->
-          <div class="data-item" :class="{ 'available': hasImmersiveReport }">
+          <!-- 4. 沉浸式面试心理分析报告 -->
+          <div class="data-item" :class="{ 'available': hasPsychologicalReport }">
             <div class="item-icon">
               <el-icon><Memo /></el-icon>
             </div>
             <div class="item-info">
-              <span class="item-name">沉浸式面试分析报告</span>
+              <span class="item-name">沉浸式面试心理分析报告</span>
               <span class="item-status">
-                {{ hasImmersiveReport ? '已生成' : (hasImmersiveRecords ? '有对话记录，可生成' : '未生成') }}
+                {{ hasPsychologicalReport ? '已生成' : (hasImmersiveRecords ? '可生成' : '需先完成面试') }}
               </span>
             </div>
-            <el-button v-if="hasImmersiveReport" size="small" text type="primary" @click.stop="$emit('viewImmersiveReport')">
+            <el-button 
+              v-if="hasPsychologicalReport" 
+              size="small" 
+              text 
+              type="primary" 
+              @click.stop="$emit('viewPsychologicalReport')"
+            >
               查看
+            </el-button>
+            <el-button 
+              v-else-if="hasImmersiveRecords"
+              size="small" 
+              text 
+              type="success"
+              :loading="isGeneratingPsychReport"
+              @click.stop="$emit('generatePsychologicalReport')"
+            >
+              {{ isGeneratingPsychReport ? '生成中...' : '生成报告' }}
             </el-button>
           </div>
           
@@ -157,9 +173,9 @@
                   <el-icon><Check v-if="hasScreeningReport" /><Close v-else /></el-icon>
                   简历初筛报告
                 </li>
-                <li :class="{ 'met': hasImmersiveReport }">
-                  <el-icon><Check v-if="hasImmersiveReport" /><Close v-else /></el-icon>
-                  沉浸式面试分析报告
+                <li :class="{ 'met': hasPsychologicalReport }">
+                  <el-icon><Check v-if="hasPsychologicalReport" /><Close v-else /></el-icon>
+                  沉浸式面试心理分析报告
                 </li>
               </ul>
             </el-alert>
@@ -231,12 +247,14 @@ const props = defineProps<{
   analysisProgress?: number
   analysisStatusText?: string
   isGeneratingReport?: boolean
+  isGeneratingPsychReport?: boolean
   // 沉浸式面试数据
   immersiveSession?: {
     id: string
     is_completed: boolean
     utterance_count: number
     has_final_analysis: boolean
+    has_psychological_report?: boolean
   } | null
 }>()
 
@@ -245,12 +263,14 @@ defineEmits<{
   viewScreeningReport: []
   viewImmersiveRecords: []
   viewImmersiveReport: []
+  viewPsychologicalReport: []
   viewFinalReport: []
   viewVideoAnalysis: []
   goToScreening: []
   goToImmersive: []
   goToVideo: []
   startAnalysis: []
+  generatePsychologicalReport: []
 }>()
 
 const isExpanded = ref(false)
@@ -289,6 +309,11 @@ const hasImmersiveReport = computed(() => {
   return props.immersiveSession?.is_completed && props.immersiveSession?.has_final_analysis
 })
 
+const hasPsychologicalReport = computed(() => {
+  // 心理分析报告是否已生成
+  return props.immersiveSession?.has_psychological_report === true
+})
+
 const hasVideoAnalysis = computed(() => {
   return videoAnalysis.value?.status === 'completed'
 })
@@ -304,9 +329,9 @@ const completenessPercent = computed(() => {
   return Math.round((count / 5) * 100)
 })
 
-// 是否可以进行综合分析
+// 是否可以进行综合分析（需要心理分析报告）
 const canAnalyze = computed(() => {
-  return hasResume.value && hasScreeningReport.value && hasImmersiveReport.value
+  return hasResume.value && hasScreeningReport.value && hasPsychologicalReport.value
 })
 
 // 分析状态
