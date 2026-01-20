@@ -785,6 +785,7 @@ export function useImmersiveInterview() {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
+          frameRate: { ideal: 20 },
           facingMode: 'user'
         },
         audio: true
