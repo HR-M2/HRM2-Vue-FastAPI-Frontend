@@ -4,7 +4,7 @@
     <div class="sidebar-header">
       <div class="logo" @click="handleLogoClick">
         <div class="logo-icon">
-          <el-icon :size="24"><Briefcase /></el-icon>
+          <img src="/icon.png" alt="Logo" class="logo-img" />
         </div>
         <span v-show="!isCollapsed" class="system-name">艾思科技-智能招聘</span>
       </div>
@@ -130,12 +130,17 @@ const handleLogoClick = () => {
 .logo-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  overflow: hidden;
+
+  .logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 }
 
 .system-name {
