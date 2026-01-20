@@ -909,10 +909,11 @@ const viewFinalReport = async (app: ApplicationDetailResponse) => {
 
 
 // 综合分析详情相关函数
+// 分数区间：≥85强烈推荐，≥75推荐，≥60谨慎考虑，<60不推荐
 const getComprehensiveScoreClass = (score: number) => {
   if (score >= 85) return 'score-strong'
-  if (score >= 70) return 'score-good'
-  if (score >= 55) return 'score-cautious'
+  if (score >= 75) return 'score-good'
+  if (score >= 60) return 'score-cautious'
   return 'score-not'
 }
 

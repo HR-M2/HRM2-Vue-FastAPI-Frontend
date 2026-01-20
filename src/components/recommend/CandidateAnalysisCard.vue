@@ -324,12 +324,13 @@ const analysisStatus = computed(() => {
 })
 
 // 推荐等级样式
+// 分数区间：≥85强烈推荐，≥75推荐，≥60谨慎考虑，<60不推荐
 const recommendationClass = computed(() => {
   if (!comprehensiveAnalysis.value) return ''
   const score = comprehensiveAnalysis.value.final_score
-  if (score >= 80) return 'level-strong'
-  if (score >= 60) return 'level-normal'
-  if (score >= 40) return 'level-weak'
+  if (score >= 85) return 'level-strong'
+  if (score >= 75) return 'level-normal'
+  if (score >= 60) return 'level-weak'
   return 'level-reject'
 })
 </script>
