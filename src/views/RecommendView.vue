@@ -7,8 +7,8 @@
           <el-icon><TrophyBase /></el-icon>
         </div>
         <div class="header-text">
-          <h1 class="page-title">综合分析决策平台</h1>
-          <p class="page-desc">整合简历、初筛报告、面试记录，AI智能生成最终录用建议</p>
+          <h1 class="page-title">综合分析决策</h1>
+          <!-- <p class="page-desc">整合简历、初筛报告、面试记录，AI智能生成最终录用建议</p> -->
         </div>
       </div>
       <div class="header-stats">

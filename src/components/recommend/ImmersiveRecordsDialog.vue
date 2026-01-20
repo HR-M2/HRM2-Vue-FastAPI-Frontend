@@ -60,14 +60,14 @@
           </div>
           <div class="stat-item">
             <div class="stat-value">{{ getCharTotal }}</div>
-            <div class="stat-label">总字数</div>
+            <div class="stat-label">发言总数</div>
           </div>
         </div>
         
         <!-- 发言占比进度条 -->
         <div class="speaking-ratio-section">
           <div class="ratio-row">
-            <span class="ratio-label">发言占比（按次数）</span>
+            <span class="ratio-label">发起发言次数</span>
             <div class="ratio-bars">
               <div class="ratio-bar candidate" :style="{ width: getSpeakingRatioByCount.candidate + '%' }">
                 候选人 {{ getSpeakingRatioByCount.candidate }}%
@@ -78,7 +78,7 @@
             </div>
           </div>
           <div class="ratio-row">
-            <span class="ratio-label">发言占比（按字数）</span>
+            <span class="ratio-label">发言量</span>
             <div class="ratio-bars">
               <div class="ratio-bar candidate" :style="{ width: getSpeakingRatioByChars.candidate + '%' }">
                 候选人 {{ getSpeakingRatioByChars.candidate }}%

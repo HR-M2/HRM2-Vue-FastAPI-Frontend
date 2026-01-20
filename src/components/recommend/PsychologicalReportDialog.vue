@@ -48,6 +48,7 @@
               v-if="reportData.big_five_scores"
               :data="reportData.big_five_scores" 
               height="220px"
+              width="100%"
               color="#667eea"
             />
           </div>
@@ -555,7 +556,7 @@ const handleGenerate = () => {
 // 大五人格卡片
 .big-five-content {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 24px;
   
   .radar-chart-container {
