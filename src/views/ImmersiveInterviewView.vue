@@ -422,7 +422,7 @@ useKeyboardShortcuts({
   onTriggerDeception: () => {
     // 按键1：触发欺骗检测高值
     triggerDeceptionAlert()
-    ElMessage.warning('已触发欺骗检测警告（10秒后恢复）')
+    // ElMessage.warning('已触发欺骗检测警告（10秒后恢复）')
   }
   // 可以在这里添加更多快捷键回调
   // onKey2: () => { ... },
