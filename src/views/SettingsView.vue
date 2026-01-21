@@ -8,29 +8,6 @@
 
     <!-- 设置内容 -->
     <div class="settings-content">
-      <!-- API 配置 -->
-      <el-card class="settings-card" shadow="hover">
-        <template #header>
-          <div class="card-header">
-            <span class="card-title">API 配置</span>
-          </div>
-        </template>
-        <el-form label-width="120px" :model="apiSettings">
-          <el-form-item label="后端地址">
-            <el-input v-model="apiSettings.baseUrl" placeholder="http://localhost:8000" />
-            <div class="form-tip">设置后端 API 服务地址</div>
-          </el-form-item>
-          <el-form-item label="请求超时">
-            <el-input-number v-model="apiSettings.timeout" :min="5000" :max="60000" :step="1000" />
-            <span class="unit-text">毫秒</span>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="saveApiSettings">保存配置</el-button>
-            <el-button @click="testConnection" :loading="testingConnection">测试连接</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
-
       <!-- 系统偏好 -->
       <el-card class="settings-card" shadow="hover">
         <template #header>
@@ -207,9 +184,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { client } from '@/api/client.gen'
 import { 
   getAvailableProviders, 
   getSpeechProviderRegistry 
@@ -220,15 +196,6 @@ import {
   type SpeechSettings,
   type SpeechProviderType
 } from '@/composables/useSpeechRecognition'
-
-// 测试连接状态
-const testingConnection = ref(false)
-
-// API 设置
-const apiSettings = reactive({
-  baseUrl: 'http://localhost:8000',
-  timeout: 30000
-})
 
 // 系统设置
 const systemSettings = reactive({
@@ -352,45 +319,6 @@ const testSpeechRecognition = async () => {
   }
 }
 
-// 保存 API 配置
-const saveApiSettings = () => {
-  localStorage.setItem('apiSettings', JSON.stringify(apiSettings))
-  // 更新 client 配置
-  client.setConfig({ baseUrl: apiSettings.baseUrl })
-  ElMessage.success('API 配置已保存（已生效）')
-}
-
-// 测试连接
-const testConnection = async () => {
-  testingConnection.value = true
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
-    
-    const response = await fetch(`${apiSettings.baseUrl}/health`, {
-      method: 'GET',
-      signal: controller.signal
-    })
-    
-    clearTimeout(timeoutId)
-    
-    if (response.ok) {
-      const data = await response.json()
-      ElMessage.success(`连接成功: ${data.message || 'OK'}`)
-    } else {
-      ElMessage.error(`连接失败: ${response.status}`)
-    }
-  } catch (err: any) {
-    if (err.name === 'AbortError') {
-      ElMessage.error('连接超时，请检查后端服务是否启动')
-    } else {
-      ElMessage.error('连接失败，请检查后端服务是否启动')
-    }
-  } finally {
-    testingConnection.value = false
-  }
-}
-
 // 保存系统设置
 const saveSystemSettings = () => {
   localStorage.setItem('systemSettings', JSON.stringify(systemSettings))
@@ -400,7 +328,6 @@ const saveSystemSettings = () => {
 // 导出数据
 const exportData = () => {
   const data = {
-    apiSettings,
     systemSettings,
     exportTime: new Date().toISOString()
   }
@@ -425,10 +352,6 @@ const importData = () => {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
-      if (data.apiSettings) {
-        Object.assign(apiSettings, data.apiSettings)
-        client.setConfig({ baseUrl: apiSettings.baseUrl })
-      }
       if (data.systemSettings) Object.assign(systemSettings, data.systemSettings)
       ElMessage.success('数据已导入')
     } catch {
@@ -452,15 +375,7 @@ const clearCache = () => {
 
 // 初始化：读取本地存储的设置
 const initSettings = () => {
-  const savedApiSettings = localStorage.getItem('apiSettings')
   const savedSystemSettings = localStorage.getItem('systemSettings')
-  
-  if (savedApiSettings) {
-    try {
-      Object.assign(apiSettings, JSON.parse(savedApiSettings))
-      client.setConfig({ baseUrl: apiSettings.baseUrl })
-    } catch {}
-  }
   
   if (savedSystemSettings) {
     try {
