@@ -252,12 +252,16 @@
             
             <!-- 可视化图表区（右下角） -->
             <div class="dimension-item charts-panel">
-              <AbilityRadarChart 
-                :dimension-scores="selectedComprehensiveAnalysis.dimension_scores" 
-              />
-              <BigFivePersonalityBars 
-                :data="(selectedComprehensiveAnalysis as any).big_five_personality || null" 
-              />
+              <div class="chart-left">
+                <AbilityRadarChart 
+                  :dimension-scores="selectedComprehensiveAnalysis.dimension_scores" 
+                />
+              </div>
+              <div class="chart-right">
+                <BigFivePersonalityBars 
+                  :data="(selectedComprehensiveAnalysis as any).big_five_personality || null" 
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -1363,10 +1367,23 @@ onMounted(async () => {
       // 图表面板样式
       &.charts-panel {
         display: flex;
-        flex-direction: column;
-        gap: 16px;
+        flex-direction: row;
+        gap: 12px;
+        padding: 12px;
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         border: 1px solid #e2e8f0;
+
+        .chart-left {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .chart-right {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          align-items: center;
+        }
       }
     }
   }

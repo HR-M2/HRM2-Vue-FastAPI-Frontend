@@ -1,6 +1,5 @@
 <template>
   <div class="big-five-bars">
-    <h5 class="chart-title">大五人格特质</h5>
     <div class="bars-container">
       <div 
         v-for="trait in traits" 
@@ -8,10 +7,7 @@
         class="trait-item"
         :title="trait.reason"
       >
-        <div class="trait-header">
-          <span class="trait-name">{{ trait.label }}</span>
-          <span class="trait-value">{{ trait.value }}</span>
-        </div>
+        <span class="trait-name">{{ trait.label }}</span>
         <div class="trait-bar-bg">
           <div 
             class="trait-bar-fill" 
@@ -21,18 +17,14 @@
             }"
           ></div>
         </div>
+        <span class="trait-value">{{ trait.value }}</span>
       </div>
-    </div>
-    <div class="chart-hint">
-      <el-icon><InfoFilled /></el-icon>
-      <span>基于面试对话和简历推断，仅供参考</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { InfoFilled } from '@element-plus/icons-vue'
 
 interface BigFiveData {
   openness?: number
@@ -81,66 +73,52 @@ const traits = computed(() => {
 
 <style scoped lang="scss">
 .big-five-bars {
-  .chart-title {
-    margin: 0 0 12px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-    text-align: center;
-  }
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
 
   .bars-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    width: 100%;
   }
 
   .trait-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     cursor: help;
 
-    .trait-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
-
-      .trait-name {
-        font-size: 12px;
-        color: #374151;
-      }
-
-      .trait-value {
-        font-size: 11px;
-        font-weight: 600;
-        color: #6b7280;
-      }
+    .trait-name {
+      font-size: 11px;
+      color: #374151;
+      width: 42px;
+      flex-shrink: 0;
     }
 
     .trait-bar-bg {
-      height: 8px;
+      flex: 1;
+      height: 6px;
       background: #e5e7eb;
-      border-radius: 4px;
+      border-radius: 3px;
       overflow: hidden;
 
       .trait-bar-fill {
         height: 100%;
-        border-radius: 4px;
+        border-radius: 3px;
         transition: width 0.5s ease;
       }
     }
-  }
 
-  .chart-hint {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    margin-top: 10px;
-    font-size: 10px;
-    color: #9ca3af;
-
-    .el-icon {
-      font-size: 12px;
+    .trait-value {
+      font-size: 10px;
+      font-weight: 600;
+      color: #6b7280;
+      width: 24px;
+      text-align: right;
+      flex-shrink: 0;
     }
   }
 }

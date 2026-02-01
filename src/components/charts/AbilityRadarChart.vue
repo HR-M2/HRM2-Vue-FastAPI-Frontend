@@ -1,6 +1,5 @@
 <template>
   <div class="ability-radar-chart">
-    <h5 class="chart-title">五维能力评估</h5>
     <div ref="chartRef" class="chart-container"></div>
   </div>
 </template>
@@ -123,17 +122,13 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .ability-radar-chart {
-  .chart-title {
-    margin: 0 0 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-    text-align: center;
-  }
+  width: 100%;
+  height: 100%;
 
   .chart-container {
     width: 100%;
-    height: 160px;
+    height: 100%;
+    min-height: 140px;
   }
 }
 </style>
