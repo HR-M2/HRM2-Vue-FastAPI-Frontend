@@ -76,7 +76,11 @@ export function useImmersiveInterview() {
   const config = reactive({
     localCameraEnabled: true,
     autoAnalyze: true,
-    analyzeInterval: 5 // 帧发送间隔(秒)
+    analyzeInterval: 5, // 帧发送间隔(秒)
+    // 多摄像头配置
+    cameraMode: 'local' as 'local' | 'stream' | 'dual', // local=仅本地, stream=仅推流, dual=双摄像头
+    streamUrl: '', // 网络摄像头推流地址（RTSP/HLS/HTTP-FLV）
+    analyzeSource: 'local' as 'local' | 'stream' // 用于行为分析的视频源
   })
 
   // 会话状态
