@@ -1,46 +1,170 @@
 <template>
   <div class="analysis-panel">
-    <!-- 面板头部 -->
-    <div class="panel-header">
-      <div class="header-title">
-        <el-icon class="title-icon"><DataAnalysis /></el-icon>
-        <span>实时行为分析</span>
-      </div>
-      <div class="header-status">
-        <el-tag :type="isConnected ? 'success' : 'info'" size="small" effect="plain">
-          {{ isConnected ? '分析中' : '未连接' }}
-        </el-tag>
-      </div>
-    </div>
-
     <!-- 候选人信息卡片 -->
     <div class="candidate-info-card">
       <div class="candidate-header">
         <div class="candidate-avatar">
-          <el-icon :size="28"><User /></el-icon>
+          <el-icon :size="24"><User /></el-icon>
         </div>
         <div class="candidate-details">
           <div class="candidate-name">{{ candidateInfo.name || '未知候选人' }}</div>
           <div class="candidate-position">{{ candidateInfo.position || '暂无岗位' }}</div>
         </div>
-      </div>
-      <div class="candidate-actions">
-        <div class="action-btn" @click="showBasicInfoDialog = true">
-          <el-icon :size="16"><InfoFilled /></el-icon>
-          <span>基本信息</span>
-        </div>
-        <div class="action-btn" @click="handleViewResume">
-          <el-icon :size="16"><Document /></el-icon>
-          <span>简历</span>
-        </div>
-        <div class="action-btn" @click="handleViewScreeningReport">
-          <el-icon :size="16"><DataLine /></el-icon>
-          <span>初筛报告</span>
+        <div class="candidate-quick-actions">
+          <el-tooltip content="基本信息" placement="top">
+            <el-button circle size="small" @click="showBasicInfoDialog = true">
+              <el-icon><InfoFilled /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="简历" placement="top">
+            <el-button circle size="small" @click="handleViewResume">
+              <el-icon><Document /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="初筛报告" placement="top">
+            <el-button circle size="small" @click="handleViewScreeningReport">
+              <el-icon><DataLine /></el-icon>
+            </el-button>
+          </el-tooltip>
         </div>
       </div>
     </div>
 
-    <!-- 基本信息弹窗 -->
+    <!-- 行为分析卡片（可折叠） -->
+    <div class="behavior-card" :class="{ collapsed: isBehaviorCollapsed }">
+      <div class="behavior-header" @click="isBehaviorCollapsed = !isBehaviorCollapsed">
+        <div class="behavior-summary">
+          <span class="summary-item emotion">
+            <span class="summary-icon">😊</span>
+            <span class="summary-label">{{ currentEmotion || '等待' }}</span>
+            <span v-if="topEmotionRatio" class="summary-value">{{ topEmotionRatio }}%</span>
+          </span>
+          <span class="summary-divider">|</span>
+          <span class="summary-item gaze" :class="gazeLevelClass">
+            <span class="summary-icon">👁️</span>
+            <span class="summary-label">专注</span>
+            <span class="summary-value">{{ Math.round(gazeRatio * 100) }}%</span>
+          </span>
+        </div>
+        <el-icon class="collapse-icon">
+          <component :is="isBehaviorCollapsed ? 'ArrowDown' : 'ArrowUp'" />
+        </el-icon>
+      </div>
+      
+      <transition name="collapse">
+        <div v-show="!isBehaviorCollapsed" class="behavior-details">
+          <!-- 情绪列表 -->
+          <div class="detail-section">
+            <div v-if="emotions.length > 0" class="emotion-list">
+              <div v-for="(emotion, index) in emotions" :key="index" class="emotion-item">
+                <span class="emotion-label">{{ getEmotionLabel(emotion.emotion) }}</span>
+                <div class="emotion-bar-container">
+                  <div class="emotion-bar" :class="getEmotionBarClass(emotion.emotion)"
+                    :style="{ width: `${Math.round((emotion.ratio || 0) * 100)}%` }"></div>
+                </div>
+                <span class="emotion-value">{{ Math.round((emotion.ratio || 0) * 100) }}%</span>
+              </div>
+            </div>
+          </div>
+          <!-- 注视详情 -->
+          <div class="detail-section gaze-detail">
+            <div class="gaze-meter">
+              <div class="meter-bar-container">
+                <div class="meter-bar" :class="gazeLevelClass"
+                  :style="{ width: `${Math.round(gazeRatio * 100)}%` }"></div>
+              </div>
+            </div>
+            <div class="gaze-stats">
+              <span>游离警告: <strong :class="{ 'warning-text': gazeWarnings > 0 }">{{ gazeWarnings }} 次</strong></span>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </div>
+
+    <!-- 对话记录区域（主体） -->
+    <div class="chat-section">
+      <div class="chat-header">
+        <span class="chat-title">📝 对话记录</span>
+        <span class="message-count">{{ messages.length }} 条</span>
+      </div>
+      
+      <div class="chat-container" ref="chatContainerRef">
+        <div v-if="messages.length === 0" class="chat-empty">
+          <span>开始语音转写后，对话将显示在这里</span>
+        </div>
+        <div v-else class="messages-list">
+          <div v-for="msg in messages" :key="msg.seq" class="message-item" :class="`message-${msg.role}`">
+            <div class="message-avatar">{{ msg.role === 'interviewer' ? '👔' : '👤' }}</div>
+            <div class="message-body">
+              <div class="message-meta">
+                <span class="role-name">{{ msg.role === 'interviewer' ? '面试官' : '候选人' }}</span>
+                <span class="timestamp">{{ formatMessageTime(msg.timestamp) }}</span>
+              </div>
+              <div class="message-content">{{ msg.content }}</div>
+              <div v-if="msg.behavior" class="message-behavior">
+                <span v-if="msg.behavior.gaze" class="behavior-tag gaze">
+                  专注 {{ Math.round((msg.behavior.gaze.ratio || 0) * 100) }}%
+                </span>
+                <span v-for="e in (msg.behavior.emotions || []).slice(0, 2)" :key="e.emotion" class="behavior-tag emotion">
+                  {{ getEmotionLabel(e.emotion) }} {{ Math.round((e.ratio || 0) * 100) }}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 语音控制栏 -->
+      <div v-if="isSpeechListening" class="speech-status">
+        <div class="speaker-indicator" :class="currentSpeaker">
+          <span>{{ currentSpeaker === 'interviewer' ? '👔' : '👤' }} {{ currentSpeaker === 'interviewer' ? '面试官' : '候选人' }}发言中</span>
+          <span class="recording-dot"></span>
+        </div>
+        <div v-if="speechInterim" class="live-text">{{ speechInterim }}</div>
+      </div>
+      
+      <!-- 输入区 -->
+      <div class="chat-input">
+        <el-input v-model="questionInputLocal" placeholder="输入面试官问题..." size="small"
+          @keydown.enter="handleSendQuestion">
+          <template #append>
+            <el-button :icon="Promotion" @click="handleSendQuestion" :disabled="!questionInputLocal.trim()" size="small">
+              发送
+            </el-button>
+          </template>
+        </el-input>
+      </div>
+    </div>
+
+    <!-- 提问建议（精简版） -->
+    <div class="suggestions-bar">
+      <span class="suggestions-label">💡 建议</span>
+      <div class="suggestions-scroll">
+        <span v-for="suggestion in suggestions.slice(0, 3)" :key="suggestion.question"
+          class="suggestion-chip" @click="$emit('use-suggestion', suggestion)">
+          {{ suggestion.question.slice(0, 20) }}{{ suggestion.question.length > 20 ? '...' : '' }}
+        </span>
+        <span v-if="suggestions.length === 0" class="no-suggestion">暂无建议</span>
+      </div>
+      <el-button type="primary" link size="small" @click="$emit('refresh-suggestions')">
+        <el-icon><Refresh /></el-icon>
+      </el-button>
+    </div>
+
+    <!-- 底部统计 -->
+    <div class="stats-footer">
+      <span class="stat-item">
+        <el-icon><Timer /></el-icon>
+        {{ formatTime(stats.duration) }}
+      </span>
+      <span class="stat-item" :class="isConnected ? 'connected' : ''">
+        <el-icon><Connection /></el-icon>
+        {{ isConnected ? '分析中' : '未连接' }}
+      </span>
+    </div>
+
+    <!-- 弹窗 -->
     <el-dialog v-model="showBasicInfoDialog" title="候选人基本信息" width="500px">
       <div class="basic-info-content">
         <div class="info-row">
@@ -61,140 +185,29 @@
       </template>
     </el-dialog>
 
-    <!-- 简历详情弹窗 -->
-    <ResumeDetailDialog
-      v-model="showResumeDialog"
-      :resume="resumeDetailData"
-    />
-
-    <!-- 情绪识别 -->
-    <div class="section-card">
-      <h4 class="section-title">
-        <span class="title-icon">😊</span>
-        情绪识别
-        <span v-if="currentEmotion" class="emotion-badge" :class="getEmotionClass(currentEmotion)">
-          {{ currentEmotion }}
-        </span>
-      </h4>
-      <div v-if="emotions.length > 0" class="emotion-list">
-        <div
-          v-for="(emotion, index) in emotions"
-          :key="index"
-          class="emotion-item"
-        >
-          <span class="emotion-label">{{ getEmotionLabel(emotion.emotion) }}</span>
-          <div class="emotion-bar-container">
-            <div
-              class="emotion-bar"
-              :class="getEmotionBarClass(emotion.emotion)"
-              :style="{ width: `${Math.round((emotion.ratio || 0) * 100)}%` }"
-            ></div>
-          </div>
-          <span class="emotion-value">{{ Math.round((emotion.ratio || 0) * 100) }}%</span>
-        </div>
-      </div>
-      <div v-else class="no-data">
-        <el-icon :size="24"><InfoFilled /></el-icon>
-        <span>等待检测...</span>
-      </div>
-    </div>
-
-    <!-- 注视检测 -->
-    <div class="section-card" :class="{ 'warning-state': isGazeWarning }">
-      <h4 class="section-title">
-        <span class="title-icon">👁️</span>
-        注视检测
-        <el-tag v-if="isGazeWarning" type="warning" size="small" effect="dark" class="warning-tag">
-          眼神游离
-        </el-tag>
-      </h4>
-      <div class="gaze-content">
-        <div class="gaze-meter">
-          <div class="meter-labels">
-            <span>游离</span>
-            <span>专注</span>
-          </div>
-          <div class="meter-bar-container">
-            <div
-              class="meter-bar"
-              :class="gazeLevelClass"
-              :style="{ width: `${Math.round(gazeRatio * 100)}%` }"
-            ></div>
-          </div>
-        </div>
-        <div class="gaze-stats">
-          <div class="stat-item">
-            <span class="stat-label">注视比例</span>
-            <span class="stat-value" :class="gazeLevelClass">{{ Math.round(gazeRatio * 100) }}%</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">游离警告</span>
-            <span class="stat-value" :class="{ 'warning-text': gazeWarnings > 0 }">{{ gazeWarnings }} 次</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 提问建议 -->
-    <div class="section-card suggestions-section">
-      <h4 class="section-title">
-        <span class="title-icon">💡</span>
-        候选提问建议
-        <el-button type="primary" link size="small" @click="$emit('refresh-suggestions')">
-          <el-icon><Refresh /></el-icon>
-        </el-button>
-      </h4>
-      <div v-if="suggestions.length > 0" class="suggestions-list">
-        <div
-          v-for="suggestion in suggestions.slice(0, 3)"
-          :key="suggestion.question"
-          class="suggestion-item"
-          @click="$emit('use-suggestion', suggestion)"
-        >
-          <span class="suggestion-type" :class="suggestion.type">{{ typeLabels[suggestion.type] }}</span>
-          <span class="suggestion-text">{{ suggestion.question }}</span>
-        </div>
-      </div>
-      <div v-else class="no-suggestions">
-        <span>开始面试后自动推荐问题</span>
-      </div>
-    </div>
-
-    <!-- 底部统计 -->
-    <div class="stats-footer">
-      <div class="stat-item duration">
-        <el-icon><Timer /></el-icon>
-        <span class="stat-value">{{ formatTime(stats.duration) }}</span>
-        <span class="stat-label">面试时长</span>
-      </div>
-      <div class="stat-item connection">
-        <el-icon><Connection /></el-icon>
-        <span class="stat-value" :class="isConnected ? 'connected' : 'disconnected'">
-          {{ isConnected ? '已连接' : '未连接' }}
-        </span>
-        <span class="stat-label">分析状态</span>
-      </div>
-    </div>
+    <ResumeDetailDialog v-model="showResumeDialog" :resume="resumeDetailData" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import {
-  DataAnalysis,
   Refresh,
   Timer,
   User,
   InfoFilled,
   Connection,
   Document,
-  DataLine
+  DataLine,
+  ArrowDown,
+  ArrowUp,
+  Promotion
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { ResumeDetailDialog } from '@/components/common'
 import { getResume, getScreeningTask } from '@/api/sdk.gen'
 import type { EmotionItem, GazeData } from '@/api/types.gen'
-import type { InterviewStats, QuestionSuggestion } from '@/composables/useImmersiveInterview'
+import type { InterviewStats, QuestionSuggestion, QAMessage } from '@/composables/useImmersiveInterview'
 import type { ResumeData } from '@/types'
 
 interface CandidateInfo {
@@ -212,6 +225,10 @@ interface Props {
   suggestions: QuestionSuggestion[]
   stats: InterviewStats
   candidateInfo: CandidateInfo
+  messages: QAMessage[]
+  currentSpeaker: 'interviewer' | 'candidate'
+  isSpeechListening: boolean
+  speechInterim: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -220,13 +237,26 @@ const props = withDefaults(defineProps<Props>(), {
   gaze: null,
   suggestions: () => [],
   stats: () => ({ duration: 0, messageCount: 0 }),
-  candidateInfo: () => ({ name: '', position: '' })
+  candidateInfo: () => ({ name: '', position: '' }),
+  messages: () => [],
+  currentSpeaker: 'interviewer',
+  isSpeechListening: false,
+  speechInterim: ''
 })
 
-// 弹窗状态
+const emit = defineEmits<{
+  (e: 'refresh-suggestions'): void
+  (e: 'use-suggestion', suggestion: QuestionSuggestion): void
+  (e: 'send-question', question: string): void
+}>()
+
+// 本地状态
+const isBehaviorCollapsed = ref(false)
 const showBasicInfoDialog = ref(false)
 const showResumeDialog = ref(false)
 const resumeDetailData = ref<ResumeData | null>(null)
+const questionInputLocal = ref('')
+const chatContainerRef = ref<HTMLElement | null>(null)
 
 // 查看简历
 const handleViewResume = async () => {
@@ -284,12 +314,33 @@ const handleViewScreeningReport = async () => {
   }
 }
 
-defineEmits<{
-  (e: 'refresh-suggestions'): void
-  (e: 'use-suggestion', suggestion: QuestionSuggestion): void
-}>()
+// 发送问题
+const handleSendQuestion = () => {
+  if (!questionInputLocal.value.trim()) return
+  emit('send-question', questionInputLocal.value.trim())
+  questionInputLocal.value = ''
+}
 
-// 情绪标签映射（支持后端返回的大写格式）
+// 滚动到底部
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatContainerRef.value) {
+      chatContainerRef.value.scrollTop = chatContainerRef.value.scrollHeight
+    }
+  })
+}
+
+// 监听消息变化
+watch(() => props.messages.length, scrollToBottom)
+
+// 格式化消息时间
+const formatMessageTime = (timestamp?: string) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
+
+// 情绪标签映射
 const emotionLabelMap: Record<string, string> = {
   neutral: '平静',
   happiness: '愉悦',
@@ -304,12 +355,6 @@ const emotionLabelMap: Record<string, string> = {
   contempt: '鄙视'
 }
 
-const typeLabels: Record<string, string> = {
-  followup: '追问',
-  alternative: '备选',
-  probe: '深挖'
-}
-
 // 计算当前主要情绪
 const currentEmotion = computed(() => {
   if (!props.emotions.length) return null
@@ -318,14 +363,17 @@ const currentEmotion = computed(() => {
   return getEmotionLabel(firstEmotion.emotion)
 })
 
+// Top 情绪比例
+const topEmotionRatio = computed(() => {
+  if (!props.emotions.length || !props.emotions[0]) return null
+  return Math.round((props.emotions[0].ratio || 0) * 100)
+})
+
 // 注视比例
 const gazeRatio = computed(() => props.gaze?.ratio ?? 0)
 
 // 游离警告次数
 const gazeWarnings = computed(() => props.gaze?.warnings ?? 0)
-
-// 是否眼神游离警告
-const isGazeWarning = computed(() => gazeRatio.value < 0.5 || gazeWarnings.value > 3)
 
 // 注视等级样式
 const gazeLevelClass = computed(() => {
@@ -335,25 +383,12 @@ const gazeLevelClass = computed(() => {
   return 'level-danger'
 })
 
-// 获取情绪标签（转小写匹配）
+// 获取情绪标签
 const getEmotionLabel = (emotion: string): string => {
   return emotionLabelMap[emotion.toLowerCase()] || emotion
 }
 
-// 获取情绪样式类
-const getEmotionClass = (emotion: string): string => {
-  const map: Record<string, string> = {
-    '愉悦': 'happy',
-    '平静': 'neutral',
-    '专注': 'neutral',
-    '悲伤': 'sad',
-    '愤怒': 'angry',
-    '恐惧': 'fear'
-  }
-  return map[emotion] || 'neutral'
-}
-
-// 获取情绪条样式（支持后端不同命名格式）
+// 获取情绪条样式
 const getEmotionBarClass = (emotion: string): string => {
   const map: Record<string, string> = {
     happiness: 'bar-happy',
@@ -383,111 +418,451 @@ const formatTime = (seconds: number): string => {
 .analysis-panel {
   background: white;
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
+  gap: 12px;
+  overflow: hidden;
 }
 
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  .header-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    color: #1a1a2e;
-
-    .title-icon {
-      color: #667eea;
-    }
-  }
-}
-
-// 候选人信息卡片
+// 候选人信息卡片（紧凑版）
 .candidate-info-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px;
   color: white;
 
   .candidate-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   .candidate-avatar {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-
-    .el-icon {
-      color: rgba(255, 255, 255, 0.9);
-    }
+    flex-shrink: 0;
   }
 
   .candidate-details {
     flex: 1;
+    min-width: 0;
 
     .candidate-name {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
-      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .candidate-position {
-      font-size: 13px;
+      font-size: 12px;
       opacity: 0.85;
     }
   }
 
-  .candidate-actions {
+  .candidate-quick-actions {
     display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    padding-top: 12px;
-    margin-top: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    gap: 4px;
 
-    .action-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 8px 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
+    .el-button {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: translateY(-1px);
-      }
-
-      .el-icon {
-        opacity: 0.9;
-      }
-
-      span {
-        font-size: 11px;
-        opacity: 0.9;
-        white-space: nowrap;
+        background: rgba(255, 255, 255, 0.3);
       }
     }
+  }
+}
+
+// 行为分析卡片（可折叠）
+.behavior-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  .behavior-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      background: #f1f5f9;
+    }
+  }
+
+  .behavior-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .summary-icon { font-size: 14px; }
+      .summary-label { color: #4b5563; }
+      .summary-value { font-weight: 600; color: #1a1a2e; }
+
+      &.level-good .summary-value { color: #10b981; }
+      &.level-warning .summary-value { color: #f59e0b; }
+      &.level-danger .summary-value { color: #ef4444; }
+    }
+
+    .summary-divider {
+      color: #d1d5db;
+    }
+  }
+
+  .collapse-icon {
+    color: #9ca3af;
+    transition: transform 0.3s;
+  }
+
+  &.collapsed .collapse-icon {
+    transform: rotate(180deg);
+  }
+
+  .behavior-details {
+    padding: 0 14px 14px;
+  }
+
+  .detail-section {
+    margin-top: 10px;
+
+    &.gaze-detail {
+      padding-top: 10px;
+      border-top: 1px solid #e5e7eb;
+    }
+  }
+}
+
+// 情绪列表
+.emotion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.emotion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .emotion-label {
+    font-size: 11px;
+    color: #4b5563;
+    min-width: 40px;
+  }
+
+  .emotion-bar-container {
+    flex: 1;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .emotion-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+
+    &.bar-happy { background: linear-gradient(90deg, #10b981, #34d399); }
+    &.bar-neutral { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+    &.bar-sad { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    &.bar-angry { background: linear-gradient(90deg, #ef4444, #f87171); }
+    &.bar-fear { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    &.bar-surprise { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    &.bar-disgust { background: linear-gradient(90deg, #84cc16, #a3e635); }
+    &.bar-contempt { background: linear-gradient(90deg, #ec4899, #f472b6); }
+  }
+
+  .emotion-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: #1a1a2e;
+    min-width: 32px;
+    text-align: right;
+  }
+}
+
+// 注视检测
+.gaze-meter {
+  .meter-bar-container {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .meter-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+
+    &.level-good { background: linear-gradient(90deg, #10b981, #34d399); }
+    &.level-warning { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    &.level-danger { background: linear-gradient(90deg, #ef4444, #f87171); }
+  }
+}
+
+.gaze-stats {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #6b7280;
+
+  .warning-text { color: #f59e0b; }
+}
+
+// 对话区域（主体）
+.chat-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 200px;
+
+  .chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+
+    .chat-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .message-count {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+  }
+
+  .chat-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+  }
+
+  .chat-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    font-size: 12px;
+  }
+
+  .messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .message-item {
+    display: flex;
+    gap: 8px;
+
+    .message-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .message-body {
+      flex: 1;
+      background: white;
+      border-radius: 10px;
+      padding: 8px 12px;
+      min-width: 0;
+    }
+
+    .message-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+
+      .role-name {
+        font-size: 11px;
+        font-weight: 600;
+        color: #4b5563;
+      }
+
+      .timestamp {
+        font-size: 10px;
+        color: #9ca3af;
+      }
+    }
+
+    .message-content {
+      font-size: 13px;
+      color: #1a1a2e;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .message-behavior {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+
+      .behavior-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 8px;
+
+        &.gaze {
+          background: rgba(16, 185, 129, 0.15);
+          color: #059669;
+        }
+
+        &.emotion {
+          background: rgba(102, 126, 234, 0.15);
+          color: #667eea;
+        }
+      }
+    }
+
+    &.message-interviewer .message-avatar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    &.message-candidate .message-avatar {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+  }
+
+  .speech-status {
+    padding: 8px 12px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+
+    .speaker-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 500;
+
+      &.interviewer { color: #667eea; }
+      &.candidate { color: #10b981; }
+
+      .recording-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 1.5s infinite;
+      }
+    }
+
+    .live-text {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #6b7280;
+      font-style: italic;
+    }
+  }
+
+  .chat-input {
+    padding: 10px 12px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+  }
+}
+
+// 建议栏
+.suggestions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+
+  .suggestions-label {
+    font-size: 12px;
+    color: #4b5563;
+    flex-shrink: 0;
+  }
+
+  .suggestions-scroll {
+    flex: 1;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .suggestion-chip {
+    font-size: 11px;
+    padding: 4px 10px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+  }
+
+  .no-suggestion {
+    font-size: 11px;
+    color: #9ca3af;
+  }
+}
+
+// 底部统计
+.stats-footer {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #6b7280;
+
+    .el-icon { font-size: 14px; }
+
+    &.connected { color: #10b981; }
   }
 }
 
@@ -498,9 +873,7 @@ const formatTime = (seconds: number): string => {
     padding: 12px 0;
     border-bottom: 1px solid #f0f0f0;
 
-    &:last-child {
-      border-bottom: none;
-    }
+    &:last-child { border-bottom: none; }
 
     .info-label {
       width: 100px;
@@ -517,280 +890,27 @@ const formatTime = (seconds: number): string => {
   }
 }
 
-// 区块卡片
-.section-card {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 16px;
+// 折叠动画
+.collapse-enter-active,
+.collapse-leave-active {
   transition: all 0.3s ease;
-
-  &.warning-state {
-    background: #fef3cd;
-    border: 1px solid #ffc107;
-  }
-
-  .section-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #1a1a2e;
-    margin: 0 0 12px;
-
-    .title-icon {
-      font-size: 18px;
-    }
-
-    .emotion-badge {
-      margin-left: auto;
-      font-size: 12px;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-weight: 500;
-
-      &.happy { background: #d4edda; color: #155724; }
-      &.neutral { background: #e2e3e5; color: #383d41; }
-      &.sad { background: #cce5ff; color: #004085; }
-      &.angry { background: #f8d7da; color: #721c24; }
-      &.fear { background: #fff3cd; color: #856404; }
-    }
-
-    .warning-tag {
-      margin-left: auto;
-    }
-
-    .el-button {
-      margin-left: auto;
-    }
-  }
+  overflow: hidden;
 }
 
-// 情绪列表
-.emotion-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.collapse-enter-from,
+.collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
 }
 
-.emotion-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  .emotion-label {
-    font-size: 12px;
-    color: #4b5563;
-    min-width: 50px;
-  }
-
-  .emotion-bar-container {
-    flex: 1;
-    height: 10px;
-    background: #e5e7eb;
-    border-radius: 5px;
-    overflow: hidden;
-  }
-
-  .emotion-bar {
-    height: 100%;
-    border-radius: 5px;
-    transition: width 0.5s ease;
-
-    &.bar-happy { background: linear-gradient(90deg, #10b981, #34d399); }
-    &.bar-neutral { background: linear-gradient(90deg, #6b7280, #9ca3af); }
-    &.bar-sad { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-    &.bar-angry { background: linear-gradient(90deg, #ef4444, #f87171); }
-    &.bar-fear { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-    &.bar-surprise { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
-    &.bar-disgust { background: linear-gradient(90deg, #84cc16, #a3e635); }
-    &.bar-contempt { background: linear-gradient(90deg, #ec4899, #f472b6); }
-  }
-
-  .emotion-value {
-    font-size: 12px;
-    font-weight: 600;
-    color: #1a1a2e;
-    min-width: 40px;
-    text-align: right;
-  }
+.collapse-enter-to,
+.collapse-leave-from {
+  opacity: 1;
+  max-height: 200px;
 }
 
-.no-data {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 24px;
-  color: #9ca3af;
-  font-size: 13px;
-}
-
-// 注视检测
-.gaze-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.gaze-meter {
-  .meter-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: #6b7280;
-    margin-bottom: 6px;
-  }
-
-  .meter-bar-container {
-    height: 12px;
-    background: #e5e7eb;
-    border-radius: 6px;
-    overflow: hidden;
-  }
-
-  .meter-bar {
-    height: 100%;
-    border-radius: 6px;
-    transition: width 0.5s ease;
-
-    &.level-good { background: linear-gradient(90deg, #10b981, #34d399); }
-    &.level-warning { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-    &.level-danger { background: linear-gradient(90deg, #ef4444, #f87171); }
-  }
-}
-
-.gaze-stats {
-  display: flex;
-  justify-content: space-around;
-  padding-top: 8px;
-  border-top: 1px solid #e5e7eb;
-
-  .stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-
-    .stat-label {
-      font-size: 11px;
-      color: #6b7280;
-    }
-
-    .stat-value {
-      font-size: 16px;
-      font-weight: 600;
-
-      &.level-good { color: #10b981; }
-      &.level-warning { color: #f59e0b; }
-      &.level-danger { color: #ef4444; }
-      &.warning-text { color: #f59e0b; }
-    }
-  }
-}
-
-// 提问建议
-.suggestions-section {
-  flex: 1;
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-}
-
-.suggestions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-
-.suggestion-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 12px;
-  background: white;
-  border-radius: 8px;
-  cursor: pointer;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #667eea;
-    transform: translateX(4px);
-  }
-
-  .suggestion-type {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
-    flex-shrink: 0;
-
-    &.followup {
-      background: rgba(16, 185, 129, 0.15);
-      color: #10b981;
-    }
-
-    &.alternative {
-      background: rgba(245, 158, 11, 0.15);
-      color: #f59e0b;
-    }
-
-    &.probe {
-      background: rgba(102, 126, 234, 0.15);
-      color: #667eea;
-    }
-  }
-
-  .suggestion-text {
-    font-size: 12px;
-    color: #1a1a2e;
-    line-height: 1.4;
-  }
-}
-
-.no-suggestions {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  font-size: 12px;
-}
-
-// 底部统计
-.stats-footer {
-  display: flex;
-  justify-content: space-around;
-  padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
-  margin-top: auto;
-
-  .stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-
-    .el-icon {
-      font-size: 20px;
-      color: #667eea;
-    }
-
-    .stat-value {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1a1a2e;
-
-      &.connected { color: #10b981; }
-      &.disconnected { color: #ef4444; }
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: #6b7280;
-    }
-  }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 </style>

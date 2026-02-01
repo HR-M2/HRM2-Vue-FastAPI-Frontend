@@ -30,6 +30,28 @@ export interface InterviewStats {
   messageCount: number
 }
 
+// 对话消息类型（匹配后端 QAMessage）
+export interface QAMessage {
+  seq: number
+  role: 'interviewer' | 'candidate'
+  content: string
+  timestamp?: string
+  behavior?: {
+    emotions: EmotionItem[]
+    gaze: GazeData | null
+  }
+}
+
+// 同步请求消息类型
+export interface QAMessageSync {
+  role: 'interviewer' | 'candidate'
+  content: string
+  behavior?: {
+    emotions: EmotionItem[]
+    gaze: GazeData | null
+  }
+}
+
 // 行为分析结果
 export interface BehaviorAnalysisResult {
   emotions: EmotionItem[]
@@ -76,6 +98,13 @@ export function useImmersiveInterview() {
     duration: 0,
     messageCount: 0
   })
+
+  // 发言人切换相关
+  const currentSpeaker = ref<'interviewer' | 'candidate'>('interviewer')
+  const messages = ref<QAMessage[]>([])
+  
+  // 候选人回答期间收集的行为数据
+  const candidateBehaviorHistory = ref<BehaviorAnalysisResult[]>([])
 
   // WebSocket
   const ws = ref<WebSocket | null>(null)
@@ -242,10 +271,16 @@ export function useImmersiveInterview() {
       case 'behavior':
         if (message.data) {
           const behaviorData = message.data as BehaviorData
-          currentBehavior.value = {
+          const result: BehaviorAnalysisResult = {
             emotions: behaviorData.emotions || [],
             gaze: behaviorData.gaze || null,
             timestamp: message.timestamp_ms || Date.now()
+          }
+          currentBehavior.value = result
+          
+          // 如果当前是候选人发言，收集行为数据
+          if (currentSpeaker.value === 'candidate') {
+            candidateBehaviorHistory.value.push(result)
           }
         }
         break
@@ -389,6 +424,136 @@ export function useImmersiveInterview() {
     return false
   }
 
+  // ==================== 发言人切换与对话记录 ====================
+
+  // 计算候选人回答期间的平均行为数据
+  const calculateAverageBehavior = (): { emotions: EmotionItem[], gaze: GazeData | null } | null => {
+    const history = candidateBehaviorHistory.value
+    if (history.length === 0) return null
+
+    // 计算平均注视比例和警告次数
+    let totalGazeRatio = 0
+    let totalWarnings = 0
+    let gazeCount = 0
+    
+    history.forEach(item => {
+      if (item.gaze) {
+        totalGazeRatio += item.gaze.ratio
+        totalWarnings += item.gaze.warnings ?? 0
+        gazeCount++
+      }
+    })
+
+    const avgGaze: GazeData | null = gazeCount > 0 ? {
+      ratio: totalGazeRatio / gazeCount,
+      warnings: Math.round(totalWarnings / gazeCount)
+    } : null
+
+    // 计算平均情绪（收集所有情绪，按类型聚合后取平均）
+    const emotionMap = new Map<string, number[]>()
+    history.forEach(item => {
+      item.emotions.forEach(e => {
+        if (!emotionMap.has(e.emotion)) {
+          emotionMap.set(e.emotion, [])
+        }
+        emotionMap.get(e.emotion)!.push(e.ratio)
+      })
+    })
+
+    // 计算每种情绪的平均值并排序取 Top3
+    const avgEmotions: EmotionItem[] = []
+    emotionMap.forEach((ratios, emotion) => {
+      const avgRatio = ratios.reduce((a, b) => a + b, 0) / ratios.length
+      avgEmotions.push({ emotion, ratio: avgRatio })
+    })
+    avgEmotions.sort((a, b) => b.ratio - a.ratio)
+    const top3Emotions = avgEmotions.slice(0, 3)
+
+    return { emotions: top3Emotions, gaze: avgGaze }
+  }
+
+  // 添加面试官问题
+  const addInterviewerMessage = (content: string) => {
+    if (!content.trim()) return
+    
+    const msg: QAMessage = {
+      seq: messages.value.length + 1,
+      role: 'interviewer',
+      content: content.trim(),
+      timestamp: new Date().toISOString()
+    }
+    messages.value.push(msg)
+    stats.messageCount = messages.value.length
+  }
+
+  // 添加候选人回答（带行为数据）
+  const addCandidateMessage = (content: string, behavior?: { emotions: EmotionItem[], gaze: GazeData | null }) => {
+    if (!content.trim()) return
+    
+    const msg: QAMessage = {
+      seq: messages.value.length + 1,
+      role: 'candidate',
+      content: content.trim(),
+      timestamp: new Date().toISOString(),
+      behavior: behavior || undefined
+    }
+    messages.value.push(msg)
+    stats.messageCount = messages.value.length
+  }
+
+  // 切换发言人
+  const switchSpeaker = (transcriptContent?: string) => {
+    const previousSpeaker = currentSpeaker.value
+    
+    // 如果之前是候选人在说话，保存其回答和行为数据
+    if (previousSpeaker === 'candidate' && transcriptContent?.trim()) {
+      const avgBehavior = calculateAverageBehavior()
+      addCandidateMessage(transcriptContent, avgBehavior || undefined)
+    }
+    
+    // 如果之前是面试官在说话，保存其问题
+    if (previousSpeaker === 'interviewer' && transcriptContent?.trim()) {
+      addInterviewerMessage(transcriptContent)
+    }
+    
+    // 切换发言人
+    currentSpeaker.value = previousSpeaker === 'interviewer' ? 'candidate' : 'interviewer'
+    
+    // 清空候选人行为历史（准备下一轮收集）
+    candidateBehaviorHistory.value = []
+    
+    return currentSpeaker.value
+  }
+
+  // 获取发言人标签
+  const getSpeakerLabel = (speaker: 'interviewer' | 'candidate') => {
+    return speaker === 'interviewer' ? '面试官' : '候选人'
+  }
+
+  // 同步对话记录到后端
+  const syncMessages = async (): Promise<boolean> => {
+    if (!sessionId.value || messages.value.length === 0) return false
+
+    const syncData: QAMessageSync[] = messages.value.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+      behavior: msg.behavior
+    }))
+
+    const result = await apiCall(`${API_BASE}/interview/${sessionId.value}/sync`, {
+      method: 'POST',
+      body: JSON.stringify({ messages: syncData })
+    })
+
+    if (result.success) {
+      console.log('对话记录同步成功')
+      return true
+    } else {
+      console.error('对话记录同步失败:', result.message)
+      return false
+    }
+  }
+
   // 清理资源
   const cleanup = () => {
     stopFrameCapture()
@@ -405,6 +570,9 @@ export function useImmersiveInterview() {
     isRecording.value = false
     currentBehavior.value = null
     suggestions.value = []
+    messages.value = []
+    currentSpeaker.value = 'interviewer'
+    candidateBehaviorHistory.value = []
     startTime = null
 
     stats.duration = 0
@@ -438,6 +606,10 @@ export function useImmersiveInterview() {
     suggestions,
     stats,
 
+    // 发言人与对话
+    currentSpeaker,
+    messages,
+
     // 操作
     createSession,
     initLocalCamera,
@@ -446,6 +618,13 @@ export function useImmersiveInterview() {
     stopInterview,
     fetchSuggestions,
     deleteSession,
-    cleanup
+    cleanup,
+
+    // 发言人切换与对话
+    switchSpeaker,
+    getSpeakerLabel,
+    addInterviewerMessage,
+    addCandidateMessage,
+    syncMessages
   }
 }

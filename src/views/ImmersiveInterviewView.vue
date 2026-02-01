@@ -130,6 +130,31 @@
             </el-button-group>
           </div>
           <div class="control-right">
+            <!-- 语音转写控制 -->
+            <el-button
+              v-if="isRecording && !isSpeechListening"
+              :type="isSpeechConfigured ? 'primary' : 'warning'"
+              @click="handleToggleSpeech"
+              :disabled="!speechSupported"
+            >
+              <el-icon><Microphone /></el-icon>
+              {{ isSpeechConfigured ? '开始转写' : '配置语音' }}
+            </el-button>
+            <el-button
+              v-if="isRecording && isSpeechListening"
+              type="success"
+              @click="handleToggleSpeech"
+            >
+              <el-icon><Switch /></el-icon>
+              切换发言人
+            </el-button>
+            <el-button
+              v-if="isRecording && isSpeechListening"
+              type="warning"
+              @click="handleStopSpeech"
+            >
+              停止转写
+            </el-button>
             <el-button @click="handleFetchSuggestions" :loading="isLoading">
               <el-icon><MagicStick /></el-icon>
               获取建议
@@ -181,18 +206,49 @@
               :suggestions="suggestions"
               :stats="stats"
               :candidate-info="candidateInfo"
+              :messages="messages"
+              :current-speaker="currentSpeaker"
+              :is-speech-listening="isSpeechListening"
+              :speech-interim="speechInterim || ''"
               @refresh-suggestions="handleFetchSuggestions"
               @use-suggestion="handleUseSuggestion"
+              @send-question="handlePanelSendQuestion"
             />
           </div>
         </div>
       </div>
     </transition>
+
+    <!-- 阿里云语音配置弹窗 -->
+    <el-dialog v-model="showAliyunConfigDialog" title="阿里云语音识别配置" width="500px">
+      <el-form label-position="top">
+        <el-form-item label="AppKey" required>
+          <el-input v-model="aliyunConfig.appKey" placeholder="从阿里云智能语音交互控制台获取" />
+        </el-form-item>
+        <el-form-item label="Token" required>
+          <el-input v-model="aliyunConfig.token" type="password" placeholder="从阿里云控制台或CLI获取，有效期24小时" show-password />
+        </el-form-item>
+        <el-alert type="info" :closable="false" class="config-tip">
+          <template #title>
+            <p style="margin: 0;">获取方式：</p>
+            <ol style="margin: 8px 0 0; padding-left: 20px;">
+              <li>登录阿里云控制台，进入智能语音交互</li>
+              <li>创建项目获取 AppKey</li>
+              <li>使用 CLI 命令或控制台获取 Token（有效期24小时）</li>
+            </ol>
+          </template>
+        </el-alert>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAliyunConfigDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleSaveAliyunConfig">保存配置</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Setting,
@@ -200,10 +256,14 @@ import {
   VideoPlay,
   VideoPause,
   MagicStick,
-  Close
+  Close,
+  Microphone,
+  Switch,
+  Promotion
 } from '@element-plus/icons-vue'
 import RealTimeAnalysisPanel from '@/components/immersive/RealTimeAnalysisPanel.vue'
 import { useImmersiveInterview, type QuestionSuggestion } from '@/composables/useImmersiveInterview'
+import { useSpeechRecognition, getAliyunConfig, saveAliyunConfig } from '@/composables/useSpeechRecognition'
 import { getApplications } from '@/api/sdk.gen'
 import type { ApplicationDetailResponse } from '@/api/types.gen'
 
@@ -221,13 +281,55 @@ const {
   currentEmotionLabel,
   suggestions,
   stats,
+  currentSpeaker,
+  messages,
   createSession,
   initLocalCamera,
   startInterview,
   stopInterview,
   fetchSuggestions,
-  deleteSession
+  deleteSession,
+  switchSpeaker,
+  getSpeakerLabel,
+  addInterviewerMessage,
+  syncMessages
 } = useImmersiveInterview()
+
+// 语音识别
+const accumulatedTranscript = ref('')
+const {
+  isSupported: speechSupported,
+  isListening: isSpeechListening,
+  isConfigured: isSpeechConfigured,
+  interimTranscript: speechInterim,
+  start: startSpeech,
+  stop: stopSpeech,
+  reset: resetSpeech,
+  updateConfig: updateSpeechConfig
+} = useSpeechRecognition({
+  lang: 'zh-CN',
+  continuous: true,
+  interimResults: true,
+  onResult: (text, isFinal) => {
+    if (isFinal && text.trim()) {
+      if (accumulatedTranscript.value) {
+        accumulatedTranscript.value += ' ' + text.trim()
+      } else {
+        accumulatedTranscript.value = text.trim()
+      }
+    }
+  },
+  onError: (errorMsg) => {
+    console.error('语音识别错误:', errorMsg)
+  }
+})
+
+// 阿里云配置
+const showAliyunConfigDialog = ref(false)
+const aliyunConfig = ref({
+  appKey: '',
+  token: ''
+})
 
 // 本地状态
 const selectedApplicationId = ref('')
@@ -340,9 +442,11 @@ const handleFetchSuggestions = async () => {
   await fetchSuggestions()
 }
 
-// 使用建议
+// 使用建议 - 直接发送到对话
 const handleUseSuggestion = (suggestion: QuestionSuggestion) => {
-  ElMessage.success(`已复制问题：${suggestion.question}`)
+  addInterviewerMessage(suggestion.question)
+  syncMessages()
+  ElMessage.success('已添加问题到对话')
 }
 
 // 格式化时长
@@ -352,9 +456,107 @@ const formatDuration = (seconds: number) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+// ==================== 语音转写相关 ====================
+
+// 加载阿里云配置
+const loadAliyunConfig = () => {
+  const saved = getAliyunConfig()
+  if (saved) {
+    aliyunConfig.value.appKey = saved.appKey || ''
+    aliyunConfig.value.token = saved.token || ''
+  }
+}
+
+// 保存阿里云配置
+const handleSaveAliyunConfig = async () => {
+  if (!aliyunConfig.value.appKey || !aliyunConfig.value.token) {
+    ElMessage.warning('请填写完整的阿里云配置')
+    return
+  }
+  
+  saveAliyunConfig({
+    type: 'aliyun',
+    appKey: aliyunConfig.value.appKey,
+    token: aliyunConfig.value.token
+  })
+  
+  const success = await updateSpeechConfig({
+    type: 'aliyun',
+    appKey: aliyunConfig.value.appKey,
+    token: aliyunConfig.value.token
+  })
+  
+  if (success) {
+    ElMessage.success('阿里云配置已保存')
+    showAliyunConfigDialog.value = false
+  }
+}
+
+// 切换语音识别
+const handleToggleSpeech = async () => {
+  if (isSpeechListening.value) {
+    // 正在录音，切换发言人
+    handleSwitchSpeaker()
+  } else {
+    // 未录音，开始录音
+    if (!isSpeechConfigured.value) {
+      showAliyunConfigDialog.value = true
+      return
+    }
+    
+    const success = await startSpeech()
+    if (success) {
+      accumulatedTranscript.value = ''
+      ElMessage.success('语音转写已开始')
+    }
+  }
+}
+
+// 切换发言人
+const handleSwitchSpeaker = () => {
+  // 保存当前转录内容
+  const content = accumulatedTranscript.value.trim()
+  if (content) {
+    switchSpeaker(content)
+    // 同步到后端
+    syncMessages()
+  } else {
+    // 即使没有内容也切换发言人
+    switchSpeaker()
+  }
+  
+  // 重置累积文本
+  accumulatedTranscript.value = ''
+  resetSpeech()
+  
+  // 重新开始语音识别
+  startSpeech()
+}
+
+// 从面板发送问题
+const handlePanelSendQuestion = (question: string) => {
+  addInterviewerMessage(question)
+  syncMessages()
+}
+
+// 停止语音转写
+const handleStopSpeech = () => {
+  // 保存最后的内容
+  const content = accumulatedTranscript.value.trim()
+  if (content) {
+    switchSpeaker(content)
+    syncMessages()
+  }
+  
+  stopSpeech()
+  accumulatedTranscript.value = ''
+  ElMessage.info('语音转写已停止')
+}
+
 // 生命周期
 onMounted(() => {
   fetchApplications()
+  loadAliyunConfig()
 })
 </script>
 
@@ -645,6 +847,11 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+// 配置提示
+.config-tip {
+  margin-top: 16px;
 }
 
 // 动画
