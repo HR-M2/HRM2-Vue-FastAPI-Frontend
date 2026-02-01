@@ -2610,6 +2610,34 @@ export type SimulateCandidateAnswerRequest = {
 };
 
 /**
+ * SituationAssessmentRequest
+ *
+ * 面试局面评估请求
+ */
+export type SituationAssessmentRequest = {
+    /**
+     * Session Id
+     *
+     * 面试会话ID
+     */
+    session_id?: string | null;
+    /**
+     * Conversation History
+     *
+     * 对话历史
+     */
+    conversation_history: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Behavior Summary
+     *
+     * 行为分析摘要
+     */
+    behavior_summary?: string | null;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -4324,6 +4352,31 @@ export type AiGenerateAdaptiveQuestionsResponses = {
 };
 
 export type AiGenerateAdaptiveQuestionsResponse = AiGenerateAdaptiveQuestionsResponses[keyof AiGenerateAdaptiveQuestionsResponses];
+
+export type AiSituationAssessmentData = {
+    body: SituationAssessmentRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/interview/situation-assessment';
+};
+
+export type AiSituationAssessmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiSituationAssessmentError = AiSituationAssessmentErrors[keyof AiSituationAssessmentErrors];
+
+export type AiSituationAssessmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type AiSituationAssessmentResponse = AiSituationAssessmentResponses[keyof AiSituationAssessmentResponses];
 
 export type AiSimulateCandidateAnswerData = {
     body: SimulateCandidateAnswerRequest;

@@ -133,10 +133,6 @@
             >
               停止转写
             </el-button>
-            <el-button @click="handleFetchSuggestions" :loading="isLoading">
-              <el-icon><MagicStick /></el-icon>
-              获取建议
-            </el-button>
             <el-button type="danger" plain @click="handleEndSession">
               <el-icon><Close /></el-icon>
               退出会话
@@ -145,8 +141,34 @@
         </div>
 
         <!-- 主内容区 -->
-        <div class="content-grid" :style="{ gridTemplateColumns: `1fr 8px ${analysisPanelWidth}px` }">
-          <!-- 左侧：视频区 -->
+        <div class="content-grid" :style="{ gridTemplateColumns: contentGridColumns }">
+          <!-- 左侧：态势感知面板 -->
+          <div class="situation-section">
+            <SituationAwarenessPanel
+              :is-expanded="isLeftPanelExpanded"
+              :assessment="situationAssessment"
+              :suggestions="situationSuggestions"
+              :is-loading-assessment="isLoadingAssessment"
+              :is-loading-suggestions="isLoadingSuggestions"
+              :can-refresh="isRecording && messages.length > 0"
+              @toggle="toggleLeftPanel"
+              @refresh-assessment="handleRefreshAssessment"
+              @refresh-suggestions="handleRefreshSituationSuggestions"
+              @use-suggestion="handleUseSituationSuggestion"
+            />
+          </div>
+
+          <!-- 左侧拖拽分隔条（仅展开时显示） -->
+          <div 
+            v-if="isLeftPanelExpanded"
+            class="resize-bar left-resize"
+            :class="{ dragging: leftResizeBarDragging }"
+            @mousedown="startLeftResize"
+          >
+            <div class="resize-handle"></div>
+          </div>
+
+          <!-- 中间：视频区 -->
           <div class="video-section">
             <div class="video-container">
               <video
@@ -175,7 +197,7 @@
             </div>
           </div>
 
-          <!-- 拖拽分隔条 -->
+          <!-- 右侧拖拽分隔条 -->
           <div 
             class="resize-bar"
             :class="{ dragging: resizeBarDragging }"
@@ -249,6 +271,8 @@ import {
   Promotion
 } from '@element-plus/icons-vue'
 import RealTimeAnalysisPanel from '@/components/immersive/RealTimeAnalysisPanel.vue'
+import SituationAwarenessPanel from '@/components/immersive/SituationAwarenessPanel.vue'
+import type { SituationAssessment, QuestionSuggestion as SAPanelSuggestion } from '@/components/immersive/SituationAwarenessPanel.vue'
 import { useImmersiveInterview, type QuestionSuggestion } from '@/composables/useImmersiveInterview'
 import { useSpeechRecognition, getAliyunConfig, saveAliyunConfig } from '@/composables/useSpeechRecognition'
 import { getApplications } from '@/api/sdk.gen'
@@ -330,11 +354,30 @@ const applications = ref<Array<{
 }>>([])
 const isLoadingCandidates = ref(false)
 
-// 拖拽调整宽度
+// 右侧面板拖拽调整宽度
 const analysisPanelWidth = ref(420)
 const resizeBarDragging = ref(false)
 const startX = ref(0)
 const startWidth = ref(0)
+
+// 左侧态势感知面板状态
+const isLeftPanelExpanded = ref(false)
+const leftPanelWidth = ref(320)
+const leftResizeBarDragging = ref(false)
+const leftStartX = ref(0)
+const leftStartWidth = ref(0)
+
+// 态势感知数据
+const situationAssessment = ref<SituationAssessment>({
+  assessment: '',
+  confidence_level: 'medium',
+  candidate_state: 'neutral',
+  suggested_directions: [],
+  risk_signals: []
+})
+const situationSuggestions = ref<SAPanelSuggestion[]>([])
+const isLoadingAssessment = ref(false)
+const isLoadingSuggestions = ref(false)
 
 const startResize = (e: MouseEvent) => {
   resizeBarDragging.value = true
@@ -364,6 +407,48 @@ const stopResize = () => {
   document.body.style.cursor = ''
   document.body.style.userSelect = ''
 }
+
+// 左侧面板拖拽
+const startLeftResize = (e: MouseEvent) => {
+  leftResizeBarDragging.value = true
+  leftStartX.value = e.clientX
+  leftStartWidth.value = leftPanelWidth.value
+  document.addEventListener('mousemove', onLeftResize)
+  document.addEventListener('mouseup', stopLeftResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const onLeftResize = (e: MouseEvent) => {
+  if (!leftResizeBarDragging.value) return
+  const diff = e.clientX - leftStartX.value
+  const container = document.querySelector('.content-grid') as HTMLElement
+  const containerWidth = container?.offsetWidth || 1200
+  const maxWidth = Math.floor(containerWidth * 0.4) - 20
+  const newWidth = Math.min(Math.max(leftStartWidth.value + diff, 280), maxWidth)
+  leftPanelWidth.value = newWidth
+}
+
+const stopLeftResize = () => {
+  leftResizeBarDragging.value = false
+  document.removeEventListener('mousemove', onLeftResize)
+  document.removeEventListener('mouseup', stopLeftResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+// 切换左侧面板
+const toggleLeftPanel = () => {
+  isLeftPanelExpanded.value = !isLeftPanelExpanded.value
+}
+
+// 计算内容区域网格列
+const contentGridColumns = computed(() => {
+  if (isLeftPanelExpanded.value) {
+    return `${leftPanelWidth.value}px 8px 1fr 8px ${analysisPanelWidth.value}px`
+  }
+  return `40px 1fr 8px ${analysisPanelWidth.value}px`
+})
 
 // 获取候选人列表
 const fetchApplications = async () => {
@@ -490,6 +575,131 @@ const handleFetchSuggestions = async () => {
 
 // 使用建议 - 直接发送到对话
 const handleUseSuggestion = (suggestion: QuestionSuggestion) => {
+  addInterviewerMessage(suggestion.question)
+  syncMessages()
+  ElMessage.success('已添加问题到对话')
+}
+
+// ==================== 态势感知相关 ====================
+
+// 刷新局面评估（仅在面板展开时调用）
+const handleRefreshAssessment = async () => {
+  if (!isLeftPanelExpanded.value || !sessionId.value || messages.value.length === 0) return
+  
+  isLoadingAssessment.value = true
+  try {
+    const conversationHistory = messages.value.map(m => ({
+      role: m.role,
+      content: m.content
+    }))
+    
+    // 构建行为摘要
+    let behaviorSummary = ''
+    if (currentBehavior.value) {
+      const emotions = currentBehavior.value.emotions
+      const gaze = currentBehavior.value.gaze
+      if (emotions?.length) {
+        behaviorSummary += `当前情绪: ${emotions.map(e => `${e.emotion}(${Math.round(e.ratio * 100)}%)`).join(', ')}`
+      }
+      if (gaze) {
+        behaviorSummary += `; 注视专注度: ${Math.round(gaze.ratio * 100)}%`
+      }
+    }
+    
+    const response = await fetch(`/api/v1/ai/interview/situation-assessment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId.value,
+        conversation_history: conversationHistory,
+        behavior_summary: behaviorSummary
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success && result.data) {
+      situationAssessment.value = result.data
+    }
+  } catch (error) {
+    console.error('获取局面评估失败:', error)
+  } finally {
+    isLoadingAssessment.value = false
+  }
+}
+
+// 刷新提问建议（仅在面板展开时调用）
+const handleRefreshSituationSuggestions = async () => {
+  if (!isLeftPanelExpanded.value || !sessionId.value) return
+  
+  isLoadingSuggestions.value = true
+  try {
+    // 获取最近的问答
+    const recentMessages = messages.value.slice(-4)
+    const lastQuestion = recentMessages.find(m => m.role === 'interviewer')?.content || ''
+    const lastAnswer = recentMessages.find(m => m.role === 'candidate')?.content || ''
+    
+    if (!lastQuestion || !lastAnswer) {
+      isLoadingSuggestions.value = false
+      return
+    }
+    
+    const conversationHistory = messages.value.map(m => ({
+      role: m.role,
+      content: m.content
+    }))
+    
+    const response = await fetch(`/api/v1/ai/interview/adaptive-questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId.value,
+        current_question: lastQuestion,
+        current_answer: lastAnswer,
+        conversation_history: conversationHistory,
+        followup_count: 2,
+        alternative_count: 2
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success && result.data) {
+      const suggestions: SAPanelSuggestion[] = []
+      
+      // 追问
+      if (result.data.followups) {
+        result.data.followups.forEach((q: { question: string; purpose?: string }, i: number) => {
+          suggestions.push({
+            question: q.question,
+            type: 'followup',
+            purpose: q.purpose,
+            priority: i + 1
+          })
+        })
+      }
+      
+      // 候选问题
+      if (result.data.alternatives) {
+        result.data.alternatives.forEach((q: { question: string; purpose?: string }, i: number) => {
+          suggestions.push({
+            question: q.question,
+            type: 'alternative',
+            purpose: q.purpose,
+            priority: i + 10
+          })
+        })
+      }
+      
+      situationSuggestions.value = suggestions
+    }
+  } catch (error) {
+    console.error('获取建议失败:', error)
+  } finally {
+    isLoadingSuggestions.value = false
+  }
+}
+
+// 使用态势面板的建议
+const handleUseSituationSuggestion = (suggestion: SAPanelSuggestion) => {
   addInterviewerMessage(suggestion.question)
   syncMessages()
   ElMessage.success('已添加问题到对话')
@@ -740,9 +950,14 @@ onMounted(() => {
 .content-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 8px 420px;
   gap: 12px;
   min-height: 500px;
+}
+
+.situation-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 // 拖拽分隔条
@@ -896,7 +1111,11 @@ onMounted(() => {
 // 响应式
 @media (max-width: 1200px) {
   .content-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+
+    .situation-section {
+      display: none;
+    }
 
     .video-section {
       height: 400px;

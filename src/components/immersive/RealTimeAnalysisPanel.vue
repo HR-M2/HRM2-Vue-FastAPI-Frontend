@@ -137,21 +137,6 @@
       </div>
     </div>
 
-    <!-- 提问建议（精简版） -->
-    <div class="suggestions-bar">
-      <span class="suggestions-label">💡 建议</span>
-      <div class="suggestions-scroll">
-        <span v-for="suggestion in suggestions.slice(0, 3)" :key="suggestion.question"
-          class="suggestion-chip" @click="$emit('use-suggestion', suggestion)">
-          {{ suggestion.question.slice(0, 20) }}{{ suggestion.question.length > 20 ? '...' : '' }}
-        </span>
-        <span v-if="suggestions.length === 0" class="no-suggestion">暂无建议</span>
-      </div>
-      <el-button type="primary" link size="small" @click="$emit('refresh-suggestions')">
-        <el-icon><Refresh /></el-icon>
-      </el-button>
-    </div>
-
     <!-- 底部统计 -->
     <div class="stats-footer">
       <span class="stat-item">
