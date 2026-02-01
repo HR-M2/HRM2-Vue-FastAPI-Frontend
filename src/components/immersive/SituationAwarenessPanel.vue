@@ -448,16 +448,43 @@ const alternativeSuggestions = computed(() =>
 
 // 建议卡片样式
 .suggestion-card {
-  padding: 6px 8px;
+  padding: 6px 8px 6px 12px;
   background: white;
   border-radius: 8px;
   margin-bottom: 5px;
   border: 1px solid #e5e7eb;
   transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+
+  // 左侧颜色装饰条
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
+    transition: width 0.2s;
+  }
+
+  &.followup::before {
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  }
+
+  &.alternative::before {
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  }
 
   &:hover {
     border-color: #667eea;
     box-shadow: 0 2px 6px rgba(102, 126, 234, 0.1);
+    transform: translateX(2px);
+
+    &::before {
+      width: 4px;
+    }
   }
 
   &.followup:hover {

@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
 interface DimensionScore {
@@ -19,6 +19,7 @@ const props = defineProps<{
 
 const chartRef = ref<HTMLElement | null>(null)
 let chartInstance: echarts.ECharts | null = null
+let resizeObserver: ResizeObserver | null = null
 
 // 维度名称映射
 const dimensionNameMap: Record<string, string> = {
@@ -110,12 +111,25 @@ const handleResize = () => {
 watch(() => props.dimensionScores, updateChart, { deep: true })
 
 onMounted(() => {
-  initChart()
+  // 使用 ResizeObserver 监听容器尺寸变化，确保图表正确居中
+  nextTick(() => {
+    if (chartRef.value) {
+      resizeObserver = new ResizeObserver(() => {
+        if (!chartInstance && chartRef.value) {
+          initChart()
+        } else {
+          handleResize()
+        }
+      })
+      resizeObserver.observe(chartRef.value)
+    }
+  })
   window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  resizeObserver?.disconnect()
   chartInstance?.dispose()
 })
 </script>

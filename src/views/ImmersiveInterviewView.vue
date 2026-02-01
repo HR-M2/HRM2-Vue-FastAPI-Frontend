@@ -227,9 +227,12 @@
                   <el-icon :size="64"><VideoCamera /></el-icon>
                   <p>摄像头未启用</p>
                 </div>
-                <div v-if="isRecording && currentEmotionLabel" class="emotion-overlay">
-                  <span class="emotion-label">{{ currentEmotionLabel }}</span>
-                </div>
+                <transition name="gaze-fade">
+                  <div v-if="isRecording && isGazeDrifting" class="gaze-warning">
+                    <span class="warning-icon">⚠️</span>
+                    <span class="warning-text">视线游离</span>
+                  </div>
+                </transition>
                 <div v-if="isRecording" class="analysis-indicator" :class="{ active: isWsConnected }">
                   <span class="indicator-dot"></span>
                   <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
@@ -253,9 +256,12 @@
                   <el-icon :size="64"><Link /></el-icon>
                   <p>未配置推流地址</p>
                 </div>
-                <div v-if="isRecording && currentEmotionLabel" class="emotion-overlay">
-                  <span class="emotion-label">{{ currentEmotionLabel }}</span>
-                </div>
+                <transition name="gaze-fade">
+                  <div v-if="isRecording && isGazeDrifting" class="gaze-warning">
+                    <span class="warning-icon">⚠️</span>
+                    <span class="warning-text">视线游离</span>
+                  </div>
+                </transition>
                 <div v-if="isRecording" class="analysis-indicator" :class="{ active: isWsConnected }">
                   <span class="indicator-dot"></span>
                   <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
@@ -285,9 +291,12 @@
                   <p v-if="pipSwapped">摄像头未启用</p>
                 </div>
                 <template v-if="pipSwapped">
-                  <div v-if="isRecording && currentEmotionLabel && config.analyzeSource === 'local'" class="emotion-overlay">
-                    <span class="emotion-label">{{ currentEmotionLabel }}</span>
-                  </div>
+                  <transition name="gaze-fade">
+                    <div v-if="isRecording && isGazeDrifting && config.analyzeSource === 'local'" class="gaze-warning">
+                      <span class="warning-icon">⚠️</span>
+                      <span class="warning-text">视线游离</span>
+                    </div>
+                  </transition>
                   <div v-if="isRecording && config.analyzeSource === 'local'" class="analysis-indicator" :class="{ active: isWsConnected }">
                     <span class="indicator-dot"></span>
                     <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
@@ -316,9 +325,12 @@
                   <p v-if="!pipSwapped">未配置推流地址</p>
                 </div>
                 <template v-if="!pipSwapped">
-                  <div v-if="isRecording && currentEmotionLabel && config.analyzeSource === 'stream'" class="emotion-overlay">
-                    <span class="emotion-label">{{ currentEmotionLabel }}</span>
-                  </div>
+                  <transition name="gaze-fade">
+                    <div v-if="isRecording && isGazeDrifting && config.analyzeSource === 'stream'" class="gaze-warning">
+                      <span class="warning-icon">⚠️</span>
+                      <span class="warning-text">视线游离</span>
+                    </div>
+                  </transition>
                   <div v-if="isRecording && config.analyzeSource === 'stream'" class="analysis-indicator" :class="{ active: isWsConnected }">
                     <span class="indicator-dot"></span>
                     <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
@@ -631,6 +643,12 @@ const candidateInfo = computed(() => {
     resumeId: selectedApp?.resume_id,
     screeningTaskId: selectedApp?.screening_task_id
   }
+})
+
+// 视线游离检测（一旦 ratio < 1 即视为游离，立即显示警告）
+const isGazeDrifting = computed(() => {
+  if (!currentBehavior.value?.gaze) return false
+  return currentBehavior.value.gaze.ratio < 1
 })
 
 // 创建会话
@@ -1261,21 +1279,36 @@ onMounted(() => {
     }
   }
 
-  // 情绪浮层
-  .emotion-overlay {
+  // 视线游离警告
+  .gaze-warning {
     position: absolute;
     top: 20px;
     left: 20px;
-    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(245, 158, 11, 0.85);
     backdrop-filter: blur(8px);
-    padding: 8px 16px;
+    padding: 8px 14px;
     border-radius: 20px;
+    box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
+    animation: warning-pulse 1.5s ease-in-out infinite;
 
-    .emotion-label {
-      color: white;
+    .warning-icon {
       font-size: 14px;
-      font-weight: 500;
     }
+
+    .warning-text {
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  @keyframes warning-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.02); }
   }
 
   // 分析状态指示器
@@ -1347,6 +1380,18 @@ onMounted(() => {
 .slide-up-leave-to {
   opacity: 0;
   transform: translateY(-30px);
+}
+
+// 视线游离警告淡入淡出动画
+.gaze-fade-enter-active,
+.gaze-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.gaze-fade-enter-from,
+.gaze-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 // 响应式

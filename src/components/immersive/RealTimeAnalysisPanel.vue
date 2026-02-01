@@ -73,9 +73,11 @@
                 <div class="meter-bar" :class="gazeLevelClass"
                   :style="{ width: `${Math.round(gazeRatio * 100)}%` }"></div>
               </div>
-            </div>
-            <div class="gaze-stats">
-              <span>游离警告: <strong :class="{ 'warning-text': gazeWarnings > 0 }">{{ gazeWarnings }} 次</strong></span>
+              <div class="gaze-stats-inline">
+                <span :class="{ 'warning-text': gazeDriftRatio > 30 }">游离 {{ gazeDriftRatio }}%</span>
+                <span class="divider">|</span>
+                <span>警告: <strong :class="{ 'warning-text': gazeWarnings > 0 }">{{ gazeWarnings }}</strong> 次</span>
+              </div>
             </div>
           </div>
         </div>
@@ -367,6 +369,9 @@ const topEmotionRatio = computed(() => {
 // 注视比例
 const gazeRatio = computed(() => props.gaze?.ratio ?? 0)
 
+// 游离比例（100 - 专注比例）
+const gazeDriftRatio = computed(() => Math.round((1 - gazeRatio.value) * 100))
+
 // 游离警告次数
 const gazeWarnings = computed(() => props.gaze?.warnings ?? 0)
 
@@ -599,7 +604,12 @@ const formatTime = (seconds: number): string => {
 
 // 注视检测
 .gaze-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
   .meter-bar-container {
+    flex: 1;
     height: 8px;
     background: #e5e7eb;
     border-radius: 4px;
@@ -615,14 +625,28 @@ const formatTime = (seconds: number): string => {
     &.level-warning { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
     &.level-danger { background: linear-gradient(90deg, #ef4444, #f87171); }
   }
-}
 
-.gaze-stats {
-  margin-top: 6px;
-  font-size: 11px;
-  color: #6b7280;
+  .gaze-stats-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    white-space: nowrap;
 
-  .warning-text { color: #f59e0b; }
+    .divider {
+      color: #d1d5db;
+    }
+
+    .warning-text {
+      color: #f59e0b;
+    }
+
+    strong {
+      font-weight: 700;
+    }
+  }
 }
 
 // 对话区域（主体）
