@@ -24,7 +24,48 @@
           <div class="candidate-position">{{ candidateInfo.position || '暂无岗位' }}</div>
         </div>
       </div>
+      <div class="candidate-actions">
+        <div class="action-btn" @click="showBasicInfoDialog = true">
+          <el-icon :size="16"><InfoFilled /></el-icon>
+          <span>基本信息</span>
+        </div>
+        <div class="action-btn" @click="handleViewResume">
+          <el-icon :size="16"><Document /></el-icon>
+          <span>简历</span>
+        </div>
+        <div class="action-btn" @click="handleViewScreeningReport">
+          <el-icon :size="16"><DataLine /></el-icon>
+          <span>初筛报告</span>
+        </div>
+      </div>
     </div>
+
+    <!-- 基本信息弹窗 -->
+    <el-dialog v-model="showBasicInfoDialog" title="候选人基本信息" width="500px">
+      <div class="basic-info-content">
+        <div class="info-row">
+          <span class="info-label">姓名：</span>
+          <span class="info-value">{{ candidateInfo.name || '未知' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">应聘岗位：</span>
+          <span class="info-value">{{ candidateInfo.position || '暂无' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">申请ID：</span>
+          <span class="info-value">{{ candidateInfo.applicationId || '-' }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showBasicInfoDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 简历详情弹窗 -->
+    <ResumeDetailDialog
+      v-model="showResumeDialog"
+      :resume="resumeDetailData"
+    />
 
     <!-- 情绪识别 -->
     <div class="section-card">
@@ -138,21 +179,30 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import {
   DataAnalysis,
   Refresh,
   Timer,
   User,
   InfoFilled,
-  Connection
+  Connection,
+  Document,
+  DataLine
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { ResumeDetailDialog } from '@/components/common'
+import { getResume, getScreeningTask } from '@/api/sdk.gen'
 import type { EmotionItem, GazeData } from '@/api/types.gen'
 import type { InterviewStats, QuestionSuggestion } from '@/composables/useImmersiveInterview'
+import type { ResumeData } from '@/types'
 
 interface CandidateInfo {
   name: string
   position: string
+  applicationId?: string
+  resumeId?: string
+  screeningTaskId?: string
 }
 
 interface Props {
@@ -173,20 +223,85 @@ const props = withDefaults(defineProps<Props>(), {
   candidateInfo: () => ({ name: '', position: '' })
 })
 
+// 弹窗状态
+const showBasicInfoDialog = ref(false)
+const showResumeDialog = ref(false)
+const resumeDetailData = ref<ResumeData | null>(null)
+
+// 查看简历
+const handleViewResume = async () => {
+  if (!props.candidateInfo.resumeId) {
+    ElMessage.warning('暂无简历信息')
+    return
+  }
+  
+  try {
+    const result = await getResume({ path: { resume_id: props.candidateInfo.resumeId } })
+    if (result.data?.data) {
+      const resume = result.data.data
+      resumeDetailData.value = {
+        id: resume.id,
+        candidate_name: resume.candidate_name,
+        position_title: props.candidateInfo.position,
+        content: resume.content,
+        resume_content: resume.content
+      }
+      showResumeDialog.value = true
+    }
+  } catch {
+    ElMessage.error('获取简历失败')
+  }
+}
+
+// 查看初筛报告
+const handleViewScreeningReport = async () => {
+  if (!props.candidateInfo.screeningTaskId) {
+    ElMessage.warning('暂无初筛报告')
+    return
+  }
+  
+  try {
+    const result = await getScreeningTask({ path: { task_id: props.candidateInfo.screeningTaskId } })
+    if (result.data?.data) {
+      const task = result.data.data
+      resumeDetailData.value = {
+        id: task.id,
+        candidate_name: task.candidate_name || props.candidateInfo.name,
+        position_title: task.position_title || props.candidateInfo.position,
+        screening_score: task.score !== null ? {
+          comprehensive_score: task.score,
+          hr_score: (task.dimension_scores?.hr_score as number) || undefined,
+          technical_score: (task.dimension_scores?.technical_score as number) || undefined,
+          manager_score: (task.dimension_scores?.manager_score as number) || undefined
+        } : undefined,
+        screening_summary: task.summary || undefined,
+        resume_content: task.resume_content || undefined
+      }
+      showResumeDialog.value = true
+    }
+  } catch {
+    ElMessage.error('获取初筛报告失败')
+  }
+}
+
 defineEmits<{
   (e: 'refresh-suggestions'): void
   (e: 'use-suggestion', suggestion: QuestionSuggestion): void
 }>()
 
-// 情绪标签映射
+// 情绪标签映射（支持后端返回的大写格式）
 const emotionLabelMap: Record<string, string> = {
   neutral: '平静',
+  happiness: '愉悦',
   happy: '愉悦',
+  sadness: '悲伤',
   sad: '悲伤',
+  anger: '愤怒',
   angry: '愤怒',
   fear: '恐惧',
   surprise: '惊讶',
-  disgust: '厌恶'
+  disgust: '厌恶',
+  contempt: '鄙视'
 }
 
 const typeLabels: Record<string, string> = {
@@ -220,9 +335,9 @@ const gazeLevelClass = computed(() => {
   return 'level-danger'
 })
 
-// 获取情绪标签
+// 获取情绪标签（转小写匹配）
 const getEmotionLabel = (emotion: string): string => {
-  return emotionLabelMap[emotion] || emotion
+  return emotionLabelMap[emotion.toLowerCase()] || emotion
 }
 
 // 获取情绪样式类
@@ -238,18 +353,22 @@ const getEmotionClass = (emotion: string): string => {
   return map[emotion] || 'neutral'
 }
 
-// 获取情绪条样式
+// 获取情绪条样式（支持后端不同命名格式）
 const getEmotionBarClass = (emotion: string): string => {
   const map: Record<string, string> = {
+    happiness: 'bar-happy',
     happy: 'bar-happy',
     neutral: 'bar-neutral',
+    sadness: 'bar-sad',
     sad: 'bar-sad',
+    anger: 'bar-angry',
     angry: 'bar-angry',
     fear: 'bar-fear',
     surprise: 'bar-surprise',
-    disgust: 'bar-disgust'
+    disgust: 'bar-disgust',
+    contempt: 'bar-contempt'
   }
-  return map[emotion] || 'bar-neutral'
+  return map[emotion.toLowerCase()] || 'bar-neutral'
 }
 
 // 格式化时间
@@ -331,6 +450,69 @@ const formatTime = (seconds: number): string => {
     .candidate-position {
       font-size: 13px;
       opacity: 0.85;
+    }
+  }
+
+  .candidate-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+
+    .action-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+      }
+
+      .el-icon {
+        opacity: 0.9;
+      }
+
+      span {
+        font-size: 11px;
+        opacity: 0.9;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+// 基本信息弹窗
+.basic-info-content {
+  .info-row {
+    display: flex;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      width: 100px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .info-value {
+      flex: 1;
+      color: #1a1a2e;
+      font-size: 14px;
+      font-weight: 500;
     }
   }
 }
@@ -422,6 +604,7 @@ const formatTime = (seconds: number): string => {
     &.bar-fear { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
     &.bar-surprise { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
     &.bar-disgust { background: linear-gradient(90deg, #84cc16, #a3e635); }
+    &.bar-contempt { background: linear-gradient(90deg, #ec4899, #f472b6); }
   }
 
   .emotion-value {

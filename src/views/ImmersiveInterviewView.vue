@@ -235,6 +235,8 @@ const applications = ref<Array<{
   id: string
   candidate_name: string
   position_title: string
+  resume_id?: string
+  screening_task_id?: string
 }>>([])
 const isLoadingCandidates = ref(false)
 
@@ -247,7 +249,9 @@ const fetchApplications = async () => {
       applications.value = result.data.data.items.map((item: ApplicationDetailResponse) => ({
         id: item.id,
         candidate_name: item.candidate_name || '未知',
-        position_title: item.position_title || '未知岗位'
+        position_title: item.position_title || '未知岗位',
+        resume_id: item.resume?.id,
+        screening_task_id: item.screening_task?.id
       }))
     }
   } catch (error) {
@@ -263,7 +267,10 @@ const candidateInfo = computed(() => {
   const selectedApp = applications.value.find(app => app.id === selectedApplicationId.value)
   return {
     name: session.value?.candidate_name || selectedApp?.candidate_name || '',
-    position: session.value?.position_title || selectedApp?.position_title || ''
+    position: session.value?.position_title || selectedApp?.position_title || '',
+    applicationId: selectedApplicationId.value,
+    resumeId: selectedApp?.resume_id,
+    screeningTaskId: selectedApp?.screening_task_id
   }
 })
 
