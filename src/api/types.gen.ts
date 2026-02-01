@@ -869,10 +869,6 @@ export type InterviewSessionResponse = {
      */
     messages: Array<QaMessage>;
     /**
-     * Question Pool
-     */
-    question_pool: Array<string>;
-    /**
      * Is Completed
      */
     is_completed: boolean;
@@ -932,10 +928,6 @@ export type InterviewSessionUpdate = {
     config?: {
         [key: string]: unknown;
     } | null;
-    /**
-     * Question Pool
-     */
-    question_pool?: Array<string> | null;
     /**
      * Is Completed
      */
