@@ -249,6 +249,16 @@
                 </div>
               </div>
             </div>
+            
+            <!-- 可视化图表区（右下角） -->
+            <div class="dimension-item charts-panel">
+              <AbilityRadarChart 
+                :dimension-scores="selectedComprehensiveAnalysis.dimension_scores" 
+              />
+              <BigFivePersonalityBars 
+                :data="(selectedComprehensiveAnalysis as any).big_five_personality || null" 
+              />
+            </div>
           </div>
         </div>
         
@@ -289,6 +299,7 @@ import { TrophyBase, Plus, MagicStick, Promotion, InfoFilled } from '@element-pl
 
 // 组件导入
 import { CandidateAnalysisCard } from '@/components/recommend'
+import { AbilityRadarChart, BigFivePersonalityBars } from '@/components/charts'
 import PositionList from '@/components/common/PositionList.vue'
 import ResumeDetailDialog from '@/components/common/ResumeDetailDialog.vue'
 import { ReportEditDialog } from '@/components/common'
@@ -311,7 +322,7 @@ import {
 import type { ResumeData } from '@/types'
 import type { 
   ApplicationDetailResponse,
-  InterviewSessionResponse,
+  InterviewSessionResponseOutput,
   ComprehensiveAnalysisResponse,
   DimensionScoreItem
 } from '@/api/types.gen'
@@ -499,8 +510,8 @@ const showInterviewDialog = ref(false)
 const showInterviewReportDialog = ref(false)
 const showComprehensiveDialog = ref(false)
 const selectedResumeContent = ref<string>('')
-const selectedInterviewSession = ref<InterviewSessionResponse | null>(null)
-const selectedInterviewReport = ref<InterviewSessionResponse | null>(null)
+const selectedInterviewSession = ref<InterviewSessionResponseOutput | null>(null)
+const selectedInterviewReport = ref<InterviewSessionResponseOutput | null>(null)
 const selectedComprehensiveAnalysis = ref<ComprehensiveAnalysisResponse | null>(null)
 const currentScreeningTaskId = ref('')
 
@@ -523,7 +534,7 @@ const openReportEdit = (type: ReportType, reportData: unknown) => {
   if (type === 'screening') {
     editReportId.value = (reportData as { id?: string }).id || ''
   } else if (type === 'interview') {
-    editReportId.value = (reportData as InterviewSessionResponse).id || ''
+    editReportId.value = (reportData as InterviewSessionResponseOutput).id || ''
   } else if (type === 'analysis') {
     editReportId.value = (reportData as ComprehensiveAnalysisResponse).id || ''
   }
@@ -702,7 +713,7 @@ const viewFinalReport = async (app: ApplicationDetailResponse) => {
 }
 
 // 获取报告分数样式
-const getReportScoreClass = (report: InterviewSessionResponse) => {
+const getReportScoreClass = (report: InterviewSessionResponseOutput) => {
   const score = report?.final_score || 0
   if (score >= 80) return 'score-high'
   if (score >= 60) return 'score-medium'
@@ -1347,6 +1358,15 @@ onMounted(async () => {
             color: #f59e0b;
           }
         }
+      }
+
+      // 图表面板样式
+      &.charts-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid #e2e8f0;
       }
     }
   }

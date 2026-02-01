@@ -17,7 +17,7 @@ import {
   getApplications,
   getResume
 } from '@/api/sdk.gen'
-import type { InterviewSessionResponse, QaMessage } from '@/api/types.gen'
+import type { InterviewSessionResponseOutput } from '@/api/types.gen'
 
 // 类型定义
 export interface Message {
@@ -199,7 +199,7 @@ export function useInterviewAssist() {
   // 会话状态
   const sessionId = ref<string | null>(null)
   const applicationId = ref<string | null>(null)
-  const sessionData = ref<InterviewSessionResponse | null>(null)
+  const sessionData = ref<InterviewSessionResponseOutput | null>(null)
   const questionPool = ref<string[]>([])
   const resumeHighlights = ref<string[]>([])
 
