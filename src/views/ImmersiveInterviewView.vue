@@ -151,6 +151,7 @@
               :is-loading-assessment="isLoadingAssessment"
               :is-loading-suggestions="isLoadingSuggestions"
               :can-refresh="isRecording && messages.length > 0"
+              v-model:auto-refresh="autoRefreshEnabled"
               @toggle="toggleLeftPanel"
               @refresh-assessment="handleRefreshAssessment"
               @refresh-suggestions="handleRefreshSituationSuggestions"
@@ -374,6 +375,7 @@ const situationAssessment = ref<SituationAssessment>({
 const situationSuggestions = ref<SAPanelSuggestion[]>([])
 const isLoadingAssessment = ref(false)
 const isLoadingSuggestions = ref(false)
+const autoRefreshEnabled = ref(false)
 
 const startResize = (e: MouseEvent) => {
   resizeBarDragging.value = true
@@ -790,6 +792,21 @@ const handleStopSpeech = () => {
   accumulatedTranscript.value = ''
   ElMessage.info('语音转写已停止')
 }
+
+// 监听消息变化，自动刷新态势感知
+watch(
+  () => messages.value.length,
+  (newLen, oldLen) => {
+    if (newLen > oldLen && autoRefreshEnabled.value && isLeftPanelExpanded.value) {
+      const lastMsg = messages.value[messages.value.length - 1]
+      if (lastMsg?.role === 'candidate') {
+        // 候选人回答完成，自动刷新评估和建议
+        handleRefreshAssessment()
+        handleRefreshSituationSuggestions()
+      }
+    }
+  }
+)
 
 // 生命周期
 onMounted(() => {

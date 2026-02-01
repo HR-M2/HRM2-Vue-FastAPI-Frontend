@@ -16,6 +16,26 @@
           <el-icon><DataAnalysis /></el-icon>
           <span>综合态势感知</span>
         </div>
+        <!-- 手动/自动刷新切换 -->
+        <div class="refresh-mode-switch">
+          <span 
+            class="mode-label" 
+            :class="{ active: !autoRefresh }"
+            @click="$emit('update:autoRefresh', false)"
+          >手动</span>
+          <div 
+            class="switch-track" 
+            :class="{ auto: autoRefresh }"
+            @click="$emit('update:autoRefresh', !autoRefresh)"
+          >
+            <div class="switch-thumb"></div>
+          </div>
+          <span 
+            class="mode-label" 
+            :class="{ active: autoRefresh }"
+            @click="$emit('update:autoRefresh', true)"
+          >自动</span>
+        </div>
         <el-button circle size="small" @click="$emit('toggle')">
           <el-icon><ArrowLeft /></el-icon>
         </el-button>
@@ -138,6 +158,7 @@ interface Props {
   isLoadingAssessment: boolean
   isLoadingSuggestions: boolean
   canRefresh: boolean
+  autoRefresh: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -146,7 +167,8 @@ const props = withDefaults(defineProps<Props>(), {
   suggestions: () => [],
   isLoadingAssessment: false,
   isLoadingSuggestions: false,
-  canRefresh: true
+  canRefresh: true,
+  autoRefresh: false
 })
 
 defineEmits<{
@@ -154,6 +176,7 @@ defineEmits<{
   (e: 'refresh-assessment'): void
   (e: 'refresh-suggestions'): void
   (e: 'use-suggestion', suggestion: QuestionSuggestion): void
+  (e: 'update:autoRefresh', value: boolean): void
 }>()
 
 // 追问建议
@@ -236,20 +259,78 @@ const alternativeSuggestions = computed(() =>
 .panel-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 16px;
 
   .header-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 16px;
+    gap: 6px;
+    font-size: 14px;
     font-weight: 600;
     color: #1a1a2e;
+    white-space: nowrap;
 
     .el-icon {
       color: #667eea;
-      font-size: 20px;
+      font-size: 18px;
+    }
+  }
+
+  .el-button {
+    margin-left: auto;
+  }
+}
+
+// 刷新模式切换
+.refresh-mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .mode-label {
+    font-size: 11px;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &.active {
+      color: #374151;
+      font-weight: 500;
+    }
+
+    &:hover {
+      color: #667eea;
+    }
+  }
+
+  .switch-track {
+    width: 32px;
+    height: 16px;
+    background: #667eea;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+
+    &.auto {
+      background: #10b981;
+
+      .switch-thumb {
+        transform: translateX(16px);
+      }
+    }
+
+    .switch-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
   }
 }
