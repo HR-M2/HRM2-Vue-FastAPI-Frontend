@@ -102,13 +102,22 @@
             <div v-if="followupSuggestions.length > 0" class="suggestion-group">
               <div class="group-label">追问建议</div>
               <div 
-                v-for="suggestion in followupSuggestions" 
+                v-for="(suggestion, index) in followupSuggestions" 
                 :key="suggestion.question"
-                class="suggestion-item followup"
-                @click="$emit('use-suggestion', suggestion)"
+                class="suggestion-card followup"
               >
-                <div class="suggestion-question">{{ suggestion.question }}</div>
-                <div v-if="suggestion.purpose" class="suggestion-purpose">{{ suggestion.purpose }}</div>
+                <div class="card-header">
+                  <span class="card-number">{{ index + 1 }}</span>
+                  <div class="card-actions">
+                    <el-tooltip content="编辑后发送" placement="top">
+                      <el-button type="info" text size="small" :icon="Edit" @click="$emit('edit-suggestion', suggestion)" />
+                    </el-tooltip>
+                    <el-tooltip content="直接发送" placement="top">
+                      <el-button type="primary" text size="small" :icon="Promotion" @click="$emit('use-suggestion', suggestion)" />
+                    </el-tooltip>
+                  </div>
+                </div>
+                <div class="card-question">{{ suggestion.question }}</div>
               </div>
             </div>
             
@@ -116,13 +125,23 @@
             <div v-if="alternativeSuggestions.length > 0" class="suggestion-group">
               <div class="group-label">候选问题</div>
               <div 
-                v-for="suggestion in alternativeSuggestions" 
+                v-for="(suggestion, index) in alternativeSuggestions" 
                 :key="suggestion.question"
-                class="suggestion-item alternative"
-                @click="$emit('use-suggestion', suggestion)"
+                class="suggestion-card alternative"
               >
-                <div class="suggestion-question">{{ suggestion.question }}</div>
-                <div v-if="suggestion.purpose" class="suggestion-purpose">{{ suggestion.purpose }}</div>
+                <div class="card-header">
+                  <span v-if="suggestion.purpose" class="card-tag">{{ suggestion.purpose }}</span>
+                  <span v-else class="card-number alt">{{ index + 1 }}</span>
+                  <div class="card-actions">
+                    <el-tooltip content="编辑后发送" placement="top">
+                      <el-button type="info" text size="small" :icon="Edit" @click="$emit('edit-suggestion', suggestion)" />
+                    </el-tooltip>
+                    <el-tooltip content="直接发送" placement="top">
+                      <el-button type="primary" text size="small" :icon="Promotion" @click="$emit('use-suggestion', suggestion)" />
+                    </el-tooltip>
+                  </div>
+                </div>
+                <div class="card-question">{{ suggestion.question }}</div>
               </div>
             </div>
 
@@ -138,7 +157,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ArrowRight, ArrowLeft, DataAnalysis, Refresh, Loading } from '@element-plus/icons-vue'
+import { ArrowRight, ArrowLeft, DataAnalysis, Refresh, Loading, Edit, Promotion } from '@element-plus/icons-vue'
 
 export interface SituationAssessment {
   assessment: string
@@ -176,6 +195,7 @@ defineEmits<{
   (e: 'refresh-assessment'): void
   (e: 'refresh-suggestions'): void
   (e: 'use-suggestion', suggestion: QuestionSuggestion): void
+  (e: 'edit-suggestion', suggestion: QuestionSuggestion): void
   (e: 'update:autoRefresh', value: boolean): void
 }>()
 
@@ -252,15 +272,15 @@ const alternativeSuggestions = computed(() =>
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 10px;
   overflow: hidden;
 }
 
 .panel-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 10px;
 
   .header-title {
     display: flex;
@@ -376,15 +396,15 @@ const alternativeSuggestions = computed(() =>
 .assessment-section {
   .assessment-content {
     background: #f8fafc;
-    border-radius: 10px;
-    padding: 14px;
+    border-radius: 8px;
+    padding: 8px 10px;
   }
 
   .assessment-text {
     p {
       margin: 0;
-      font-size: 12px;
-      line-height: 1.6;
+      font-size: 11px;
+      line-height: 1.5;
       color: #374151;
       white-space: pre-wrap;
     }
@@ -415,50 +435,102 @@ const alternativeSuggestions = computed(() =>
 }
 
 .suggestion-group {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 
   .group-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: #6b7280;
-    margin-bottom: 8px;
-    padding-left: 4px;
+    margin-bottom: 4px;
+    padding-left: 2px;
   }
 }
 
-.suggestion-item {
-  padding: 10px 12px;
-  background: #f8fafc;
+// 建议卡片样式
+.suggestion-card {
+  padding: 6px 8px;
+  background: white;
   border-radius: 8px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  border: 1px solid transparent;
+  margin-bottom: 5px;
+  border: 1px solid #e5e7eb;
   transition: all 0.2s;
 
   &:hover {
-    background: white;
     border-color: #667eea;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.1);
   }
 
-  &.followup {
-    border-left: 3px solid #667eea;
+  &.followup:hover {
+    border-color: #667eea;
   }
 
-  &.alternative {
-    border-left: 3px solid #10b981;
+  &.alternative:hover {
+    border-color: #10b981;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);
   }
 
-  .suggestion-question {
-    font-size: 13px;
-    color: #1a1a2e;
-    line-height: 1.5;
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3px;
   }
 
-  .suggestion-purpose {
+  .card-number {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.alt {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+  }
+
+  .card-tag {
+    font-size: 10px;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 2px;
+
+    .el-button {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+
+      &:first-child {
+        background: #f3f4f6;
+        &:hover { background: #e5e7eb; }
+      }
+
+      &:last-child {
+        background: #eff6ff;
+        &:hover { background: #dbeafe; }
+      }
+    }
+  }
+
+  .card-question {
     font-size: 11px;
-    color: #9ca3af;
-    margin-top: 4px;
+    color: #374151;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 
@@ -483,7 +555,7 @@ const alternativeSuggestions = computed(() =>
 }
 
 .el-divider {
-  margin: 16px 0;
+  margin: 8px 0;
 }
 
 @keyframes spin {

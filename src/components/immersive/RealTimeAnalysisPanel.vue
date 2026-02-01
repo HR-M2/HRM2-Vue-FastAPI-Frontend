@@ -306,6 +306,16 @@ const handleSendQuestion = () => {
   questionInputLocal.value = ''
 }
 
+// 设置问题输入框内容
+const setQuestionInput = (text: string) => {
+  questionInputLocal.value = text
+}
+
+// 暴露方法给父组件
+defineExpose({
+  setQuestionInput
+})
+
 // 滚动到底部
 const scrollToBottom = () => {
   nextTick(() => {

@@ -156,6 +156,7 @@
               @refresh-assessment="handleRefreshAssessment"
               @refresh-suggestions="handleRefreshSituationSuggestions"
               @use-suggestion="handleUseSituationSuggestion"
+              @edit-suggestion="handleEditSituationSuggestion"
             />
           </div>
 
@@ -210,6 +211,7 @@
           <!-- 右侧：实时分析面板 -->
           <div class="analysis-section">
             <RealTimeAnalysisPanel
+              ref="analysisPanelRef"
               :is-connected="isWsConnected"
               :emotions="currentBehavior?.emotions || []"
               :gaze="currentBehavior?.gaze || null"
@@ -337,6 +339,9 @@ const {
   }
 })
 
+// 组件引用
+const analysisPanelRef = ref<InstanceType<typeof RealTimeAnalysisPanel> | null>(null)
+
 // 阿里云配置
 const showAliyunConfigDialog = ref(false)
 const aliyunConfig = ref({
@@ -443,9 +448,9 @@ const toggleLeftPanel = () => {
 // 计算内容区域网格列
 const contentGridColumns = computed(() => {
   if (isLeftPanelExpanded.value) {
-    return `${leftPanelWidth.value}px 8px 1fr 8px ${analysisPanelWidth.value}px`
+    return `${leftPanelWidth.value}px 6px 1fr 6px ${analysisPanelWidth.value}px`
   }
-  return `40px 1fr 8px ${analysisPanelWidth.value}px`
+  return `40px 1fr 6px ${analysisPanelWidth.value}px`
 })
 
 // 获取候选人列表
@@ -682,11 +687,17 @@ const handleRefreshSituationSuggestions = async () => {
   }
 }
 
-// 使用态势面板的建议
+// 使用态势面板的建议（直接发送）
 const handleUseSituationSuggestion = (suggestion: SAPanelSuggestion) => {
   addInterviewerMessage(suggestion.question)
   syncMessages()
   ElMessage.success('已添加问题到对话')
+}
+
+// 编辑态势面板的建议（添加到输入框）
+const handleEditSituationSuggestion = (suggestion: SAPanelSuggestion) => {
+  analysisPanelRef.value?.setQuestionInput(suggestion.question)
+  ElMessage.info('已添加到输入框，可编辑后发送')
 }
 
 // 格式化时长
@@ -949,7 +960,7 @@ onMounted(() => {
 .content-grid {
   flex: 1;
   display: grid;
-  gap: 12px;
+  gap: 4px;
   min-height: 500px;
 }
 
@@ -961,13 +972,13 @@ onMounted(() => {
 
 // 拖拽分隔条
 .resize-bar {
-  width: 8px;
+  width: 6px;
   cursor: col-resize;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
-  border-radius: 4px;
+  border-radius: 3px;
 
   &:hover,
   &.dragging {
@@ -979,8 +990,8 @@ onMounted(() => {
   }
 
   .resize-handle {
-    width: 4px;
-    height: 40px;
+    width: 3px;
+    height: 32px;
     background: #d1d5db;
     border-radius: 2px;
     transition: background 0.2s;
