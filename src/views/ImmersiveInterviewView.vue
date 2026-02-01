@@ -1,27 +1,5 @@
 <template>
   <div class="immersive-interview-view">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-left">
-          <h1 class="page-title">
-            <span class="title-icon">🎬</span>
-            沉浸式面试
-            <el-tag type="warning" size="small" effect="dark" class="exp-tag">实验性</el-tag>
-          </h1>
-          <p class="page-desc">实时视频面试 · AI情绪识别 · 智能注视检测</p>
-        </div>
-        <div class="header-right">
-          <el-tag v-if="isRecording" type="danger" effect="dark" size="large" class="status-tag">
-            <span class="status-dot"></span>
-            面试进行中 · {{ formatDuration(stats.duration) }}
-          </el-tag>
-          <el-tag v-else-if="isSessionActive" type="success" effect="plain" size="large">
-            会话已就绪
-          </el-tag>
-        </div>
-      </div>
-    </div>
 
     <!-- 设置面板（未开始时显示） -->
     <transition name="fade">
@@ -167,7 +145,7 @@
         </div>
 
         <!-- 主内容区 -->
-        <div class="content-grid">
+        <div class="content-grid" :style="{ gridTemplateColumns: `1fr 8px ${analysisPanelWidth}px` }">
           <!-- 左侧：视频区 -->
           <div class="video-section">
             <div class="video-container">
@@ -195,6 +173,15 @@
                 <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
               </div>
             </div>
+          </div>
+
+          <!-- 拖拽分隔条 -->
+          <div 
+            class="resize-bar"
+            :class="{ dragging: resizeBarDragging }"
+            @mousedown="startResize"
+          >
+            <div class="resize-handle"></div>
           </div>
 
           <!-- 右侧：实时分析面板 -->
@@ -341,6 +328,41 @@ const applications = ref<Array<{
   screening_task_id?: string
 }>>([])
 const isLoadingCandidates = ref(false)
+
+// 拖拽调整宽度
+const analysisPanelWidth = ref(420)
+const resizeBarDragging = ref(false)
+const startX = ref(0)
+const startWidth = ref(0)
+
+const startResize = (e: MouseEvent) => {
+  resizeBarDragging.value = true
+  startX.value = e.clientX
+  startWidth.value = analysisPanelWidth.value
+  document.addEventListener('mousemove', onResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const onResize = (e: MouseEvent) => {
+  if (!resizeBarDragging.value) return
+  const diff = startX.value - e.clientX
+  // 获取容器宽度，计算最大允许宽度（视频最小保留30%）
+  const container = document.querySelector('.content-grid') as HTMLElement
+  const containerWidth = container?.offsetWidth || 1200
+  const maxWidth = Math.floor(containerWidth * 0.7) - 20 // 70% - gap
+  const newWidth = Math.min(Math.max(startWidth.value + diff, 320), maxWidth)
+  analysisPanelWidth.value = newWidth
+}
+
+const stopResize = () => {
+  resizeBarDragging.value = false
+  document.removeEventListener('mousemove', onResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
 
 // 获取候选人列表
 const fetchApplications = async () => {
@@ -568,67 +590,6 @@ onMounted(() => {
   min-height: calc(100vh - 140px);
 }
 
-// 页面头部
-.page-header {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border-radius: 20px;
-  padding: 28px 32px;
-
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .header-left {
-    .page-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 0 0 8px;
-      font-size: 28px;
-      font-weight: 700;
-      color: white;
-
-      .title-icon {
-        font-size: 32px;
-      }
-
-      .exp-tag {
-        font-size: 11px;
-        margin-left: 8px;
-      }
-    }
-
-    .page-desc {
-      margin: 0;
-      font-size: 15px;
-      color: rgba(255, 255, 255, 0.7);
-      letter-spacing: 0.5px;
-    }
-  }
-
-  .status-tag {
-    padding: 10px 20px;
-    font-size: 14px;
-    border-radius: 25px;
-
-    .status-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: white;
-      margin-right: 8px;
-      animation: pulse 1.5s infinite;
-    }
-  }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
 
 // 设置面板
 .setup-panel {
@@ -755,9 +716,37 @@ onMounted(() => {
 .content-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 20px;
+  grid-template-columns: 1fr 8px 420px;
+  gap: 12px;
   min-height: 500px;
+}
+
+// 拖拽分隔条
+.resize-bar {
+  width: 8px;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  border-radius: 4px;
+
+  &:hover,
+  &.dragging {
+    background: rgba(102, 126, 234, 0.15);
+
+    .resize-handle {
+      background: #667eea;
+    }
+  }
+
+  .resize-handle {
+    width: 4px;
+    height: 40px;
+    background: #d1d5db;
+    border-radius: 2px;
+    transition: background 0.2s;
+  }
 }
 
 .video-section {
@@ -892,6 +881,10 @@ onMounted(() => {
     .analysis-section {
       height: 500px;
     }
+  }
+
+  .resize-bar {
+    display: none;
   }
 }
 </style>

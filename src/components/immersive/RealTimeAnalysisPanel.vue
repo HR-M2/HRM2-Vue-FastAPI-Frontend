@@ -664,6 +664,7 @@ const formatTime = (seconds: number): string => {
     flex: 1;
     overflow-y: auto;
     padding: 12px;
+    max-height: 350px;
   }
 
   .chat-empty {
