@@ -369,11 +369,7 @@ const leftStartWidth = ref(0)
 
 // 态势感知数据
 const situationAssessment = ref<SituationAssessment>({
-  assessment: '',
-  confidence_level: 'medium',
-  candidate_state: 'neutral',
-  suggested_directions: [],
-  risk_signals: []
+  assessment: ''
 })
 const situationSuggestions = ref<SAPanelSuggestion[]>([])
 const isLoadingAssessment = ref(false)
@@ -593,26 +589,12 @@ const handleRefreshAssessment = async () => {
       content: m.content
     }))
     
-    // 构建行为摘要
-    let behaviorSummary = ''
-    if (currentBehavior.value) {
-      const emotions = currentBehavior.value.emotions
-      const gaze = currentBehavior.value.gaze
-      if (emotions?.length) {
-        behaviorSummary += `当前情绪: ${emotions.map(e => `${e.emotion}(${Math.round(e.ratio * 100)}%)`).join(', ')}`
-      }
-      if (gaze) {
-        behaviorSummary += `; 注视专注度: ${Math.round(gaze.ratio * 100)}%`
-      }
-    }
-    
     const response = await fetch(`/api/v1/ai/interview/situation-assessment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId.value,
-        conversation_history: conversationHistory,
-        behavior_summary: behaviorSummary
+        conversation_history: conversationHistory
       })
     })
     

@@ -45,20 +45,6 @@
           </div>
           <div v-else-if="assessment.assessment" class="assessment-text">
             <p>{{ assessment.assessment }}</p>
-            <div v-if="assessment.candidate_state" class="candidate-state">
-              <el-tag :type="getCandidateStateType(assessment.candidate_state)" size="small">
-                {{ getCandidateStateLabel(assessment.candidate_state) }}
-              </el-tag>
-              <el-tag v-if="assessment.confidence_level" type="info" size="small">
-                置信度: {{ getConfidenceLabel(assessment.confidence_level) }}
-              </el-tag>
-            </div>
-            <div v-if="assessment.risk_signals?.length" class="risk-signals">
-              <span class="risk-label">⚠️ 风险信号:</span>
-              <el-tag v-for="signal in assessment.risk_signals" :key="signal" type="warning" size="small">
-                {{ signal }}
-              </el-tag>
-            </div>
           </div>
           <div v-else class="empty-state">
             <span>点击刷新获取局面评估</span>
@@ -120,18 +106,6 @@
               </div>
             </div>
 
-            <!-- 建议追问方向 -->
-            <div v-if="assessment.suggested_directions?.length > 0" class="suggestion-group">
-              <div class="group-label">建议方向</div>
-              <div 
-                v-for="dir in assessment.suggested_directions" 
-                :key="dir.direction"
-                class="direction-item"
-              >
-                <div class="direction-text">{{ dir.direction }}</div>
-                <div v-if="dir.reason" class="direction-reason">{{ dir.reason }}</div>
-              </div>
-            </div>
           </template>
           <div v-else class="empty-state">
             <span>点击刷新获取建议</span>
@@ -148,10 +122,6 @@ import { ArrowRight, ArrowLeft, DataAnalysis, Refresh, Loading } from '@element-
 
 export interface SituationAssessment {
   assessment: string
-  confidence_level: 'high' | 'medium' | 'low'
-  candidate_state: 'engaged' | 'neutral' | 'nervous' | 'overconfident'
-  suggested_directions: Array<{ direction: string; reason: string }>
-  risk_signals: string[]
 }
 
 export interface QuestionSuggestion {
@@ -172,13 +142,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   isExpanded: false,
-  assessment: () => ({
-    assessment: '',
-    confidence_level: 'medium',
-    candidate_state: 'neutral',
-    suggested_directions: [],
-    risk_signals: []
-  }),
+  assessment: () => ({ assessment: '' }),
   suggestions: () => [],
   isLoadingAssessment: false,
   isLoadingSuggestions: false,
@@ -202,42 +166,12 @@ const alternativeSuggestions = computed(() =>
   props.suggestions.filter(s => s.type === 'alternative' || s.type === 'probe')
 )
 
-// 候选人状态标签
-const getCandidateStateLabel = (state: string) => {
-  const map: Record<string, string> = {
-    engaged: '积极投入',
-    neutral: '状态平稳',
-    nervous: '略显紧张',
-    overconfident: '过度自信'
-  }
-  return map[state] || state
-}
-
-// 候选人状态类型
-const getCandidateStateType = (state: string) => {
-  const map: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
-    engaged: 'success',
-    neutral: 'info',
-    nervous: 'warning',
-    overconfident: 'danger'
-  }
-  return map[state] || 'info'
-}
-
-// 置信度标签
-const getConfidenceLabel = (level: string) => {
-  const map: Record<string, string> = {
-    high: '高',
-    medium: '中',
-    low: '低'
-  }
-  return map[level] || level
-}
 </script>
 
 <style scoped lang="scss">
 .situation-panel {
   height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   background: white;
@@ -258,19 +192,15 @@ const getConfidenceLabel = (level: string) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: white;
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
   transition: all 0.2s;
 
   &:hover {
     width: 48px;
-    
-    .expand-trigger {
-      .trigger-label {
-        opacity: 1;
-        max-width: 80px;
-      }
-    }
+    background: #f9fafb;
+    border-color: #d1d5db;
   }
 
   .expand-trigger {
@@ -278,10 +208,10 @@ const getConfidenceLabel = (level: string) => {
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: white;
+    color: #6b7280;
 
     .el-icon {
-      font-size: 18px;
+      font-size: 16px;
     }
 
     .trigger-label {
@@ -289,7 +219,6 @@ const getConfidenceLabel = (level: string) => {
       font-size: 12px;
       font-weight: 500;
       letter-spacing: 2px;
-      opacity: 0.9;
       transition: all 0.2s;
     }
   }
@@ -372,29 +301,11 @@ const getConfidenceLabel = (level: string) => {
 
   .assessment-text {
     p {
-      margin: 0 0 12px;
-      font-size: 14px;
+      margin: 0;
+      font-size: 12px;
       line-height: 1.6;
       color: #374151;
-    }
-
-    .candidate-state {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-
-    .risk-signals {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-
-      .risk-label {
-        font-size: 12px;
-        color: #f59e0b;
-      }
+      white-space: pre-wrap;
     }
   }
 }

@@ -2629,12 +2629,6 @@ export type SituationAssessmentRequest = {
     conversation_history: Array<{
         [key: string]: unknown;
     }>;
-    /**
-     * Behavior Summary
-     *
-     * 行为分析摘要
-     */
-    behavior_summary?: string | null;
 };
 
 /**

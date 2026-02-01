@@ -542,12 +542,7 @@ export const aiGenerateAdaptiveQuestions = <ThrowOnError extends boolean = false
  *
  * 基于当前面试对话生成实时局面评估
  *
- * 返回：
- * - assessment: 整体局面评估文字
- * - confidence_level: 评估置信度
- * - candidate_state: 候选人当前状态
- * - suggested_directions: 建议追问方向
- * - risk_signals: 风险信号
+ * 返回纯文本（两个自然段）：整体表现评估 + 建议提问方向
  */
 export const aiSituationAssessment = <ThrowOnError extends boolean = false>(options: Options<AiSituationAssessmentData, ThrowOnError>) => (options.client ?? client).post<AiSituationAssessmentResponses, AiSituationAssessmentErrors, ThrowOnError>({
     url: '/api/v1/ai/interview/situation-assessment',
