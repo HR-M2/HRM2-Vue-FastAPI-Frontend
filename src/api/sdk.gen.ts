@@ -386,6 +386,11 @@ export const updateInterviewSession = <ThrowOnError extends boolean = false>(opt
 
 /**
  * 同步对话记录
+ *
+ * 同步对话记录
+ *
+ * 支持在消息中携带可选的行为分析数据（情绪、注视等）。
+ * 行为数据仅对 candidate 角色的消息有效。
  */
 export const syncMessages = <ThrowOnError extends boolean = false>(options: Options<SyncMessagesData, ThrowOnError>) => (options.client ?? client).post<SyncMessagesResponses, SyncMessagesErrors, ThrowOnError>({
     url: '/api/v1/interview/{session_id}/sync',

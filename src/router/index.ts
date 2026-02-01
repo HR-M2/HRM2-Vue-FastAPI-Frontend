@@ -51,6 +51,12 @@ const router = createRouter({
           meta: { title: '面试辅助 - HRM2招聘管理系统' }
         },
         {
+          path: 'immersive',
+          name: 'immersive',
+          component: () => import('@/views/ImmersiveInterviewView.vue'),
+          meta: { title: '沉浸式面试 - HRM2招聘管理系统' }
+        },
+        {
           path: 'recommend',
           name: 'recommend',
           component: () => import('@/views/RecommendView.vue'),

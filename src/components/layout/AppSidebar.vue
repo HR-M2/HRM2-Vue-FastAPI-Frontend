@@ -61,7 +61,8 @@ import {
   Setting,
   Promotion,
   Fold,
-  Expand
+  Expand,
+  View
 } from '@element-plus/icons-vue'
 import { useSidebar } from '@/composables/useSidebar'
 
@@ -78,6 +79,7 @@ const navItems = [
   { path: '/screening', label: '简历筛选', icon: Document },
   { path: '/video', label: '视频分析', icon: VideoCamera },
   { path: '/interview', label: '面试辅助', icon: ChatDotRound },
+  { path: '/immersive', label: '沉浸式面试', icon: View },
   { path: '/recommend', label: '最终推荐', icon: Trophy }
 ]
 

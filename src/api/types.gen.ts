@@ -259,6 +259,24 @@ export type BatchHashCheckData = {
 };
 
 /**
+ * BehaviorData
+ *
+ * 行为分析数据
+ */
+export type BehaviorData = {
+    /**
+     * Emotions
+     *
+     * Top3情绪及比例
+     */
+    emotions?: Array<EmotionItem>;
+    /**
+     * 眼神数据
+     */
+    gaze?: GazeData | null;
+};
+
+/**
  * BigFiveScores
  *
  * 大五人格评分
@@ -623,6 +641,26 @@ export type DimensionScoreItem = {
 };
 
 /**
+ * EmotionItem
+ *
+ * 情绪项
+ */
+export type EmotionItem = {
+    /**
+     * Emotion
+     *
+     * 情绪类型
+     */
+    emotion: string;
+    /**
+     * Ratio
+     *
+     * 占比(0-1)
+     */
+    ratio: number;
+};
+
+/**
  * ExperienceListData
  *
  * 经验列表数据
@@ -712,6 +750,26 @@ export type FinalReportRequest = {
      * HR备注
      */
     hr_notes?: string | null;
+};
+
+/**
+ * GazeData
+ *
+ * 眼神数据
+ */
+export type GazeData = {
+    /**
+     * Ratio
+     *
+     * 保持注视的时间比例(0-1)
+     */
+    ratio: number;
+    /**
+     * Warnings
+     *
+     * 眼神游离警告次数
+     */
+    warnings?: number;
 };
 
 /**
@@ -837,7 +895,7 @@ export type InterviewSessionCreate = {
  *
  * 面试会话响应
  */
-export type InterviewSessionResponse = {
+export type InterviewSessionResponseInput = {
     /**
      * Id
      */
@@ -867,7 +925,87 @@ export type InterviewSessionResponse = {
     /**
      * Messages
      */
-    messages: Array<QaMessage>;
+    messages: Array<QaMessageInput>;
+    /**
+     * Is Completed
+     */
+    is_completed: boolean;
+    /**
+     * Final Score
+     */
+    final_score: number | null;
+    /**
+     * Report
+     */
+    report: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Report Markdown
+     */
+    report_markdown: string | null;
+    /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
+    /**
+     * Message Count
+     */
+    message_count?: number;
+    /**
+     * Has Report
+     */
+    has_report?: boolean;
+    /**
+     * Candidate Name
+     */
+    candidate_name?: string | null;
+    /**
+     * Position Title
+     */
+    position_title?: string | null;
+    /**
+     * Applied Experiences
+     */
+    applied_experiences?: Array<AppliedExperienceItem> | null;
+};
+
+/**
+ * InterviewSessionResponse
+ *
+ * 面试会话响应
+ */
+export type InterviewSessionResponseOutput = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Application Id
+     */
+    application_id: string;
+    /**
+     * Interview Type
+     */
+    interview_type: string;
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Messages
+     */
+    messages: Array<QaMessageOutput>;
     /**
      * Is Completed
      */
@@ -987,7 +1125,7 @@ export type MessagesSyncRequest = {
      *
      * 完整对话记录
      */
-    messages: Array<QaMessageCreate>;
+    messages: Array<QaMessageSync>;
 };
 
 /**
@@ -1101,7 +1239,7 @@ export type PagedDataInterviewSessionResponseInput = {
     /**
      * Items
      */
-    items: Array<InterviewSessionResponse>;
+    items: Array<InterviewSessionResponseInput>;
     /**
      * Total
      */
@@ -1127,7 +1265,7 @@ export type PagedDataInterviewSessionResponseOutput = {
     /**
      * Items
      */
-    items: Array<InterviewSessionResponse>;
+    items: Array<InterviewSessionResponseOutput>;
     /**
      * Total
      */
@@ -1674,7 +1812,7 @@ export type PositionUpdate = {
  *
  * 问答消息
  */
-export type QaMessage = {
+export type QaMessageInput = {
     /**
      * Seq
      *
@@ -1698,15 +1836,25 @@ export type QaMessage = {
      *
      * 时间戳
      */
-    timestamp: string;
+    timestamp?: string | null;
+    /**
+     * 行为分析数据(仅candidate有)
+     */
+    behavior?: BehaviorData | null;
 };
 
 /**
- * QAMessageCreate
+ * QAMessage
  *
- * 创建问答消息
+ * 问答消息
  */
-export type QaMessageCreate = {
+export type QaMessageOutput = {
+    /**
+     * Seq
+     *
+     * 消息序号
+     */
+    seq: number;
     /**
      * Role
      *
@@ -1719,6 +1867,40 @@ export type QaMessageCreate = {
      * 内容
      */
     content: string;
+    /**
+     * Timestamp
+     *
+     * 时间戳
+     */
+    timestamp?: string | null;
+    /**
+     * 行为分析数据(仅candidate有)
+     */
+    behavior?: BehaviorData | null;
+};
+
+/**
+ * QAMessageSync
+ *
+ * 同步消息项（支持可选行为数据）
+ */
+export type QaMessageSync = {
+    /**
+     * Role
+     *
+     * 角色
+     */
+    role: 'interviewer' | 'candidate';
+    /**
+     * Content
+     *
+     * 内容
+     */
+    content: string;
+    /**
+     * 行为分析数据(仅candidate)
+     */
+    behavior?: BehaviorData | null;
 };
 
 /**
@@ -1909,7 +2091,7 @@ export type ResponseModelInterviewSessionResponse = {
      * Message
      */
     message?: string;
-    data?: InterviewSessionResponse | null;
+    data?: InterviewSessionResponseOutput | null;
 };
 
 /**
