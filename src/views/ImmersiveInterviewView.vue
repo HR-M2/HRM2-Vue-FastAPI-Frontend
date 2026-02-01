@@ -276,6 +276,7 @@ const {
   stopInterview,
   fetchSuggestions,
   deleteSession,
+  cleanup,
   switchSpeaker,
   getSpeakerLabel,
   addInterviewerMessage,
@@ -434,7 +435,30 @@ const handleStopInterview = async () => {
         type: 'warning'
       }
     )
-    await stopInterview()
+    
+    // 1. 如果语音转写正在进行，先停止并保存最后的内容
+    if (isSpeechListening.value) {
+      const content = accumulatedTranscript.value.trim()
+      if (content) {
+        switchSpeaker(content)
+      }
+      stopSpeech()
+      accumulatedTranscript.value = ''
+    }
+    
+    // 2. 同步所有对话记录到后端
+    if (messages.value.length > 0) {
+      await syncMessages()
+    }
+    
+    // 3. 调用后端 complete 端点标记会话完成
+    const success = await stopInterview()
+    
+    // 4. 结束后自动退出并重置界面
+    if (success) {
+      cleanup()
+      selectedApplicationId.value = ''
+    }
   } catch {
     // 用户取消
   }

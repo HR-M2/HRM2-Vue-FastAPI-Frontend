@@ -98,18 +98,18 @@
             <div class="message-avatar">{{ msg.role === 'interviewer' ? '👔' : '👤' }}</div>
             <div class="message-body">
               <div class="message-meta">
-                <span class="role-name">{{ msg.role === 'interviewer' ? '面试官' : '候选人' }}</span>
+                <span class="role-name">{{ msg.role === 'interviewer' ? '面试官' : candidateInfo.name || '候选人' }}</span>
+                <div v-if="msg.behavior" class="message-behavior-inline">
+                  <span v-if="msg.behavior.gaze" class="behavior-tag gaze">
+                    专注 {{ Math.round((msg.behavior.gaze.ratio || 0) * 100) }}%
+                  </span>
+                  <span v-for="e in (msg.behavior.emotions || []).slice(0, 3)" :key="e.emotion" class="behavior-tag emotion">
+                    {{ getEmotionLabel(e.emotion) }} {{ Math.round((e.ratio || 0) * 100) }}%
+                  </span>
+                </div>
                 <span class="timestamp">{{ formatMessageTime(msg.timestamp) }}</span>
               </div>
               <div class="message-content">{{ msg.content }}</div>
-              <div v-if="msg.behavior" class="message-behavior">
-                <span v-if="msg.behavior.gaze" class="behavior-tag gaze">
-                  专注 {{ Math.round((msg.behavior.gaze.ratio || 0) * 100) }}%
-                </span>
-                <span v-for="e in (msg.behavior.emotions || []).slice(0, 2)" :key="e.emotion" class="behavior-tag emotion">
-                  {{ getEmotionLabel(e.emotion) }} {{ Math.round((e.ratio || 0) * 100) }}%
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -707,18 +707,44 @@ const formatTime = (seconds: number): string => {
 
     .message-meta {
       display: flex;
-      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
       margin-bottom: 4px;
+      flex-wrap: wrap;
 
       .role-name {
         font-size: 11px;
         font-weight: 600;
-        color: #4b5563;
+        color: #6b7280;
+      }
+
+      .message-behavior-inline {
+        display: flex;
+        gap: 4px;
+        flex: 1;
+        flex-wrap: wrap;
+
+        .behavior-tag {
+          font-size: 9px;
+          padding: 1px 5px;
+          border-radius: 6px;
+
+          &.gaze {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+          }
+
+          &.emotion {
+            background: rgba(102, 126, 234, 0.15);
+            color: #667eea;
+          }
+        }
       }
 
       .timestamp {
         font-size: 10px;
         color: #9ca3af;
+        margin-left: auto;
       }
     }
 
@@ -727,29 +753,6 @@ const formatTime = (seconds: number): string => {
       color: #1a1a2e;
       line-height: 1.4;
       word-break: break-word;
-    }
-
-    .message-behavior {
-      display: flex;
-      gap: 6px;
-      margin-top: 6px;
-      flex-wrap: wrap;
-
-      .behavior-tag {
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 8px;
-
-        &.gaze {
-          background: rgba(16, 185, 129, 0.15);
-          color: #059669;
-        }
-
-        &.emotion {
-          background: rgba(102, 126, 234, 0.15);
-          color: #667eea;
-        }
-      }
     }
 
     &.message-interviewer .message-avatar {

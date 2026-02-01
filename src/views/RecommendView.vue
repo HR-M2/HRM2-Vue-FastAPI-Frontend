@@ -120,8 +120,22 @@
             class="message-item"
             :class="msg.role"
           >
-            <span class="message-label">{{ msg.role === 'interviewer' ? '面试官' : '候选人' }}:</span>
-            <span class="message-content">{{ msg.content }}</span>
+            <div class="message-header">
+              <span class="message-label">{{ msg.role === 'interviewer' ? '面试官' : '候选人' }}</span>
+            </div>
+            <div class="message-content">{{ msg.content }}</div>
+            <div v-if="msg.behavior && msg.role === 'candidate'" class="message-behavior">
+              <span v-if="msg.behavior.gaze" class="behavior-tag gaze">
+                专注 {{ Math.round((msg.behavior.gaze.ratio || 0) * 100) }}%
+              </span>
+              <span 
+                v-for="e in (msg.behavior.emotions || []).slice(0, 3)" 
+                :key="e.emotion" 
+                class="behavior-tag emotion"
+              >
+                {{ getEmotionLabel(e.emotion) }} {{ Math.round((e.ratio || 0) * 100) }}%
+              </span>
+            </div>
           </div>
         </div>
         <el-empty v-else description="暂无问答记录" />
@@ -740,6 +754,25 @@ const formatReportContent = (content: string) => {
     .replace(/$/, '</p>')
 }
 
+// 情绪标签映射
+const emotionLabelMap: Record<string, string> = {
+  neutral: '平静',
+  happiness: '愉悦',
+  happy: '愉悦',
+  sadness: '悲伤',
+  sad: '悲伤',
+  anger: '愤怒',
+  angry: '愤怒',
+  fear: '恐惧',
+  surprise: '惊讶',
+  disgust: '厌恶',
+  contempt: '鄙视'
+}
+
+const getEmotionLabel = (emotion: string): string => {
+  return emotionLabelMap[emotion.toLowerCase()] || emotion
+}
+
 // ========== 生命周期 ==========
 onMounted(async () => {
   await loadPositionsList()
@@ -1002,14 +1035,42 @@ onMounted(async () => {
       }
     }
     
+    .message-header {
+      margin-bottom: 6px;
+    }
+    
     .message-label {
       font-weight: 600;
-      margin-right: 8px;
+      font-size: 13px;
     }
     
     .message-content {
       color: #374151;
       line-height: 1.6;
+      font-size: 14px;
+    }
+    
+    .message-behavior {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+
+      .behavior-tag {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 10px;
+
+        &.gaze {
+          background: rgba(16, 185, 129, 0.15);
+          color: #059669;
+        }
+
+        &.emotion {
+          background: rgba(102, 126, 234, 0.15);
+          color: #667eea;
+        }
+      }
     }
   }
 }
