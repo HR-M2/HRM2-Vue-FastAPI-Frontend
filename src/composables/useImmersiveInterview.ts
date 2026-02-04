@@ -92,6 +92,7 @@ export function useImmersiveInterview() {
   // 视频流
   const localStream = ref<MediaStream | null>(null)
   const localVideoRef = ref<HTMLVideoElement | null>(null)
+  const streamVideoRef = ref<HTMLVideoElement | null>(null)
 
   // 实时数据
   const currentBehavior = ref<BehaviorAnalysisResult | null>(null)
@@ -294,10 +295,14 @@ export function useImmersiveInterview() {
 
   // 发送视频帧到 WebSocket
   const sendFrameToAnalysis = () => {
-    if (!ws.value || ws.value.readyState !== WebSocket.OPEN || !localVideoRef.value) return
+    // 根据 analyzeSource 选择视频源
+    const video = config.analyzeSource === 'stream' 
+      ? streamVideoRef.value 
+      : localVideoRef.value
+
+    if (!ws.value || ws.value.readyState !== WebSocket.OPEN || !video) return
 
     try {
-      const video = localVideoRef.value
       const canvas = document.createElement('canvas')
       canvas.width = video.videoWidth || 640
       canvas.height = video.videoHeight || 480
@@ -598,6 +603,7 @@ export function useImmersiveInterview() {
     // 视频
     localStream,
     localVideoRef,
+    streamVideoRef,
 
     // 实时数据
     currentBehavior,

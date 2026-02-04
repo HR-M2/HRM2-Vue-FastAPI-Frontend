@@ -139,8 +139,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { VideoCamera, Link, Switch } from '@element-plus/icons-vue'
+import Hls from 'hls.js'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps<{
   cameraMode: 'local' | 'stream' | 'dual'
@@ -189,6 +191,81 @@ watch(
     }
   }
 )
+
+// HLS 实例
+let hlsInstance: Hls | null = null
+
+// 判断是否为 HLS 流
+const isHlsUrl = (url: string): boolean => {
+  return url.includes('.m3u8') || url.includes('m3u8')
+}
+
+// 初始化网络推流视频
+const initStreamVideo = async (videoEl: HTMLVideoElement, url: string) => {
+  // 先清理旧的 HLS 实例
+  if (hlsInstance) {
+    hlsInstance.destroy()
+    hlsInstance = null
+  }
+
+  if (isHlsUrl(url)) {
+    // HLS 流处理
+    if (Hls.isSupported()) {
+      hlsInstance = new Hls()
+      hlsInstance.loadSource(url)
+      hlsInstance.attachMedia(videoEl)
+      hlsInstance.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          ElMessage.error('推流播放失败')
+        }
+      })
+    } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari 原生支持
+      videoEl.src = url
+    } else {
+      ElMessage.error('浏览器不支持 HLS')
+      return
+    }
+  } else {
+    // 普通 HTTP 流直接设置 src
+    videoEl.src = url
+  }
+
+  try {
+    await videoEl.play()
+  } catch (e) {
+    console.warn('视频自动播放失败:', e)
+  }
+}
+
+// 监听 streamUrl 变化
+watch(
+  () => props.streamUrl,
+  async (url) => {
+    if (streamVideoRef.value && url) {
+      await initStreamVideo(streamVideoRef.value, url)
+    }
+  },
+  { immediate: true }
+)
+
+// 监听 streamVideoRef 变化（组件挂载时）
+watch(
+  streamVideoRef,
+  async (el) => {
+    if (el && props.streamUrl) {
+      await initStreamVideo(el, props.streamUrl)
+    }
+  }
+)
+
+// 组件卸载时清理 HLS 实例
+onUnmounted(() => {
+  if (hlsInstance) {
+    hlsInstance.destroy()
+    hlsInstance = null
+  }
+})
 </script>
 
 <style scoped lang="scss">

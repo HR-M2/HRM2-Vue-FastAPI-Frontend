@@ -160,6 +160,7 @@ const {
   isWsConnected,
   localStream,
   localVideoRef,
+  streamVideoRef,
   currentBehavior,
   currentEmotionLabel,
   suggestions,
@@ -218,6 +219,17 @@ watch(
   (videoEl) => {
     if (videoEl) {
       localVideoRef.value = videoEl
+    }
+  },
+  { immediate: true }
+)
+
+// 将 VideoSection 的 streamVideoRef 绑定到 composable 的 streamVideoRef
+watch(
+  () => videoSectionRef.value?.streamVideoRef,
+  (videoEl) => {
+    if (videoEl) {
+      streamVideoRef.value = videoEl
     }
   },
   { immediate: true }
