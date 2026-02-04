@@ -52,7 +52,6 @@
             <h4 class="card-title">
               <span class="title-icon">🧠</span>
               大五人格
-              <span v-if="!isAnalysisActive" class="pending-badge">待检测</span>
             </h4>
             <div v-if="isAnalysisActive" class="personality-mini-list">
               <div class="personality-mini-item">
@@ -96,33 +95,37 @@
             </div>
           </div>
 
-          <!-- 检测区域 -->
-          <div class="detection-cards">
-            <!-- 欺骗检测 -->
-            <div class="analysis-card detection-card" :class="{ 'warning-state': deceptionScore > 0.5, 'pending-state': !isAnalysisActive }">
-              <h4 class="card-title">
-                <span class="title-icon">🔍</span>
-                欺骗检测
-                <!-- <span v-if="!isAnalysisActive" class="pending-badge">待检测</span> -->
-              </h4>
-              <div class="detection-meter">
-                <div class="meter-circle" :class="isAnalysisActive ? deceptionLevelClass : 'pending'">
-                  <span class="meter-value">{{ isAnalysisActive ? Math.round(deceptionScore * 100) + '%' : '--' }}</span>
-                </div>
+          <!-- 欺骗检测 -->
+          <div class="analysis-card detection-card" :class="{ 'warning-state': deceptionScore > 0.5, 'pending-state': !isAnalysisActive }">
+            <h4 class="card-title">
+              <span class="title-icon">🔍</span>
+              欺骗检测
+            </h4>
+            <div class="detection-meter waveform-meter">
+              <ECGWaveform 
+                v-if="isAnalysisActive"
+                :value="deceptionScore"
+                :width="0"
+                :height="50"
+                :color="getDeceptionColor(deceptionScore)"
+                :line-width="1.8"
+                :speed="1 + deceptionScore * 1"
+              />
+              <div v-else class="waveform-placeholder">
+                <span class="placeholder-text">--</span>
               </div>
             </div>
+          </div>
 
-            <!-- 抑郁检测 -->
-            <div class="analysis-card detection-card" :class="{ 'pending-state': !isAnalysisActive }">
-              <h4 class="card-title">
-                <span class="title-icon">😔</span>
-                抑郁检测
-                <!-- <span v-if="!isAnalysisActive" class="pending-badge">待检测</span> -->
-              </h4>
-              <div class="detection-meter">
-                <div class="meter-circle" :class="isAnalysisActive ? 'depression-meter' : 'pending'">
-                  <span class="meter-value">{{ isAnalysisActive ? Math.round((depressionScore || 0) * 100) + '%' : '--' }}</span>
-                </div>
+          <!-- 抑郁检测 -->
+          <div class="analysis-card detection-card" :class="{ 'pending-state': !isAnalysisActive }">
+            <h4 class="card-title">
+              <span class="title-icon">😔</span>
+              抑郁检测
+            </h4>
+            <div class="detection-meter">
+              <div class="meter-circle" :class="isAnalysisActive ? getDepressionLevelClass((depressionScore || 0) * 100) : 'pending'">
+                <span class="meter-value">{{ isAnalysisActive ? Math.round((depressionScore || 0) * 100) + '%' : '--' }}</span>
               </div>
             </div>
           </div>
@@ -147,6 +150,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { FullScreen, ScaleToOriginal, Switch, VideoCameraFilled, Timer, Microphone } from '@element-plus/icons-vue'
+import ECGWaveform from './ECGWaveform.vue'
 import type { CandidateState } from '@/composables/useImmersiveInterview'
 
 interface Props {
@@ -231,6 +235,20 @@ const deceptionLevelClass = computed(() => {
   if (score > 0.5) return 'level-warning'
   return 'level-normal'
 })
+
+// 根据欺骗分数返回心电图颜色
+const getDeceptionColor = (score: number): string => {
+  if (score > 0.7) return '#ef4444' // 危险 - 红色
+  if (score > 0.5) return '#f59e0b' // 警告 - 橙色
+  return '#10b981' // 正常 - 绿色
+}
+
+// 根据抑郁分数返回等级样式类
+const getDepressionLevelClass = (score: number): string => {
+  if (score > 70) return 'depression-high'
+  if (score > 40) return 'depression-medium'
+  return 'depression-low'
+}
 
 const emotionClass = computed(() => {
   const emotion = props.candidateState?.emotion?.emotion || 'neutral'
@@ -653,11 +671,11 @@ defineExpose({
   position: absolute;
   top: 80px;
   left: 20px;
-  width: 28%;
-  max-width: 320px;
+  width: 20%;
+  max-width: 280px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   z-index: 25;
 }
 
@@ -756,40 +774,60 @@ defineExpose({
 }
 
 // 检测卡片
-.detection-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
 .detection-card {
   .detection-meter {
     display: flex;
     justify-content: center;
+    align-items: center;
+    min-height: 50px;
+    
+    &.waveform-meter {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 4px;
+      width: 100%;
+    }
+    
+    .waveform-placeholder {
+      width: 100%;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      
+      .placeholder-text {
+        font-size: 16px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.4);
+      }
+    }
     
     .meter-circle {
-      width: 50px;
-      height: 50px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
+      border: 3px solid;
       
-      &.level-normal {
-        background: conic-gradient(#10b981 0deg, rgba(255, 255, 255, 0.2) 0deg);
+      &.depression-low {
+        border-color: #6b7280;
+        background: rgba(107, 114, 128, 0.2);
       }
       
-      &.level-warning {
-        background: conic-gradient(#f59e0b 0deg, rgba(255, 255, 255, 0.2) 0deg);
+      &.depression-medium {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.2);
       }
       
-      &.level-danger {
-        background: conic-gradient(#ef4444 0deg, rgba(255, 255, 255, 0.2) 0deg);
-      }
-      
-      &.depression-meter {
-        background: conic-gradient(#6b7280 0deg, rgba(255, 255, 255, 0.2) 0deg);
+      &.depression-high {
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.2);
       }
       
       &.pending {
@@ -798,7 +836,7 @@ defineExpose({
       }
       
       .meter-value {
-        font-size: 11px;
+        font-size: 13px;
         font-weight: 700;
         color: white;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);

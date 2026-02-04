@@ -624,16 +624,61 @@ export function useImmersiveInterview() {
       deceptionResetTimer = null
     }
 
-    // 设置欺骗检测为高值 0.7-0.85
-    cockpitData.deceptionScore = 0.7 + Math.random() * 0.15
-    console.log(`[欺骗检测] 手动触发高值: ${cockpitData.deceptionScore.toFixed(2)}`)
+    // 目标高值
+    const targetScore = 0.7 + Math.random() * 0.15
+    const startScore = cockpitData.deceptionScore
+    const duration = 2000 // 2秒内逐渐上升
+    const startTime = Date.now()
 
-    // 10秒后恢复正常
-    deceptionResetTimer = window.setTimeout(() => {
-      cockpitData.deceptionScore = 0.1 + Math.random() * 0.3 // 恢复到正常范围
-      console.log(`[欺骗检测] 已恢复正常: ${cockpitData.deceptionScore.toFixed(2)}`)
-      deceptionResetTimer = null
-    }, 3000)
+    console.log(`[欺骗检测] 开始逐渐上升: ${startScore.toFixed(2)} -> ${targetScore.toFixed(2)}`)
+
+    // 使用动画逐渐提升分数
+    const animateUp = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      
+      // 使用缓动函数（ease-out）
+      const easeProgress = 1 - Math.pow(1 - progress, 3)
+      
+      cockpitData.deceptionScore = startScore + (targetScore - startScore) * easeProgress
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateUp)
+      } else {
+        console.log(`[欺骗检测] 已达到高值: ${cockpitData.deceptionScore.toFixed(2)}`)
+        
+        // 3秒后开始逐渐恢复
+        deceptionResetTimer = window.setTimeout(() => {
+          const resetStartScore = cockpitData.deceptionScore
+          const resetTargetScore = 0.1 + Math.random() * 0.3
+          const resetDuration = 2000 // 2秒内逐渐下降
+          const resetStartTime = Date.now()
+          
+          console.log(`[欺骗检测] 开始逐渐恢复: ${resetStartScore.toFixed(2)} -> ${resetTargetScore.toFixed(2)}`)
+          
+          const animateDown = () => {
+            const elapsed = Date.now() - resetStartTime
+            const progress = Math.min(elapsed / resetDuration, 1)
+            
+            // 使用缓动函数（ease-in）
+            const easeProgress = Math.pow(progress, 3)
+            
+            cockpitData.deceptionScore = resetStartScore + (resetTargetScore - resetStartScore) * easeProgress
+            
+            if (progress < 1) {
+              requestAnimationFrame(animateDown)
+            } else {
+              console.log(`[欺骗检测] 已恢复正常: ${cockpitData.deceptionScore.toFixed(2)}`)
+              deceptionResetTimer = null
+            }
+          }
+          
+          animateDown()
+        }, 3000)
+      }
+    }
+
+    animateUp()
   }
 
   // 计算属性
