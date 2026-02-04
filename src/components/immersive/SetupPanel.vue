@@ -94,48 +94,64 @@
           />
         </el-form-item>
 
-        <!-- AI 建议配置 -->
-        <el-divider content-position="left">
-          <el-icon><MagicStick /></el-icon>
-          AI 提问建议
-        </el-divider>
+        <!-- AI 建议配置（紧凑卡片） -->
+        <div class="ai-config-cards">
+          <div class="config-card">
+            <div class="card-icon followup">
+              <el-icon><QuestionFilled /></el-icon>
+            </div>
+            <div class="card-body">
+              <h4>追问数量</h4>
+              <p>每轮回答后推荐的追问数</p>
+              <el-slider
+                :model-value="config.followupCount"
+                @update:model-value="updateConfig('followupCount', $event)"
+                :min="1"
+                :max="5"
+                :step="1"
+                show-stops
+                :marks="{ 1: '1', 3: '3', 5: '5' }"
+              />
+            </div>
+          </div>
 
-        <div class="ai-config-grid">
-          <el-form-item label="追问数量">
-            <el-input-number
-              :model-value="config.followupCount"
-              @update:model-value="updateConfig('followupCount', $event)"
-              :min="1"
-              :max="5"
-              :step="1"
-              size="small"
-            />
-            <div class="form-tip">每轮回答后推荐的追问数</div>
-          </el-form-item>
+          <div class="config-card">
+            <div class="card-icon alternative">
+              <el-icon><Grid /></el-icon>
+            </div>
+            <div class="card-body">
+              <h4>候选问题数</h4>
+              <p>不同角度的备选问题数</p>
+              <el-slider
+                :model-value="config.alternativeCount"
+                @update:model-value="updateConfig('alternativeCount', $event)"
+                :min="2"
+                :max="6"
+                :step="1"
+                show-stops
+                :marks="{ 2: '2', 4: '4', 6: '6' }"
+              />
+            </div>
+          </div>
 
-          <el-form-item label="候选问题数">
-            <el-input-number
-              :model-value="config.alternativeCount"
-              @update:model-value="updateConfig('alternativeCount', $event)"
-              :min="2"
-              :max="6"
-              :step="1"
-              size="small"
-            />
-            <div class="form-tip">不同角度的备选问题数</div>
-          </el-form-item>
-
-          <el-form-item label="简历兴趣点">
-            <el-input-number
-              :model-value="config.interestPointCount"
-              @update:model-value="updateConfig('interestPointCount', $event)"
-              :min="1"
-              :max="5"
-              :step="1"
-              size="small"
-            />
-            <div class="form-tip">从简历提取的兴趣点数</div>
-          </el-form-item>
+          <div class="config-card">
+            <div class="card-icon interest">
+              <el-icon><Star /></el-icon>
+            </div>
+            <div class="card-body">
+              <h4>简历兴趣点</h4>
+              <p>从简历提取的兴趣点数</p>
+              <el-slider
+                :model-value="config.interestPointCount"
+                @update:model-value="updateConfig('interestPointCount', $event)"
+                :min="1"
+                :max="5"
+                :step="1"
+                show-stops
+                :marks="{ 1: '1', 3: '3', 5: '5' }"
+              />
+            </div>
+          </div>
         </div>
       </el-form>
 
@@ -156,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { Setting, VideoCamera, Link, MagicStick } from '@element-plus/icons-vue'
+import { Setting, VideoCamera, Link, QuestionFilled, Grid, Star } from '@element-plus/icons-vue'
 
 export interface SetupConfig {
   cameraMode: 'local' | 'stream' | 'dual'
@@ -284,25 +300,69 @@ const updateConfig = (key: keyof SetupConfig, value: any) => {
   margin-top: 4px;
 }
 
-.ai-config-grid {
+.ai-config-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-
-  .el-form-item {
-    margin-bottom: 0;
-  }
-
-  .el-input-number {
-    width: 100%;
-  }
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
 }
 
-:deep(.el-divider__text) {
+.config-card {
+  background: transparent;
+  border-radius: 12px;
+  padding: 14px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  color: #667eea;
+  flex-direction: column;
+  gap: 8px;
+
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &.followup {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    &.alternative {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    &.interest {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .el-icon {
+      font-size: 24px;
+      color: white;
+    }
+  }
+
+  .card-body {
+    flex: 1;
+
+    h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 0 0 4px;
+    }
+
+    p {
+      font-size: 12px;
+      color: #9ca3af;
+      margin: 0 0 10px;
+    }
+
+    :deep(.el-slider) {
+      --el-slider-height: 4px;
+      --el-slider-button-size: 14px;
+      width: 100%;
+    }
+  }
 }
 </style>
