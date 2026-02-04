@@ -106,6 +106,7 @@
               :is-speech-listening="isSpeechListening"
               :speech-interim="speechInterim || ''"
               @send-question="handlePanelSendQuestion"
+              @send-answer="handlePanelSendAnswer"
             />
           </div>
         </div>
@@ -176,6 +177,7 @@ const {
   switchSpeaker,
   getSpeakerLabel,
   addInterviewerMessage,
+  addCandidateMessage,
   syncMessages
 } = useImmersiveInterview()
 
@@ -752,9 +754,15 @@ const handleSwitchSpeaker = () => {
   startSpeech()
 }
 
-// 从面板发送问题
+// 从面板发送问题（面试官）
 const handlePanelSendQuestion = (question: string) => {
   addInterviewerMessage(question)
+  syncMessages()
+}
+
+// 从面板发送回答（受试者）
+const handlePanelSendAnswer = (answer: string) => {
+  addCandidateMessage(answer)
   syncMessages()
 }
 

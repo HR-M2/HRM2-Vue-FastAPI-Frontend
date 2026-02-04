@@ -131,22 +131,28 @@
         <el-input
           v-model="questionInputLocal"
           type="textarea"
-          placeholder="输入面试官问题..."
+          placeholder="输入对话内容..."
           :autosize="{ minRows: 4 }"
           resize="none"
-          @keydown.enter.ctrl="handleSendQuestion"
         />
         <div class="input-actions">
-          <span class="input-hint">Ctrl + Enter 发送</span>
           <el-button
             type="primary"
             :icon="Promotion"
-            @click="handleSendQuestion"
+            @click="handleSendAsInterviewer"
             :disabled="!questionInputLocal.trim()"
             size="small"
-            round
           >
-            发送
+            面试官发送
+          </el-button>
+          <el-button
+            type="success"
+            :icon="Promotion"
+            @click="handleSendAsCandidate"
+            :disabled="!questionInputLocal.trim()"
+            size="small"
+          >
+            受试者发送
           </el-button>
         </div>
       </div>
@@ -244,6 +250,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'send-question', question: string): void
+  (e: 'send-answer', answer: string): void
 }>()
 
 // 本地状态
@@ -310,10 +317,17 @@ const handleViewScreeningReport = async () => {
   }
 }
 
-// 发送问题
-const handleSendQuestion = () => {
+// 面试官发送问题
+const handleSendAsInterviewer = () => {
   if (!questionInputLocal.value.trim()) return
   emit('send-question', questionInputLocal.value.trim())
+  questionInputLocal.value = ''
+}
+
+// 受试者发送回答
+const handleSendAsCandidate = () => {
+  if (!questionInputLocal.value.trim()) return
+  emit('send-answer', questionInputLocal.value.trim())
   questionInputLocal.value = ''
 }
 
