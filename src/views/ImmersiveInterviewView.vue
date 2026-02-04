@@ -212,6 +212,17 @@ const {
 const analysisPanelRef = ref<InstanceType<typeof RealTimeAnalysisPanel> | null>(null)
 const videoSectionRef = ref<InstanceType<typeof VideoSection> | null>(null)
 
+// 将 VideoSection 的 localVideoRef 绑定到 composable 的 localVideoRef
+watch(
+  () => videoSectionRef.value?.localVideoRef,
+  (videoEl) => {
+    if (videoEl) {
+      localVideoRef.value = videoEl
+    }
+  },
+  { immediate: true }
+)
+
 // 画中画模式状态
 const pipSwapped = ref(false)
 const togglePipSwap = () => {

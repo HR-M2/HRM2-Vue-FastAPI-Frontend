@@ -203,12 +203,7 @@ export function useImmersiveInterview() {
       })
 
       localStream.value = stream
-
-      if (localVideoRef.value) {
-        localVideoRef.value.srcObject = stream
-        await localVideoRef.value.play()
-      }
-
+      // 视频绑定和播放由 VideoSection 组件的 watch 处理，避免冲突
       return true
     } catch (error) {
       console.error('摄像头初始化失败:', error)

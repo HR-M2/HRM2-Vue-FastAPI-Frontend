@@ -167,23 +167,25 @@ defineExpose({
   streamVideoRef
 })
 
-// 监听 localVideoStream 变化，自动绑定到 video 元素
+// 监听 localVideoStream 变化，自动绑定到 video 元素并播放
 watch(
   () => props.localVideoStream,
-  (stream) => {
+  async (stream) => {
     if (localVideoRef.value && stream) {
       localVideoRef.value.srcObject = stream
+      await localVideoRef.value.play()
     }
   },
   { immediate: true }
 )
 
-// 监听 localVideoRef 变化
+// 监听 localVideoRef 变化（组件挂载时）
 watch(
   localVideoRef,
-  (el) => {
+  async (el) => {
     if (el && props.localVideoStream) {
       el.srcObject = props.localVideoStream
+      await el.play()
     }
   }
 )
@@ -201,6 +203,8 @@ watch(
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    height: 100%;
     transition: all 0.3s ease;
 
     // 主画面位置
