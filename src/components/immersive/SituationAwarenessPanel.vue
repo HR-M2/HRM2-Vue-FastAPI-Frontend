@@ -174,9 +174,8 @@
             >
               <div class="point-header">
                 <span class="point-number">{{ index + 1 }}</span>
-                <span class="point-content">{{ point.content }}</span>
+                <span class="point-content">{{ point.source }}</span>
               </div>
-              <div v-if="point.reason" class="point-reason">{{ point.reason }}</div>
               <div v-if="point.question" class="point-question">
                 <el-button type="primary" text size="small" :icon="Promotion" @click="$emit('use-interest-point', point)">
                   {{ point.question }}
@@ -206,8 +205,7 @@ export interface QuestionSuggestion {
 }
 
 export interface InterestPoint {
-  content: string
-  reason: string
+  source: string
   question: string
 }
 

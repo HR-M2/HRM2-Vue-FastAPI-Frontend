@@ -422,7 +422,6 @@ const generateInterestPoints = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId.value,
-        count: 3,
         interest_point_count: config.interestPointCount
       })
     })
@@ -432,16 +431,8 @@ const generateInterestPoints = async () => {
       // 存储兴趣点
       if (result.data.interest_points) {
         interestPoints.value = result.data.interest_points.map((p: any) => ({
-          content: p.content || '',
-          reason: p.reason || '',
+          source: p.source || '',
           question: p.question || ''
-        }))
-      }
-      // 存储初始问题
-      if (result.data.questions) {
-        initialQuestions.value = result.data.questions.map((q: any) => ({
-          question: q.question || '',
-          category: q.category || ''
         }))
       }
       ElMessage.success(`已生成 ${interestPoints.value.length} 个简历兴趣点`)

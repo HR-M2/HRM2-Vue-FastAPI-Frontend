@@ -55,7 +55,7 @@ export interface InterviewConfig {
 
 export interface ResumeInterestPoint {
   id: string
-  content: string
+  source: string
   question: string
   isAsked: boolean
 }
@@ -320,10 +320,10 @@ export function useInterviewAssist() {
   }
 
   // 设置兴趣点
-  const setInterestPoints = (points: Array<{ content: string; question: string }>) => {
+  const setInterestPoints = (points: Array<{ source: string; question: string }>) => {
     interestPoints.value = points.slice(0, config.interestPointCount).map((p, index) => ({
       id: `interest_${Date.now()}_${index}`,
-      content: p.content,
+      source: p.source,
       question: p.question,
       isAsked: false
     }))
@@ -342,15 +342,15 @@ export function useInterviewAssist() {
   const generateLocalInterestPoints = () => {
     const mockInterestPoints = [
       {
-        content: '项目管理经验',
+        source: '项目管理经验',
         question: '请详细介绍您在项目管理方面的经验，特别是如何处理项目延期或资源冲突的情况？'
       },
       {
-        content: '技术架构能力',
+        source: '技术架构能力',
         question: '您在简历中提到参与过系统架构设计，能否具体说明您做了哪些架构决策及其原因？'
       },
       {
-        content: '团队协作',
+        source: '团队协作',
         question: '请分享一个您在团队中解决冲突或推动协作的具体案例？'
       }
     ]
@@ -509,26 +509,23 @@ export function useInterviewAssist() {
         body: {
           session_id: sessionId.value,
           resume_content: resumeContent,
-          count: config.alternativeCount,
           interest_point_count: config.interestPointCount
         }
       })
       
       if (result.data?.data) {
         const data = result.data.data as Record<string, unknown>
-        if (Array.isArray(data.questions)) {
-          questionPool.value = data.questions.map((q: { question?: string }) => q.question || '')
-          suggestedQuestions.value = data.questions.map((q: { question?: string }, i: number) => ({
+        if (Array.isArray(data.interest_points)) {
+          setInterestPoints(data.interest_points as Array<{ source: string; question: string }>)
+          // 将兴趣点的问题也添加到建议列表
+          suggestedQuestions.value = data.interest_points.map((p: { source?: string; question?: string }, i: number) => ({
             id: generateId(),
-            question: q.question || '',
+            question: p.question || '',
             type: 'alternative' as const,
-            angle: '简历相关',
+            angle: p.source || '简历相关',
             priority: i + 1
           }))
           showSuggestions.value = true
-        }
-        if (Array.isArray(data.interest_points)) {
-          setInterestPoints(data.interest_points as Array<{ content: string; question: string }>)
         } else {
           generateLocalInterestPoints()
         }

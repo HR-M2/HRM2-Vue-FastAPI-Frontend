@@ -52,7 +52,7 @@
                 <el-icon><Star /></el-icon>
               </div>
               <div class="card-content">
-                <p class="interest-content">{{ point.content }}</p>
+                <p class="interest-content">{{ point.source }}</p>
                 <p class="question-text">{{ point.question }}</p>
               </div>
               <div class="card-action">
