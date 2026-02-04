@@ -109,8 +109,10 @@
               :current-speaker="currentSpeaker"
               :is-speech-listening="isSpeechListening"
               :speech-interim="speechInterim || ''"
+              :session-id="sessionId || ''"
               @send-question="handlePanelSendQuestion"
               @send-answer="handlePanelSendAnswer"
+              @ai-answer-generated="handleAiAnswerGenerated"
             />
           </div>
         </div>
@@ -715,6 +717,12 @@ const handleEditInterestPoint = (point: InterestPoint) => {
 const handleEditSituationSuggestion = (suggestion: SAPanelSuggestion) => {
   analysisPanelRef.value?.setQuestionInput(suggestion.question)
   ElMessage.info('已添加到输入框，可编辑后发送')
+}
+
+// 处理 AI 生成的受试者回答
+const handleAiAnswerGenerated = (answer: string) => {
+  addCandidateMessage(answer)
+  syncMessages()
 }
 
 // 格式化时长

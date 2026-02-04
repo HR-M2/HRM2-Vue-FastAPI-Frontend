@@ -154,6 +154,32 @@
           >
             受试者发送
           </el-button>
+          <!-- AI 受试者回答功能 -->
+          <div class="ai-answer-group">
+            <el-dropdown
+              split-button
+              type="warning"
+              size="small"
+              :loading="isGeneratingAiAnswer"
+              @click="handleAiAnswer"
+              @command="handleSelectCandidateType"
+            >
+              <el-icon><MagicStick /></el-icon>
+              AI回答
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item 
+                    v-for="type in candidateTypes" 
+                    :key="type.value"
+                    :command="type.value"
+                    :class="{ active: selectedCandidateType === type.value }"
+                  >
+                    {{ type.label }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
         </div>
       </div>
     </div>
@@ -207,7 +233,8 @@ import {
   DataLine,
   ArrowDown,
   ArrowUp,
-  Promotion
+  Promotion,
+  MagicStick
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { ResumeDetailDialog } from '@/components/common'
@@ -234,6 +261,7 @@ interface Props {
   currentSpeaker: 'interviewer' | 'candidate'
   isSpeechListening: boolean
   speechInterim: string
+  sessionId: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -245,12 +273,14 @@ const props = withDefaults(defineProps<Props>(), {
   messages: () => [],
   currentSpeaker: 'interviewer',
   isSpeechListening: false,
-  speechInterim: ''
+  speechInterim: '',
+  sessionId: ''
 })
 
 const emit = defineEmits<{
   (e: 'send-question', question: string): void
   (e: 'send-answer', answer: string): void
+  (e: 'ai-answer-generated', answer: string): void
 }>()
 
 // 本地状态
@@ -260,6 +290,16 @@ const showResumeDialog = ref(false)
 const resumeDetailData = ref<ResumeData | null>(null)
 const questionInputLocal = ref('')
 const chatContainerRef = ref<HTMLElement | null>(null)
+
+// AI 受试者回答状态
+const isGeneratingAiAnswer = ref(false)
+const selectedCandidateType = ref<string>('ideal')
+const candidateTypes = [
+  { value: 'ideal', label: '🌟 理想候选人' },
+  { value: 'junior', label: '🌱 初级候选人' },
+  { value: 'nervous', label: '😰 紧张型' },
+  { value: 'overconfident', label: '😎 过度自信型' }
+]
 
 // 查看简历
 const handleViewResume = async () => {
@@ -329,6 +369,58 @@ const handleSendAsCandidate = () => {
   if (!questionInputLocal.value.trim()) return
   emit('send-answer', questionInputLocal.value.trim())
   questionInputLocal.value = ''
+}
+
+// 选择 AI 候选人类型
+const handleSelectCandidateType = (type: string) => {
+  selectedCandidateType.value = type
+}
+
+// AI 生成受试者回答
+const handleAiAnswer = async () => {
+  if (!props.sessionId) {
+    ElMessage.warning('会话未开始')
+    return
+  }
+  
+  // 获取最后一个面试官问题
+  const lastQuestion = [...props.messages].reverse().find(m => m.role === 'interviewer')
+  if (!lastQuestion) {
+    ElMessage.warning('请先输入面试官问题')
+    return
+  }
+  
+  isGeneratingAiAnswer.value = true
+  try {
+    const conversationHistory = props.messages.map(m => ({
+      role: m.role,
+      content: m.content
+    }))
+    
+    const response = await fetch('/api/v1/ai/interview/simulate-answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: props.sessionId,
+        question: lastQuestion.content,
+        candidate_type: selectedCandidateType.value,
+        conversation_history: conversationHistory
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success && result.data?.answer) {
+      emit('ai-answer-generated', result.data.answer)
+      ElMessage.success('AI 回答已生成')
+    } else {
+      ElMessage.error(result.message || 'AI 回答生成失败')
+    }
+  } catch (error) {
+    console.error('AI 回答生成失败:', error)
+    ElMessage.error('AI 回答生成失败')
+  } finally {
+    isGeneratingAiAnswer.value = false
+  }
 }
 
 // 设置问题输入框内容
@@ -872,8 +964,9 @@ const formatTime = (seconds: number): string => {
 
     .input-actions {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
+      gap: 8px;
       margin-top: 8px;
 
       .input-hint {
@@ -882,7 +975,30 @@ const formatTime = (seconds: number): string => {
       }
 
       .el-button {
-        padding: 8px 20px;
+        padding: 8px 16px;
+      }
+      
+      .ai-answer-group {
+        :deep(.el-dropdown) {
+          .el-button-group {
+            .el-button--warning {
+              background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+              border-color: #f59e0b;
+              
+              &:hover {
+                background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+              }
+            }
+          }
+        }
+        
+        :deep(.el-dropdown-menu__item) {
+          &.active {
+            background: #fef3c7;
+            color: #92400e;
+            font-weight: 600;
+          }
+        }
       }
     }
   }
