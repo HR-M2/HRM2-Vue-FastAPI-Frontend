@@ -105,7 +105,7 @@
         <div class="psychological-grid">
           <!-- 大五人格雷达图 -->
           <div class="big-five-section">
-            <div class="sub-title">大五人格平均值</div>
+            <div class="sub-title">大五人格评分</div>
             <BigFiveRadarChart 
               v-if="getBigFiveAverage"
               :data="getBigFiveAverage" 
@@ -171,65 +171,36 @@
               
               <!-- 心理评分指标（仅候选人发言显示） -->
               <div v-if="item.speaker === 'candidate' && item.candidate_scores" class="scores-panel">
-                <!-- 大五人格 -->
-                <div class="score-group big-five">
+                <!-- 大五人格雷达图 -->
+                <div v-if="item.candidate_scores.big_five" class="score-group big-five">
                   <div class="group-title">大五人格</div>
-                  <div class="mini-bars">
-                    <div class="mini-bar-item" title="开放性">
-                      <span class="bar-label">开</span>
-                      <div class="bar-track">
-                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.openness * 100) + '%' }"></div>
-                      </div>
-                      <span class="bar-value">{{ (item.candidate_scores.big_five.openness * 100).toFixed(0) }}</span>
-                    </div>
-                    <div class="mini-bar-item" title="尽责性">
-                      <span class="bar-label">责</span>
-                      <div class="bar-track">
-                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.conscientiousness * 100) + '%' }"></div>
-                      </div>
-                      <span class="bar-value">{{ (item.candidate_scores.big_five.conscientiousness * 100).toFixed(0) }}</span>
-                    </div>
-                    <div class="mini-bar-item" title="外向性">
-                      <span class="bar-label">外</span>
-                      <div class="bar-track">
-                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.extraversion * 100) + '%' }"></div>
-                      </div>
-                      <span class="bar-value">{{ (item.candidate_scores.big_five.extraversion * 100).toFixed(0) }}</span>
-                    </div>
-                    <div class="mini-bar-item" title="宜人性">
-                      <span class="bar-label">宜</span>
-                      <div class="bar-track">
-                        <div class="bar-fill" :style="{ width: (item.candidate_scores.big_five.agreeableness * 100) + '%' }"></div>
-                      </div>
-                      <span class="bar-value">{{ (item.candidate_scores.big_five.agreeableness * 100).toFixed(0) }}</span>
-                    </div>
-                    <div class="mini-bar-item neuroticism" title="神经质">
-                      <span class="bar-label">神</span>
-                      <div class="bar-track">
-                        <div class="bar-fill warning" :style="{ width: (item.candidate_scores.big_five.neuroticism * 100) + '%' }"></div>
-                      </div>
-                      <span class="bar-value">{{ (item.candidate_scores.big_five.neuroticism * 100).toFixed(0) }}</span>
-                    </div>
-                  </div>
+                  <BigFiveRadarChart 
+                    :data="item.candidate_scores.big_five" 
+                    height="200px"
+                    color="#10b981"
+                  />
                 </div>
                 
-                <!-- 欺骗检测 -->
-                <div class="score-group deception">
-                  <div class="group-title">欺骗检测</div>
-                  <div class="score-indicator" :class="getDeceptionClass(item.candidate_scores.deception.score)">
-                    <span class="score-value">{{ (item.candidate_scores.deception.score * 100).toFixed(0) }}%</span>
-                    <span class="confidence">(置信度: {{ (item.candidate_scores.deception.confidence * 100).toFixed(0) }}%)</span>
+                <!-- 其他指标 -->
+                <div class="other-scores">
+                  <!-- 欺骗检测 -->
+                  <div v-if="item.candidate_scores.deception" class="score-group deception">
+                    <div class="group-title">欺骗检测</div>
+                    <div class="score-indicator" :class="getDeceptionClass(item.candidate_scores.deception.score)">
+                      <span class="score-value">{{ (item.candidate_scores.deception.score * 100).toFixed(0) }}%</span>
+                      <span class="confidence">(置信度: {{ (item.candidate_scores.deception.confidence * 100).toFixed(0) }}%)</span>
+                    </div>
                   </div>
-                </div>
-                
-                <!-- 抑郁风险 -->
-                <div class="score-group depression">
-                  <div class="group-title">抑郁风险</div>
-                  <div class="score-indicator">
-                    <el-tag size="small" :type="getDepressionTagType(item.candidate_scores.depression.level)">
-                      {{ getRiskLevelText(item.candidate_scores.depression.level) }}
-                    </el-tag>
-                    <span class="score-num">{{ item.candidate_scores.depression.score.toFixed(0) }}/100</span>
+                  
+                  <!-- 抑郁风险 -->
+                  <div v-if="item.candidate_scores.depression" class="score-group depression">
+                    <div class="group-title">抑郁风险</div>
+                    <div class="score-indicator">
+                      <el-tag size="small" :type="getDepressionTagType(item.candidate_scores.depression.level)">
+                        {{ getRiskLevelText(item.candidate_scores.depression.level) }}
+                      </el-tag>
+                      <span class="score-num">{{ item.candidate_scores.depression.score.toFixed(0) }}/100</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -664,30 +635,35 @@ const handleExport = () => {
   
   .scores-panel {
     display: flex;
-    gap: 16px;
+    gap: 20px;
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px dashed #e5e7eb;
-    flex-wrap: wrap;
+    align-items: flex-start;
     
     .score-group {
-      flex: 1;
-      min-width: 150px;
-      .group-title { font-size: 11px; color: #9ca3af; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+      .group-title { 
+        font-size: 11px; 
+        color: #9ca3af; 
+        margin-bottom: 8px; 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+      }
     }
     
     .big-five {
-      min-width: 200px;
-      .mini-bars { display: flex; flex-direction: column; gap: 4px; }
-      .mini-bar-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        .bar-label { width: 14px; font-size: 10px; color: #6b7280; text-align: center; }
-        .bar-track { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
-        .bar-fill { height: 100%; background: #3b82f6; border-radius: 3px; &.warning { background: #f59e0b; } }
-        .bar-value { width: 24px; font-size: 10px; color: #6b7280; text-align: right; }
-      }
+      flex: 0 0 240px;
+      min-width: 240px;
+    }
+    
+    .other-scores {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      justify-content: center;
+      min-height: 200px;
+      margin-left: 70px;
     }
     
     .deception .score-indicator {
