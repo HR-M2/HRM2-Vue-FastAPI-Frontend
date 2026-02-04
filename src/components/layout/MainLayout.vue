@@ -6,7 +6,7 @@
     <!-- 主内容区域 -->
     <div class="main-container" :class="{ 'sidebar-collapsed': isCollapsed }">
       <!-- 顶部标题栏 -->
-      <AppHeader :title="pageTitle" />
+      <AppHeader :title="pageTitle" :is-collapsed="isCollapsed" />
 
       <!-- 页面内容 -->
       <main class="main-content">

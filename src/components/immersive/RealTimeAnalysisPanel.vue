@@ -128,14 +128,27 @@
       
       <!-- 输入区 -->
       <div class="chat-input">
-        <el-input v-model="questionInputLocal" placeholder="输入面试官问题..." size="small"
-          @keydown.enter="handleSendQuestion">
-          <template #append>
-            <el-button :icon="Promotion" @click="handleSendQuestion" :disabled="!questionInputLocal.trim()" size="small">
-              发送
-            </el-button>
-          </template>
-        </el-input>
+        <el-input
+          v-model="questionInputLocal"
+          type="textarea"
+          placeholder="输入面试官问题..."
+          :autosize="{ minRows: 4 }"
+          resize="none"
+          @keydown.enter.ctrl="handleSendQuestion"
+        />
+        <div class="input-actions">
+          <span class="input-hint">Ctrl + Enter 发送</span>
+          <el-button
+            type="primary"
+            :icon="Promotion"
+            @click="handleSendQuestion"
+            :disabled="!questionInputLocal.trim()"
+            size="small"
+            round
+          >
+            发送
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -679,7 +692,7 @@ const formatTime = (seconds: number): string => {
     flex: 1;
     overflow-y: auto;
     padding: 12px;
-    max-height: 350px;
+    min-height: 100px;
   }
 
   .chat-empty {
@@ -812,9 +825,52 @@ const formatTime = (seconds: number): string => {
   }
 
   .chat-input {
-    padding: 10px 12px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
     background: white;
     border-top: 1px solid #e5e7eb;
+
+    :deep(.el-textarea) {
+      .el-textarea__inner {
+        height: 88px !important;
+        min-height: 88px !important;
+        max-height: 88px !important;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 13px;
+        line-height: 1.5;
+        border: 1px solid #e5e7eb;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        resize: none;
+
+        &:focus {
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        &::placeholder {
+          color: #9ca3af;
+        }
+      }
+    }
+
+    .input-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+
+      .input-hint {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+
+      .el-button {
+        padding: 8px 20px;
+      }
+    }
   }
 }
 

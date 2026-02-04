@@ -99,12 +99,17 @@
           </div>
           <template v-else-if="suggestions.length > 0">
             <!-- 追问建议 -->
-            <div v-if="followupSuggestions.length > 0" class="suggestion-group">
-              <div class="group-label">追问建议</div>
+            <div v-if="followupSuggestions.length > 0" class="suggestion-group" :class="{ collapsed: isFollowupCollapsed }">
+              <div class="group-header" @click="isFollowupCollapsed = !isFollowupCollapsed">
+                <div class="group-label">追问建议</div>
+                <span class="group-count">{{ followupSuggestions.length }}</span>
+                <el-icon class="collapse-arrow" :class="{ rotated: isFollowupCollapsed }"><ArrowUp /></el-icon>
+              </div>
               <div 
                 v-for="(suggestion, index) in followupSuggestions" 
                 :key="suggestion.question"
                 class="suggestion-card followup"
+                :class="{ 'card-collapsed': isFollowupCollapsed }"
               >
                 <div class="card-header">
                   <span class="card-number">{{ index + 1 }}</span>
@@ -117,17 +122,22 @@
                     </el-tooltip>
                   </div>
                 </div>
-                <div class="card-question">{{ suggestion.question }}</div>
+                <div v-if="!isFollowupCollapsed" class="card-question">{{ suggestion.question }}</div>
               </div>
             </div>
             
             <!-- 候选问题 -->
-            <div v-if="alternativeSuggestions.length > 0" class="suggestion-group">
-              <div class="group-label">候选问题</div>
+            <div v-if="alternativeSuggestions.length > 0" class="suggestion-group" :class="{ collapsed: isAlternativeCollapsed }">
+              <div class="group-header" @click="isAlternativeCollapsed = !isAlternativeCollapsed">
+                <div class="group-label">候选问题</div>
+                <span class="group-count alt">{{ alternativeSuggestions.length }}</span>
+                <el-icon class="collapse-arrow" :class="{ rotated: isAlternativeCollapsed }"><ArrowUp /></el-icon>
+              </div>
               <div 
                 v-for="(suggestion, index) in alternativeSuggestions" 
                 :key="suggestion.question"
                 class="suggestion-card alternative"
+                :class="{ 'card-collapsed': isAlternativeCollapsed }"
               >
                 <div class="card-header">
                   <span v-if="suggestion.purpose" class="card-tag">{{ suggestion.purpose }}</span>
@@ -141,15 +151,19 @@
                     </el-tooltip>
                   </div>
                 </div>
-                <div class="card-question">{{ suggestion.question }}</div>
+                <div v-if="!isAlternativeCollapsed" class="card-question">{{ suggestion.question }}</div>
               </div>
             </div>
 
           </template>
           
           <!-- 简历兴趣点 -->
-          <div v-if="interestPoints.length > 0 || isLoadingInterestPoints" class="suggestion-group interests-group">
-            <div class="group-label">简历兴趣点</div>
+          <div v-if="interestPoints.length > 0 || isLoadingInterestPoints" class="suggestion-group interests-group" :class="{ collapsed: isInterestsCollapsed && !isLoadingInterestPoints }">
+            <div class="group-header" @click="!isLoadingInterestPoints && (isInterestsCollapsed = !isInterestsCollapsed)">
+              <div class="group-label">简历兴趣点</div>
+              <span v-if="!isLoadingInterestPoints" class="group-count interests">{{ interestPoints.length }}</span>
+              <el-icon v-if="!isLoadingInterestPoints" class="collapse-arrow" :class="{ rotated: isInterestsCollapsed }"><ArrowUp /></el-icon>
+            </div>
             <div v-if="isLoadingInterestPoints" class="loading-state">
               <el-icon class="loading-icon"><Loading /></el-icon>
               <span>正在提取兴趣点...</span>
@@ -159,6 +173,7 @@
                 v-for="(point, index) in interestPoints" 
                 :key="index"
                 class="suggestion-card interests"
+                :class="{ 'card-collapsed': isInterestsCollapsed }"
               >
                 <div class="card-header">
                   <span class="card-tag interests-tag">{{ point.source }}</span>
@@ -171,7 +186,7 @@
                     </el-tooltip>
                   </div>
                 </div>
-                <div class="card-question">{{ point.question }}</div>
+                <div v-if="!isInterestsCollapsed" class="card-question">{{ point.question }}</div>
               </div>
             </template>
           </div>
@@ -185,8 +200,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { ArrowRight, ArrowLeft, DataAnalysis, Refresh, Loading, Edit, Promotion } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { ArrowRight, ArrowLeft, ArrowDown, ArrowUp, DataAnalysis, Refresh, Loading, Edit, Promotion } from '@element-plus/icons-vue'
+
+// 各分组折叠状态
+const isFollowupCollapsed = ref(false)
+const isAlternativeCollapsed = ref(false)
+const isInterestsCollapsed = ref(false)
 
 export interface SituationAssessment {
   assessment: string
@@ -462,6 +482,7 @@ const alternativeSuggestions = computed(() =>
     flex: 1;
     overflow-y: auto;
     padding-right: 4px;
+    max-height: calc(100vh - 350px);
 
     &::-webkit-scrollbar {
       width: 4px;
@@ -477,12 +498,69 @@ const alternativeSuggestions = computed(() =>
 .suggestion-group {
   margin-bottom: 10px;
 
+  &.collapsed {
+    margin-bottom: 6px;
+  }
+
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 4px 2px;
+    border-radius: 6px;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #f3f4f6;
+    }
+  }
+
   .group-label {
     font-size: 11px;
     font-weight: 600;
     color: #6b7280;
-    margin-bottom: 4px;
-    padding-left: 2px;
+  }
+
+  .group-count {
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1px 6px;
+    border-radius: 8px;
+    min-width: 18px;
+    text-align: center;
+
+    &.alt {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    &.interests {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+  }
+
+  .collapse-arrow {
+    margin-left: auto;
+    font-size: 12px;
+    color: #9ca3af;
+    transition: transform 0.2s;
+
+    &.rotated {
+      transform: rotate(180deg);
+    }
+  }
+
+}
+
+// 卡片收起状态
+.suggestion-card.card-collapsed {
+  padding: 4px 8px 4px 12px;
+  margin-bottom: 3px;
+
+  .card-header {
+    margin-bottom: 0;
   }
 }
 
@@ -571,8 +649,8 @@ const alternativeSuggestions = computed(() =>
 
   .card-tag {
     font-size: 10px;
-    color: #6b7280;
-    background: #f3f4f6;
+    color: #047857;
+    background: #d1fae5;
     padding: 1px 5px;
     border-radius: 3px;
 
