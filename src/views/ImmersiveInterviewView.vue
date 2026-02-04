@@ -54,6 +54,7 @@
               @use-suggestion="handleUseSituationSuggestion"
               @edit-suggestion="handleEditSituationSuggestion"
               @use-interest-point="handleUseInterestPoint"
+              @edit-interest-point="handleEditInterestPoint"
             />
           </div>
 
@@ -650,6 +651,14 @@ const handleUseInterestPoint = (point: InterestPoint) => {
     addInterviewerMessage(point.question)
     syncMessages()
     ElMessage.success('已添加兴趣点问题到对话')
+  }
+}
+
+// 编辑简历兴趣点（添加到输入框）
+const handleEditInterestPoint = (point: InterestPoint) => {
+  if (point.question) {
+    analysisPanelRef.value?.setQuestionInput(point.question)
+    ElMessage.info('已添加到输入框，可编辑后发送')
   }
 }
 
