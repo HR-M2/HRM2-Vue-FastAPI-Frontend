@@ -194,7 +194,7 @@ import { ElMessage } from 'element-plus'
 import { ResumeDetailDialog } from '@/components/common'
 import { getResume, getScreeningTask } from '@/api/sdk.gen'
 import type { EmotionItem, GazeData } from '@/api/types.gen'
-import type { InterviewStats, QuestionSuggestion, QAMessage } from '@/composables/useImmersiveInterview'
+import type { InterviewStats, QAMessage } from '@/composables/useImmersiveInterview'
 import type { ResumeData } from '@/types'
 
 interface CandidateInfo {
@@ -209,7 +209,6 @@ interface Props {
   isConnected: boolean
   emotions: EmotionItem[]
   gaze: GazeData | null
-  suggestions: QuestionSuggestion[]
   stats: InterviewStats
   candidateInfo: CandidateInfo
   messages: QAMessage[]
@@ -222,7 +221,6 @@ const props = withDefaults(defineProps<Props>(), {
   isConnected: false,
   emotions: () => [],
   gaze: null,
-  suggestions: () => [],
   stats: () => ({ duration: 0, messageCount: 0 }),
   candidateInfo: () => ({ name: '', position: '' }),
   messages: () => [],
@@ -232,8 +230,6 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'refresh-suggestions'): void
-  (e: 'use-suggestion', suggestion: QuestionSuggestion): void
   (e: 'send-question', question: string): void
 }>()
 

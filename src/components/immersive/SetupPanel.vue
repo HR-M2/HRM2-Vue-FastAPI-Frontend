@@ -93,6 +93,50 @@
             show-stops
           />
         </el-form-item>
+
+        <!-- AI 建议配置 -->
+        <el-divider content-position="left">
+          <el-icon><MagicStick /></el-icon>
+          AI 提问建议
+        </el-divider>
+
+        <div class="ai-config-grid">
+          <el-form-item label="追问数量">
+            <el-input-number
+              :model-value="config.followupCount"
+              @update:model-value="updateConfig('followupCount', $event)"
+              :min="1"
+              :max="5"
+              :step="1"
+              size="small"
+            />
+            <div class="form-tip">每轮回答后推荐的追问数</div>
+          </el-form-item>
+
+          <el-form-item label="候选问题数">
+            <el-input-number
+              :model-value="config.alternativeCount"
+              @update:model-value="updateConfig('alternativeCount', $event)"
+              :min="2"
+              :max="6"
+              :step="1"
+              size="small"
+            />
+            <div class="form-tip">不同角度的备选问题数</div>
+          </el-form-item>
+
+          <el-form-item label="简历兴趣点">
+            <el-input-number
+              :model-value="config.interestPointCount"
+              @update:model-value="updateConfig('interestPointCount', $event)"
+              :min="1"
+              :max="5"
+              :step="1"
+              size="small"
+            />
+            <div class="form-tip">从简历提取的兴趣点数</div>
+          </el-form-item>
+        </div>
       </el-form>
 
       <div class="setup-actions">
@@ -112,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { Setting, VideoCamera, Link } from '@element-plus/icons-vue'
+import { Setting, VideoCamera, Link, MagicStick } from '@element-plus/icons-vue'
 
 export interface SetupConfig {
   cameraMode: 'local' | 'stream' | 'dual'
@@ -121,6 +165,10 @@ export interface SetupConfig {
   localCameraEnabled: boolean
   autoAnalyze: boolean
   analyzeInterval: number
+  // AI 建议配置
+  followupCount: number
+  alternativeCount: number
+  interestPointCount: number
 }
 
 export interface ApplicationItem {
@@ -234,5 +282,27 @@ const updateConfig = (key: keyof SetupConfig, value: any) => {
   font-size: 12px;
   color: #9ca3af;
   margin-top: 4px;
+}
+
+.ai-config-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+
+  .el-form-item {
+    margin-bottom: 0;
+  }
+
+  .el-input-number {
+    width: 100%;
+  }
+}
+
+:deep(.el-divider__text) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: #667eea;
 }
 </style>

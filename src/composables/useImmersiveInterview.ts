@@ -16,14 +16,6 @@ export interface InterviewSession {
   is_completed: boolean
 }
 
-// 提问建议类型
-export interface QuestionSuggestion {
-  question: string
-  type: 'followup' | 'alternative' | 'probe'
-  priority: number
-  reason?: string
-}
-
 // 实时统计
 export interface InterviewStats {
   duration: number
@@ -80,7 +72,11 @@ export function useImmersiveInterview() {
     // 多摄像头配置
     cameraMode: 'local' as 'local' | 'stream' | 'dual', // local=仅本地, stream=仅推流, dual=双摄像头
     streamUrl: '', // 网络摄像头推流地址（RTSP/HLS/HTTP-FLV）
-    analyzeSource: 'local' as 'local' | 'stream' // 用于行为分析的视频源
+    analyzeSource: 'local' as 'local' | 'stream', // 用于行为分析的视频源
+    // AI 建议配置
+    followupCount: 2,
+    alternativeCount: 3,
+    interestPointCount: 2
   })
 
   // 会话状态
@@ -96,7 +92,6 @@ export function useImmersiveInterview() {
 
   // 实时数据
   const currentBehavior = ref<BehaviorAnalysisResult | null>(null)
-  const suggestions = ref<QuestionSuggestion[]>([])
 
   // 统计
   const stats = reactive<InterviewStats>({
@@ -398,19 +393,6 @@ export function useImmersiveInterview() {
     return false
   }
 
-  // 获取提问建议
-  const fetchSuggestions = async (resumeContent?: string): Promise<void> => {
-    if (!sessionId.value) return
-
-    const result = await apiCall<{ suggestions: QuestionSuggestion[] }>(
-      `${API_BASE}/interview/${sessionId.value}/suggestions?${resumeContent ? `resume_content=${encodeURIComponent(resumeContent)}` : ''}`
-    )
-
-    if (result.success && result.data) {
-      suggestions.value = result.data.suggestions
-    }
-  }
-
   // 删除会话
   const deleteSession = async (): Promise<boolean> => {
     if (!sessionId.value) return false
@@ -573,7 +555,6 @@ export function useImmersiveInterview() {
     session.value = null
     isRecording.value = false
     currentBehavior.value = null
-    suggestions.value = []
     messages.value = []
     currentSpeaker.value = 'interviewer'
     candidateBehaviorHistory.value = []
@@ -608,7 +589,6 @@ export function useImmersiveInterview() {
     // 实时数据
     currentBehavior,
     currentEmotionLabel,
-    suggestions,
     stats,
 
     // 发言人与对话
@@ -621,7 +601,6 @@ export function useImmersiveInterview() {
     stopLocalCamera,
     startInterview,
     stopInterview,
-    fetchSuggestions,
     deleteSession,
     cleanup,
 

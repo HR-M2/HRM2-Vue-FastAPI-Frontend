@@ -42,8 +42,10 @@
               :is-expanded="isLeftPanelExpanded"
               :assessment="situationAssessment"
               :suggestions="situationSuggestions"
+              :interest-points="interestPoints"
               :is-loading-assessment="isLoadingAssessment"
               :is-loading-suggestions="isLoadingSuggestions"
+              :is-loading-interest-points="isLoadingInterestPoints"
               :can-refresh="isRecording && messages.length > 0"
               v-model:auto-refresh="autoRefreshEnabled"
               @toggle="toggleLeftPanel"
@@ -51,6 +53,7 @@
               @refresh-suggestions="handleRefreshSituationSuggestions"
               @use-suggestion="handleUseSituationSuggestion"
               @edit-suggestion="handleEditSituationSuggestion"
+              @use-interest-point="handleUseInterestPoint"
             />
           </div>
 
@@ -95,15 +98,12 @@
               :is-connected="isWsConnected"
               :emotions="currentBehavior?.emotions || []"
               :gaze="currentBehavior?.gaze || null"
-              :suggestions="suggestions"
               :stats="stats"
               :candidate-info="candidateInfo"
               :messages="messages"
               :current-speaker="currentSpeaker"
               :is-speech-listening="isSpeechListening"
               :speech-interim="speechInterim || ''"
-              @refresh-suggestions="handleFetchSuggestions"
-              @use-suggestion="handleUseSuggestion"
               @send-question="handlePanelSendQuestion"
             />
           </div>
@@ -142,9 +142,9 @@ import SetupPanel from '@/components/immersive/SetupPanel.vue'
 import InterviewControlBar from '@/components/immersive/InterviewControlBar.vue'
 import VideoSection from '@/components/immersive/VideoSection.vue'
 import AliyunConfigDialog from '@/components/immersive/AliyunConfigDialog.vue'
-import type { SituationAssessment, QuestionSuggestion as SAPanelSuggestion } from '@/components/immersive/SituationAwarenessPanel.vue'
+import type { SituationAssessment, QuestionSuggestion as SAPanelSuggestion, InterestPoint } from '@/components/immersive/SituationAwarenessPanel.vue'
 import type { SetupConfig } from '@/components/immersive/SetupPanel.vue'
-import { useImmersiveInterview, type QuestionSuggestion } from '@/composables/useImmersiveInterview'
+import { useImmersiveInterview } from '@/composables/useImmersiveInterview'
 import { useSpeechRecognition, getAliyunConfig, saveAliyunConfig } from '@/composables/useSpeechRecognition'
 import { getApplications } from '@/api/sdk.gen'
 import type { ApplicationDetailResponse } from '@/api/types.gen'
@@ -163,7 +163,6 @@ const {
   streamVideoRef,
   currentBehavior,
   currentEmotionLabel,
-  suggestions,
   stats,
   currentSpeaker,
   messages,
@@ -171,7 +170,6 @@ const {
   initLocalCamera,
   startInterview,
   stopInterview,
-  fetchSuggestions,
   deleteSession,
   cleanup,
   switchSpeaker,
@@ -290,6 +288,11 @@ const isLoadingAssessment = ref(false)
 const isLoadingSuggestions = ref(false)
 const autoRefreshEnabled = ref(false)
 
+// 简历兴趣点（面试开始前生成一次）
+const interestPoints = ref<InterestPoint[]>([])
+const initialQuestions = ref<Array<{ question: string; category: string }>>([])
+const isLoadingInterestPoints = ref(false)
+
 const startResize = (e: MouseEvent) => {
   resizeBarDragging.value = true
   startX.value = e.clientX
@@ -401,6 +404,55 @@ const isGazeDrifting = computed(() => {
   return currentBehavior.value.gaze.ratio < 1
 })
 
+// 生成简历兴趣点和初始问题
+const generateInterestPoints = async () => {
+  if (!sessionId.value) return
+  
+  isLoadingInterestPoints.value = true
+  try {
+    // 获取候选人简历内容
+    const selectedApp = applications.value.find(app => app.id === selectedApplicationId.value)
+    if (!selectedApp?.resume_id) {
+      console.warn('未找到简历ID')
+      return
+    }
+    
+    const response = await fetch(`/api/v1/ai/interview/initial-questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId.value,
+        count: 3,
+        interest_point_count: config.interestPointCount
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success && result.data) {
+      // 存储兴趣点
+      if (result.data.interest_points) {
+        interestPoints.value = result.data.interest_points.map((p: any) => ({
+          content: p.content || '',
+          reason: p.reason || '',
+          question: p.question || ''
+        }))
+      }
+      // 存储初始问题
+      if (result.data.questions) {
+        initialQuestions.value = result.data.questions.map((q: any) => ({
+          question: q.question || '',
+          category: q.category || ''
+        }))
+      }
+      ElMessage.success(`已生成 ${interestPoints.value.length} 个简历兴趣点`)
+    }
+  } catch (error) {
+    console.error('生成兴趣点失败:', error)
+  } finally {
+    isLoadingInterestPoints.value = false
+  }
+}
+
 // 创建会话
 const handleCreateSession = async () => {
   if (!selectedApplicationId.value) {
@@ -409,8 +461,13 @@ const handleCreateSession = async () => {
   }
 
   const success = await createSession(selectedApplicationId.value)
-  if (success && config.localCameraEnabled) {
-    await initLocalCamera()
+  if (success) {
+    // 创建会话后立即生成简历兴趣点
+    generateInterestPoints()
+    
+    if (config.localCameraEnabled) {
+      await initLocalCamera()
+    }
   }
 }
 
@@ -485,18 +542,6 @@ const handleEndSession = async () => {
   }
 }
 
-// 获取建议
-const handleFetchSuggestions = async () => {
-  await fetchSuggestions()
-}
-
-// 使用建议 - 直接发送到对话
-const handleUseSuggestion = (suggestion: QuestionSuggestion) => {
-  addInterviewerMessage(suggestion.question)
-  syncMessages()
-  ElMessage.success('已添加问题到对话')
-}
-
 // ==================== 态势感知相关 ====================
 
 // 刷新局面评估（仅在面板展开时调用）
@@ -559,8 +604,8 @@ const handleRefreshSituationSuggestions = async () => {
         current_question: lastQuestion,
         current_answer: lastAnswer,
         conversation_history: conversationHistory,
-        followup_count: 2,
-        alternative_count: 2
+        followup_count: config.followupCount,
+        alternative_count: config.alternativeCount
       })
     })
     
@@ -606,6 +651,15 @@ const handleUseSituationSuggestion = (suggestion: SAPanelSuggestion) => {
   addInterviewerMessage(suggestion.question)
   syncMessages()
   ElMessage.success('已添加问题到对话')
+}
+
+// 使用简历兴趣点（直接发送问题）
+const handleUseInterestPoint = (point: InterestPoint) => {
+  if (point.question) {
+    addInterviewerMessage(point.question)
+    syncMessages()
+    ElMessage.success('已添加兴趣点问题到对话')
+  }
 }
 
 // 编辑态势面板的建议（添加到输入框）

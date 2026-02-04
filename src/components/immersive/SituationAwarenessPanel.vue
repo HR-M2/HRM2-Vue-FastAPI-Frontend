@@ -151,6 +151,41 @@
           </div>
         </div>
       </div>
+
+      <!-- 分隔线 -->
+      <el-divider v-if="interestPoints.length > 0 || isLoadingInterestPoints" />
+
+      <!-- 简历兴趣点区域 -->
+      <div v-if="interestPoints.length > 0 || isLoadingInterestPoints" class="interest-points-section">
+        <div class="section-header">
+          <span class="section-title">⭐ 简历兴趣点</span>
+        </div>
+
+        <div class="interest-points-content">
+          <div v-if="isLoadingInterestPoints" class="loading-state">
+            <el-icon class="loading-icon"><Loading /></el-icon>
+            <span>正在提取兴趣点...</span>
+          </div>
+          <template v-else>
+            <div 
+              v-for="(point, index) in interestPoints" 
+              :key="index"
+              class="interest-point-card"
+            >
+              <div class="point-header">
+                <span class="point-number">{{ index + 1 }}</span>
+                <span class="point-content">{{ point.content }}</span>
+              </div>
+              <div v-if="point.reason" class="point-reason">{{ point.reason }}</div>
+              <div v-if="point.question" class="point-question">
+                <el-button type="primary" text size="small" :icon="Promotion" @click="$emit('use-interest-point', point)">
+                  {{ point.question }}
+                </el-button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -170,12 +205,20 @@ export interface QuestionSuggestion {
   priority: number
 }
 
+export interface InterestPoint {
+  content: string
+  reason: string
+  question: string
+}
+
 interface Props {
   isExpanded: boolean
   assessment: SituationAssessment
   suggestions: QuestionSuggestion[]
+  interestPoints: InterestPoint[]
   isLoadingAssessment: boolean
   isLoadingSuggestions: boolean
+  isLoadingInterestPoints: boolean
   canRefresh: boolean
   autoRefresh: boolean
 }
@@ -184,8 +227,10 @@ const props = withDefaults(defineProps<Props>(), {
   isExpanded: false,
   assessment: () => ({ assessment: '' }),
   suggestions: () => [],
+  interestPoints: () => [],
   isLoadingAssessment: false,
   isLoadingSuggestions: false,
+  isLoadingInterestPoints: false,
   canRefresh: true,
   autoRefresh: false
 })
@@ -196,6 +241,7 @@ defineEmits<{
   (e: 'refresh-suggestions'): void
   (e: 'use-suggestion', suggestion: QuestionSuggestion): void
   (e: 'edit-suggestion', suggestion: QuestionSuggestion): void
+  (e: 'use-interest-point', point: InterestPoint): void
   (e: 'update:autoRefresh', value: boolean): void
 }>()
 
@@ -583,6 +629,82 @@ const alternativeSuggestions = computed(() =>
 
 .el-divider {
   margin: 8px 0;
+}
+
+// 简历兴趣点区域
+.interest-points-section {
+  .interest-points-content {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 4px;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 2px;
+    }
+  }
+}
+
+.interest-point-card {
+  padding: 8px 10px;
+  background: #fffbeb;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  border-left: 3px solid #f59e0b;
+
+  .point-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .point-number {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .point-content {
+    font-size: 12px;
+    font-weight: 500;
+    color: #92400e;
+    line-height: 1.4;
+  }
+
+  .point-reason {
+    font-size: 11px;
+    color: #b45309;
+    margin-top: 4px;
+    padding-left: 26px;
+  }
+
+  .point-question {
+    margin-top: 6px;
+    padding-left: 20px;
+
+    .el-button {
+      font-size: 11px;
+      color: #667eea;
+      padding: 2px 6px;
+      height: auto;
+      
+      &:hover {
+        background: #eff6ff;
+      }
+    }
+  }
 }
 
 @keyframes spin {
