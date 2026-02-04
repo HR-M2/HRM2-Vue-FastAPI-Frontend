@@ -59,6 +59,12 @@ interface WSMessage {
   message?: string
 }
 
+// 面试环节配置
+export interface StageConfig {
+  name: string
+  description: string
+}
+
 const API_BASE = '/api/v1'
 // WebSocket 使用后端实际地址，避免 Vite 开发服务器端口
 const WS_BASE = `ws://localhost:8000/api/v1/behavior/ws`
@@ -76,8 +82,14 @@ export function useImmersiveInterview() {
     // AI 建议配置
     followupCount: 2,
     alternativeCount: 3,
-    interestPointCount: 2
+    interestPointCount: 2,
+    // 面试类型配置
+    interviewType: 'technical' as 'technical' | 'hr' | 'comprehensive'
   })
+
+  // 面试环节状态
+  const currentStage = ref(1)
+  const stages = ref<StageConfig[]>([])
 
   // 会话状态
   const sessionId = ref<string | null>(null)
@@ -117,6 +129,7 @@ export function useImmersiveInterview() {
 
   // 计算属性
   const isSessionActive = computed(() => sessionId.value !== null && !session.value?.is_completed)
+  const currentStageConfig = computed(() => stages.value[currentStage.value - 1] || null)
 
   // 情绪标签映射
   const emotionLabelMap: Record<string, string> = {
@@ -155,6 +168,38 @@ export function useImmersiveInterview() {
     } catch (error) {
       console.error('API调用失败:', error)
       return { success: false, message: String(error) }
+    }
+  }
+
+  // 加载面试环节配置
+  const loadStageConfig = async (interviewType: string = 'technical'): Promise<boolean> => {
+    try {
+      const result = await apiCall<{ stages: StageConfig[] }>(
+        `${API_BASE}/ai/interview/stage-config?interview_type=${interviewType}`
+      )
+      if (result.success && result.data?.stages) {
+        stages.value = result.data.stages
+        currentStage.value = 1
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('加载环节配置失败:', error)
+      return false
+    }
+  }
+
+  // 设置当前环节
+  const setStage = (stageIndex: number) => {
+    if (stageIndex >= 1 && stageIndex <= stages.value.length) {
+      currentStage.value = stageIndex
+    }
+  }
+
+  // 进入下一环节
+  const advanceStage = () => {
+    if (currentStage.value < stages.value.length) {
+      currentStage.value++
     }
   }
 
@@ -559,6 +604,8 @@ export function useImmersiveInterview() {
     currentSpeaker.value = 'interviewer'
     candidateBehaviorHistory.value = []
     startTime = null
+    currentStage.value = 1
+    stages.value = []
 
     stats.duration = 0
     stats.messageCount = 0
@@ -580,6 +627,11 @@ export function useImmersiveInterview() {
     isRecording,
     isSessionActive,
     isWsConnected,
+
+    // 面试环节
+    currentStage,
+    stages,
+    currentStageConfig,
 
     // 视频
     localStream,
@@ -609,6 +661,11 @@ export function useImmersiveInterview() {
     getSpeakerLabel,
     addInterviewerMessage,
     addCandidateMessage,
-    syncMessages
+    syncMessages,
+
+    // 面试环节
+    loadStageConfig,
+    setStage,
+    advanceStage
   }
 }

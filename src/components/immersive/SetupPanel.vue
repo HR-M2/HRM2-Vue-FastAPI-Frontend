@@ -31,6 +31,26 @@
           </el-select>
         </el-form-item>
 
+        <!-- 面试类型 -->
+        <el-form-item label="面试类型">
+          <el-radio-group 
+            :model-value="config.interviewType" 
+            @update:model-value="updateConfig('interviewType', $event)" 
+            class="interview-type-group"
+          >
+            <el-radio value="technical">
+              <span class="type-label">💻 技术面试</span>
+            </el-radio>
+            <el-radio value="hr">
+              <span class="type-label">👤 HR面试</span>
+            </el-radio>
+            <el-radio value="comprehensive">
+              <span class="type-label">🎯 综合面试</span>
+            </el-radio>
+          </el-radio-group>
+          <div class="form-tip">不同面试类型包含不同的环节配置，影响 AI 问题生成策略</div>
+        </el-form-item>
+
         <!-- 摄像头模式 -->
         <el-form-item label="摄像头模式">
           <el-radio-group :model-value="config.cameraMode" @update:model-value="updateConfig('cameraMode', $event)" class="camera-mode-group">
@@ -185,6 +205,8 @@ export interface SetupConfig {
   followupCount: number
   alternativeCount: number
   interestPointCount: number
+  // 面试类型
+  interviewType: 'technical' | 'hr' | 'comprehensive'
 }
 
 export interface ApplicationItem {
@@ -292,6 +314,15 @@ const updateConfig = (key: keyof SetupConfig, value: any) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.interview-type-group {
+  display: flex;
+  gap: 16px;
+
+  .type-label {
+    font-size: 14px;
+  }
 }
 
 .form-tip {

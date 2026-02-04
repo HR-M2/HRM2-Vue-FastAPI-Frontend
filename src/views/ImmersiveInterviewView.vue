@@ -26,12 +26,16 @@
           :is-speech-listening="isSpeechListening"
           :is-speech-configured="isSpeechConfigured"
           :speech-supported="speechSupported"
+          :stages="stages"
+          :current-stage="currentStage"
+          v-model:auto-stage-switch="autoStageSwitch"
           @start-interview="handleStartInterview"
           @stop-interview="handleStopInterview"
           @toggle-speech="handleToggleSpeech"
           @stop-speech="handleStopSpeech"
           @open-speech-config="showAliyunConfigDialog = true"
           @end-session="handleEndSession"
+          @set-stage="setStage"
         />
 
         <!-- 主内容区 -->
@@ -178,7 +182,14 @@ const {
   getSpeakerLabel,
   addInterviewerMessage,
   addCandidateMessage,
-  syncMessages
+  syncMessages,
+  // 面试环节
+  currentStage,
+  stages,
+  currentStageConfig,
+  loadStageConfig,
+  setStage,
+  advanceStage
 } = useImmersiveInterview()
 
 // 语音识别
@@ -290,6 +301,7 @@ const situationSuggestions = ref<SAPanelSuggestion[]>([])
 const isLoadingAssessment = ref(false)
 const isLoadingSuggestions = ref(false)
 const autoRefreshEnabled = ref(false)
+const autoStageSwitch = ref(true) // 自动切换环节开关，默认开启
 
 // 简历兴趣点（面试开始前生成一次）
 const interestPoints = ref<InterestPoint[]>([])
@@ -454,6 +466,9 @@ const handleCreateSession = async () => {
     return
   }
 
+  // 加载面试环节配置
+  await loadStageConfig(config.interviewType)
+
   const success = await createSession(selectedApplicationId.value)
   if (success) {
     // 创建会话后立即生成简历兴趣点
@@ -538,6 +553,21 @@ const handleEndSession = async () => {
 
 // ==================== 态势感知相关 ====================
 
+// 解析局面评估文本，分离显示内容和切换指示
+const parseAssessmentResponse = (rawAssessment: string): { displayText: string; shouldSwitch: boolean } => {
+  const marker = '---STAGE_SWITCH---'
+  const parts = rawAssessment.split(marker)
+  
+  if (parts.length >= 2 && parts[0] && parts[1]) {
+    const displayText = parts[0].trim()
+    const switchPart = parts[1].trim().toUpperCase()
+    const shouldSwitch = switchPart.startsWith('YES')
+    return { displayText, shouldSwitch }
+  }
+  
+  return { displayText: rawAssessment.trim(), shouldSwitch: false }
+}
+
 // 刷新局面评估（仅在面板展开时调用）
 const handleRefreshAssessment = async () => {
   if (!isLeftPanelExpanded.value || !sessionId.value || messages.value.length === 0) return
@@ -554,13 +584,26 @@ const handleRefreshAssessment = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId.value,
-        conversation_history: conversationHistory
+        conversation_history: conversationHistory,
+        current_stage_index: currentStage.value,
+        current_stage_name: currentStageConfig.value?.name || '开场寒暄',
+        total_stages: stages.value.length || 4,
+        all_stages: stages.value.map(s => ({ name: s.name, description: s.description }))
       })
     })
     
     const result = await response.json()
-    if (result.success && result.data) {
-      situationAssessment.value = result.data
+    if (result.success && result.data?.assessment) {
+      const { displayText, shouldSwitch } = parseAssessmentResponse(result.data.assessment)
+      
+      // 只显示前两段给 HR
+      situationAssessment.value = { assessment: displayText }
+      
+      // 自动切换环节（如果开启且 LLM 建议切换且未到最后一个环节）
+      if (autoStageSwitch.value && shouldSwitch && currentStage.value < stages.value.length) {
+        advanceStage()
+        ElMessage.success(`已自动进入下一环节：${currentStageConfig.value?.name || ''}`)
+      }
     }
   } catch (error) {
     console.error('获取局面评估失败:', error)
@@ -599,7 +642,11 @@ const handleRefreshSituationSuggestions = async () => {
         current_answer: lastAnswer,
         conversation_history: conversationHistory,
         followup_count: config.followupCount,
-        alternative_count: config.alternativeCount
+        alternative_count: config.alternativeCount,
+        current_stage_index: currentStage.value,
+        current_stage_name: currentStageConfig.value?.name || '开场寒暄',
+        current_stage_description: currentStageConfig.value?.description || '',
+        total_stages: stages.value.length || 4
       })
     })
     
