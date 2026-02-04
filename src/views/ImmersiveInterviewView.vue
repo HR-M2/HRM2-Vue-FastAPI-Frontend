@@ -3,182 +3,36 @@
 
     <!-- 设置面板（未开始时显示） -->
     <transition name="fade">
-      <div v-if="!isSessionActive" class="setup-panel">
-        <div class="setup-card">
-          <div class="setup-header">
-            <el-icon class="setup-icon"><Setting /></el-icon>
-            <h2>面试设置</h2>
-          </div>
-
-          <el-form label-position="top" class="setup-form">
-            <!-- 选择候选人 -->
-            <el-form-item label="选择候选人">
-              <el-select
-                v-model="selectedApplicationId"
-                placeholder="请选择待面试的候选人"
-                filterable
-                class="full-width"
-                :loading="isLoadingCandidates"
-              >
-                <el-option
-                  v-for="app in applications"
-                  :key="app.id"
-                  :label="`${app.candidate_name} - ${app.position_title}`"
-                  :value="app.id"
-                >
-                  <div class="candidate-option">
-                    <span class="candidate-name">{{ app.candidate_name }}</span>
-                    <span class="candidate-position">{{ app.position_title }}</span>
-                  </div>
-                </el-option>
-              </el-select>
-            </el-form-item>
-
-            <!-- 摄像头模式 -->
-            <el-form-item label="摄像头模式">
-              <el-radio-group v-model="config.cameraMode" class="camera-mode-group">
-                <el-radio value="local">仅本地摄像头</el-radio>
-                <el-radio value="stream">仅网络推流</el-radio>
-                <el-radio value="dual">双摄像头（本地+推流）</el-radio>
-              </el-radio-group>
-            </el-form-item>
-
-            <!-- 网络推流地址 -->
-            <el-form-item 
-              v-if="config.cameraMode === 'stream' || config.cameraMode === 'dual'" 
-              label="网络摄像头推流地址"
-            >
-              <el-input
-                v-model="config.streamUrl"
-                placeholder="请输入推流地址，如 rtsp://... 或 http://.../stream.m3u8"
-                clearable
-              >
-                <template #prepend>
-                  <el-icon><Link /></el-icon>
-                </template>
-              </el-input>
-              <div class="form-tip">支持 RTSP/HLS/HTTP-FLV 等常见推流协议</div>
-            </el-form-item>
-
-            <!-- 行为分析源选择 -->
-            <el-form-item v-if="config.cameraMode === 'dual'" label="行为分析视频源">
-              <el-select v-model="config.analyzeSource" class="full-width">
-                <el-option value="local" label="本地摄像头（考官）" />
-                <el-option value="stream" label="网络推流（考生）" />
-              </el-select>
-              <div class="form-tip">选择哪个摄像头的画面用于 AI 行为分析</div>
-            </el-form-item>
-
-            <!-- 功能开关 -->
-            <el-form-item label="功能设置">
-              <div class="feature-toggles">
-                <el-checkbox 
-                  v-model="config.localCameraEnabled" 
-                  :disabled="config.cameraMode === 'stream'"
-                >
-                  启用本地摄像头
-                </el-checkbox>
-                <el-checkbox v-model="config.autoAnalyze">自动行为分析</el-checkbox>
-              </div>
-            </el-form-item>
-
-            <!-- 分析间隔 -->
-            <el-form-item label="分析帧间隔">
-              <el-slider
-                v-model="config.analyzeInterval"
-                :min="1"
-                :max="10"
-                :step="1"
-                :marks="{ 1: '1秒', 3: '3秒', 5: '5秒', 10: '10秒' }"
-                show-stops
-              />
-            </el-form-item>
-          </el-form>
-
-          <div class="setup-actions">
-            <el-button
-              type="primary"
-              size="large"
-              :loading="isLoading"
-              :disabled="!selectedApplicationId"
-              @click="handleCreateSession"
-            >
-              <el-icon><VideoCamera /></el-icon>
-              创建面试会话
-            </el-button>
-          </div>
-        </div>
-      </div>
+      <SetupPanel
+        v-if="!isSessionActive"
+        :config="config"
+        :selected-application-id="selectedApplicationId"
+        :applications="applications"
+        :is-loading-candidates="isLoadingCandidates"
+        :is-loading="isLoading"
+        @update:selected-application-id="selectedApplicationId = $event"
+        @update:config="handleUpdateConfig"
+        @create-session="handleCreateSession"
+      />
     </transition>
 
     <!-- 主面试界面 -->
     <transition name="slide-up">
       <div v-if="isSessionActive" class="main-interview-area">
         <!-- 控制栏 -->
-        <div class="control-bar">
-          <div class="control-left">
-            <div class="candidate-info" v-if="session">
-              <span class="info-label">候选人：</span>
-              <span class="info-value">{{ session.candidate_name }}</span>
-              <el-divider direction="vertical" />
-              <span class="info-label">应聘岗位：</span>
-              <span class="info-value">{{ session.position_title }}</span>
-            </div>
-          </div>
-          <div class="control-center">
-            <el-button-group>
-              <el-button
-                v-if="!isRecording"
-                type="success"
-                size="large"
-                @click="handleStartInterview"
-              >
-                <el-icon><VideoPlay /></el-icon>
-                开始面试
-              </el-button>
-              <el-button
-                v-else
-                type="danger"
-                size="large"
-                @click="handleStopInterview"
-              >
-                <el-icon><VideoPause /></el-icon>
-                结束面试
-              </el-button>
-            </el-button-group>
-          </div>
-          <div class="control-right">
-            <!-- 语音转写控制 -->
-            <el-button
-              v-if="isRecording && !isSpeechListening"
-              :type="isSpeechConfigured ? 'primary' : 'warning'"
-              @click="handleToggleSpeech"
-              :disabled="!speechSupported"
-            >
-              <el-icon><Microphone /></el-icon>
-              {{ isSpeechConfigured ? '开始转写' : '配置语音' }}
-            </el-button>
-            <el-button
-              v-if="isRecording && isSpeechListening"
-              type="success"
-              @click="handleToggleSpeech"
-            >
-              <el-icon><Switch /></el-icon>
-              切换发言人
-            </el-button>
-            <el-button
-              v-if="isRecording && isSpeechListening"
-              type="warning"
-              @click="handleStopSpeech"
-            >
-              停止转写
-            </el-button>
-            <el-button type="danger" plain @click="handleEndSession">
-              <el-icon><Close /></el-icon>
-              退出会话
-            </el-button>
-          </div>
-        </div>
+        <InterviewControlBar
+          :session="session"
+          :is-recording="isRecording"
+          :is-speech-listening="isSpeechListening"
+          :is-speech-configured="isSpeechConfigured"
+          :speech-supported="speechSupported"
+          @start-interview="handleStartInterview"
+          @stop-interview="handleStopInterview"
+          @toggle-speech="handleToggleSpeech"
+          @stop-speech="handleStopSpeech"
+          @open-speech-config="showAliyunConfigDialog = true"
+          @end-session="handleEndSession"
+        />
 
         <!-- 主内容区 -->
         <div class="content-grid" :style="{ gridTemplateColumns: contentGridColumns }">
@@ -211,143 +65,19 @@
           </div>
 
           <!-- 中间：视频区 -->
-          <div class="video-section">
-            <!-- 单摄像头模式：本地摄像头 -->
-            <template v-if="config.cameraMode === 'local'">
-              <div class="video-container">
-                <video
-                  v-if="config.localCameraEnabled"
-                  ref="localVideoRef"
-                  class="interview-video"
-                  autoplay
-                  playsinline
-                  muted
-                ></video>
-                <div v-else class="video-placeholder">
-                  <el-icon :size="64"><VideoCamera /></el-icon>
-                  <p>摄像头未启用</p>
-                </div>
-                <transition name="gaze-fade">
-                  <div v-if="isRecording && isGazeDrifting" class="gaze-warning">
-                    <span class="warning-icon">⚠️</span>
-                    <span class="warning-text">视线游离</span>
-                  </div>
-                </transition>
-                <div v-if="isRecording" class="analysis-indicator" :class="{ active: isWsConnected }">
-                  <span class="indicator-dot"></span>
-                  <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
-                </div>
-              </div>
-            </template>
-
-            <!-- 单摄像头模式：网络推流 -->
-            <template v-else-if="config.cameraMode === 'stream'">
-              <div class="video-container">
-                <video
-                  v-if="config.streamUrl"
-                  ref="streamVideoRef"
-                  class="interview-video"
-                  autoplay
-                  playsinline
-                  muted
-                  crossorigin="anonymous"
-                ></video>
-                <div v-else class="video-placeholder">
-                  <el-icon :size="64"><Link /></el-icon>
-                  <p>未配置推流地址</p>
-                </div>
-                <transition name="gaze-fade">
-                  <div v-if="isRecording && isGazeDrifting" class="gaze-warning">
-                    <span class="warning-icon">⚠️</span>
-                    <span class="warning-text">视线游离</span>
-                  </div>
-                </transition>
-                <div v-if="isRecording" class="analysis-indicator" :class="{ active: isWsConnected }">
-                  <span class="indicator-dot"></span>
-                  <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
-                </div>
-              </div>
-            </template>
-
-            <!-- 双摄像头模式：画中画（CSS控制位置，元素不销毁） -->
-            <template v-else-if="config.cameraMode === 'dual'">
-              <!-- 本地摄像头视频 -->
-              <div 
-                class="video-container"
-                :class="pipSwapped ? 'main-position' : 'pip-position'"
-                @click="!pipSwapped && togglePipSwap()"
-              >
-                <div class="video-label">本地（考官）</div>
-                <video
-                  v-if="config.localCameraEnabled"
-                  ref="localVideoRef"
-                  class="interview-video"
-                  autoplay
-                  playsinline
-                  muted
-                ></video>
-                <div v-else class="video-placeholder">
-                  <el-icon :size="pipSwapped ? 64 : 24"><VideoCamera /></el-icon>
-                  <p v-if="pipSwapped">摄像头未启用</p>
-                </div>
-                <template v-if="pipSwapped">
-                  <transition name="gaze-fade">
-                    <div v-if="isRecording && isGazeDrifting && config.analyzeSource === 'local'" class="gaze-warning">
-                      <span class="warning-icon">⚠️</span>
-                      <span class="warning-text">视线游离</span>
-                    </div>
-                  </transition>
-                  <div v-if="isRecording && config.analyzeSource === 'local'" class="analysis-indicator" :class="{ active: isWsConnected }">
-                    <span class="indicator-dot"></span>
-                    <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
-                  </div>
-                </template>
-              </div>
-
-              <!-- 网络推流视频 -->
-              <div 
-                class="video-container"
-                :class="pipSwapped ? 'pip-position' : 'main-position'"
-                @click="pipSwapped && togglePipSwap()"
-              >
-                <div class="video-label">推流（考生）</div>
-                <video
-                  v-if="config.streamUrl"
-                  ref="streamVideoRef"
-                  class="interview-video"
-                  autoplay
-                  playsinline
-                  muted
-                  crossorigin="anonymous"
-                ></video>
-                <div v-else class="video-placeholder">
-                  <el-icon :size="pipSwapped ? 24 : 64"><Link /></el-icon>
-                  <p v-if="!pipSwapped">未配置推流地址</p>
-                </div>
-                <template v-if="!pipSwapped">
-                  <transition name="gaze-fade">
-                    <div v-if="isRecording && isGazeDrifting && config.analyzeSource === 'stream'" class="gaze-warning">
-                      <span class="warning-icon">⚠️</span>
-                      <span class="warning-text">视线游离</span>
-                    </div>
-                  </transition>
-                  <div v-if="isRecording && config.analyzeSource === 'stream'" class="analysis-indicator" :class="{ active: isWsConnected }">
-                    <span class="indicator-dot"></span>
-                    <span class="indicator-text">{{ isWsConnected ? '分析中' : '连接中...' }}</span>
-                  </div>
-                </template>
-              </div>
-
-              <!-- 互换按钮 -->
-              <el-button 
-                class="pip-swap-btn" 
-                circle 
-                @click="togglePipSwap"
-              >
-                <el-icon><Switch /></el-icon>
-              </el-button>
-            </template>
-          </div>
+          <VideoSection
+            ref="videoSectionRef"
+            :camera-mode="config.cameraMode"
+            :local-camera-enabled="config.localCameraEnabled"
+            :stream-url="config.streamUrl"
+            :analyze-source="config.analyzeSource"
+            :is-recording="isRecording"
+            :is-ws-connected="isWsConnected"
+            :is-gaze-drifting="isGazeDrifting"
+            :pip-swapped="pipSwapped"
+            :local-video-stream="localStream"
+            @toggle-pip="togglePipSwap"
+          />
 
           <!-- 右侧拖拽分隔条 -->
           <div 
@@ -382,30 +112,12 @@
     </transition>
 
     <!-- 阿里云语音配置弹窗 -->
-    <el-dialog v-model="showAliyunConfigDialog" title="阿里云语音识别配置" width="500px">
-      <el-form label-position="top">
-        <el-form-item label="AppKey" required>
-          <el-input v-model="aliyunConfig.appKey" placeholder="从阿里云智能语音交互控制台获取" />
-        </el-form-item>
-        <el-form-item label="Token" required>
-          <el-input v-model="aliyunConfig.token" type="password" placeholder="从阿里云控制台或CLI获取，有效期24小时" show-password />
-        </el-form-item>
-        <el-alert type="info" :closable="false" class="config-tip">
-          <template #title>
-            <p style="margin: 0;">获取方式：</p>
-            <ol style="margin: 8px 0 0; padding-left: 20px;">
-              <li>登录阿里云控制台，进入智能语音交互</li>
-              <li>创建项目获取 AppKey</li>
-              <li>使用 CLI 命令或控制台获取 Token（有效期24小时）</li>
-            </ol>
-          </template>
-        </el-alert>
-      </el-form>
-      <template #footer>
-        <el-button @click="showAliyunConfigDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleSaveAliyunConfig">保存配置</el-button>
-      </template>
-    </el-dialog>
+    <AliyunConfigDialog
+      v-model:visible="showAliyunConfigDialog"
+      :config="aliyunConfig"
+      @update:config="handleUpdateAliyunConfig"
+      @save="handleSaveAliyunConfig"
+    />
   </div>
 </template>
 
@@ -426,7 +138,12 @@ import {
 } from '@element-plus/icons-vue'
 import RealTimeAnalysisPanel from '@/components/immersive/RealTimeAnalysisPanel.vue'
 import SituationAwarenessPanel from '@/components/immersive/SituationAwarenessPanel.vue'
+import SetupPanel from '@/components/immersive/SetupPanel.vue'
+import InterviewControlBar from '@/components/immersive/InterviewControlBar.vue'
+import VideoSection from '@/components/immersive/VideoSection.vue'
+import AliyunConfigDialog from '@/components/immersive/AliyunConfigDialog.vue'
 import type { SituationAssessment, QuestionSuggestion as SAPanelSuggestion } from '@/components/immersive/SituationAwarenessPanel.vue'
+import type { SetupConfig } from '@/components/immersive/SetupPanel.vue'
 import { useImmersiveInterview, type QuestionSuggestion } from '@/composables/useImmersiveInterview'
 import { useSpeechRecognition, getAliyunConfig, saveAliyunConfig } from '@/composables/useSpeechRecognition'
 import { getApplications } from '@/api/sdk.gen'
@@ -441,6 +158,7 @@ const {
   isRecording,
   isSessionActive,
   isWsConnected,
+  localStream,
   localVideoRef,
   currentBehavior,
   currentEmotionLabel,
@@ -492,7 +210,7 @@ const {
 
 // 组件引用
 const analysisPanelRef = ref<InstanceType<typeof RealTimeAnalysisPanel> | null>(null)
-const streamVideoRef = ref<HTMLVideoElement | null>(null)
+const videoSectionRef = ref<InstanceType<typeof VideoSection> | null>(null)
 
 // 画中画模式状态
 const pipSwapped = ref(false)
@@ -506,6 +224,15 @@ const aliyunConfig = ref({
   appKey: '',
   token: ''
 })
+
+// 更新配置的处理函数
+const handleUpdateConfig = (key: keyof SetupConfig, value: any) => {
+  ;(config as any)[key] = value
+}
+
+const handleUpdateAliyunConfig = (key: 'appKey' | 'token', value: string) => {
+  aliyunConfig.value[key] = value
+}
 
 // 本地状态
 const selectedApplicationId = ref('')
@@ -998,140 +725,12 @@ onMounted(() => {
   min-height: calc(100vh - 140px);
 }
 
-
-// 设置面板
-.setup-panel {
-  display: flex;
-  justify-content: center;
-  padding: 40px 20px;
-}
-
-.setup-card {
-  background: white;
-  border-radius: 24px;
-  padding: 40px;
-  width: 100%;
-  max-width: 600px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-
-  .setup-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 32px;
-
-    .setup-icon {
-      font-size: 28px;
-      color: #667eea;
-    }
-
-    h2 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 700;
-      color: #1a1a2e;
-    }
-  }
-
-  .setup-form {
-    .full-width {
-      width: 100%;
-    }
-
-    .feature-toggles {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-  }
-
-  .setup-actions {
-    margin-top: 32px;
-    display: flex;
-    justify-content: center;
-
-    .el-button {
-      padding: 14px 40px;
-      font-size: 16px;
-    }
-  }
-}
-
-.candidate-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-
-  .candidate-name {
-    font-weight: 500;
-  }
-
-  .candidate-position {
-    font-size: 12px;
-    color: #9ca3af;
-  }
-}
-
-// 摄像头模式选择
-.camera-mode-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-tip {
-  font-size: 12px;
-  color: #9ca3af;
-  margin-top: 4px;
-}
-
 // 主面试区域
 .main-interview-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.control-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  border-radius: 16px;
-  padding: 16px 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-
-  .control-left {
-    .candidate-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .info-label {
-        font-size: 13px;
-        color: #6b7280;
-      }
-
-      .info-value {
-        font-size: 14px;
-        font-weight: 600;
-        color: #1a1a2e;
-      }
-    }
-  }
-
-  .control-center {
-    .el-button {
-      padding: 12px 28px;
-    }
-  }
-
-  .control-right {
-    display: flex;
-    gap: 10px;
-  }
 }
 
 .content-grid {
@@ -1175,185 +774,10 @@ onMounted(() => {
   }
 }
 
-.video-section {
-  background: #1a1a2e;
-  border-radius: 20px;
-  overflow: hidden;
-  position: relative;
-
-  .video-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-
-    // 主画面位置
-    &.main-position {
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-
-    // 画中画位置
-    &.pip-position {
-      position: absolute;
-      right: 16px;
-      bottom: 16px;
-      width: 200px;
-      height: 150px;
-      background: #0d0d1a;
-      border-radius: 12px;
-      overflow: hidden;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-      border: 2px solid rgba(255, 255, 255, 0.1);
-      z-index: 20;
-
-      &:hover {
-        transform: scale(1.02);
-        border-color: rgba(102, 126, 234, 0.5);
-      }
-
-      .video-label {
-        top: 8px;
-        left: 8px;
-        bottom: auto;
-        padding: 2px 8px;
-        font-size: 10px;
-      }
-
-      .video-placeholder {
-        gap: 8px;
-      }
-    }
-  }
-
-  // 视频标签
-  .video-label {
-    position: absolute;
-    bottom: 12px;
-    left: 12px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.8);
-    z-index: 10;
-  }
-
-  .interview-video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .video-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    color: rgba(255, 255, 255, 0.5);
-
-    p {
-      font-size: 14px;
-    }
-  }
-
-  // 互换按钮
-  .pip-swap-btn {
-    position: absolute;
-    right: 224px;
-    bottom: 24px;
-    background: rgba(255, 255, 255, 0.15) !important;
-    border: none !important;
-    color: white !important;
-    backdrop-filter: blur(8px);
-    z-index: 25;
-    transition: background 0.2s, transform 0.2s;
-
-    &:hover {
-      background: rgba(102, 126, 234, 0.6) !important;
-      transform: scale(1.1);
-    }
-  }
-
-  // 视线游离警告
-  .gaze-warning {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(245, 158, 11, 0.85);
-    backdrop-filter: blur(8px);
-    padding: 8px 14px;
-    border-radius: 20px;
-    box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
-    animation: warning-pulse 1.5s ease-in-out infinite;
-
-    .warning-icon {
-      font-size: 14px;
-    }
-
-    .warning-text {
-      color: white;
-      font-size: 13px;
-      font-weight: 600;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    }
-  }
-
-  @keyframes warning-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.85; transform: scale(1.02); }
-  }
-
-  // 分析状态指示器
-  .analysis-indicator {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    padding: 8px 16px;
-    border-radius: 20px;
-
-    .indicator-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #f59e0b;
-    }
-
-    .indicator-text {
-      color: white;
-      font-size: 12px;
-    }
-
-    &.active {
-      .indicator-dot {
-        background: #10b981;
-        animation: pulse 1.5s infinite;
-      }
-    }
-  }
-}
-
 .analysis-section {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-// 配置提示
-.config-tip {
-  margin-top: 16px;
 }
 
 // 动画
@@ -1382,18 +806,6 @@ onMounted(() => {
   transform: translateY(-30px);
 }
 
-// 视线游离警告淡入淡出动画
-.gaze-fade-enter-active,
-.gaze-fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.gaze-fade-enter-from,
-.gaze-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
 // 响应式
 @media (max-width: 1200px) {
   .content-grid {
@@ -1403,7 +815,7 @@ onMounted(() => {
       display: none;
     }
 
-    .video-section {
+    :deep(.video-section) {
       height: 400px;
     }
 
