@@ -327,9 +327,9 @@ export type CandidateQuestionsRequest = {
     /**
      * Current Answer
      *
-     * 当前回答
+     * 当前回答，无对话时可留空
      */
-    current_answer: string;
+    current_answer?: string;
     /**
      * Conversation History
      *

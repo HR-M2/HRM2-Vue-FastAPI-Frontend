@@ -50,7 +50,7 @@
               :is-loading-assessment="isLoadingAssessment"
               :is-loading-suggestions="isLoadingSuggestions"
               :is-loading-interest-points="isLoadingInterestPoints"
-              :can-refresh="isRecording && messages.length > 0"
+              :can-refresh="isRecording"
               v-model:auto-refresh="autoRefreshEnabled"
               @toggle="toggleLeftPanel"
               @refresh-assessment="handleRefreshAssessment"
@@ -570,9 +570,9 @@ const parseAssessmentResponse = (rawAssessment: string): { displayText: string; 
   return { displayText: rawAssessment.trim(), shouldSwitch: false }
 }
 
-// 刷新局面评估（仅在面板展开时调用）
+// 刷新局面评估（仅在面板展开时调用，支持无对话时基于简历评估）
 const handleRefreshAssessment = async () => {
-  if (!isLeftPanelExpanded.value || !sessionId.value || messages.value.length === 0) return
+  if (!isLeftPanelExpanded.value || !sessionId.value) return
   
   isLoadingAssessment.value = true
   try {
@@ -614,21 +614,15 @@ const handleRefreshAssessment = async () => {
   }
 }
 
-// 刷新提问建议（仅在面板展开时调用）
+// 刷新提问建议（仅在面板展开时调用，支持无对话时生成开场建议）
 const handleRefreshSituationSuggestions = async () => {
   if (!isLeftPanelExpanded.value || !sessionId.value) return
   
   isLoadingSuggestions.value = true
   try {
-    // 获取最近的问答
+    // 获取最近的问答（无对话时为空字符串）
     const recentMessages = messages.value.slice(-4)
-    const lastQuestion = recentMessages.find(m => m.role === 'interviewer')?.content || ''
     const lastAnswer = recentMessages.find(m => m.role === 'candidate')?.content || ''
-    
-    if (!lastQuestion || !lastAnswer) {
-      isLoadingSuggestions.value = false
-      return
-    }
     
     const conversationHistory = messages.value.map(m => ({
       role: m.role,
