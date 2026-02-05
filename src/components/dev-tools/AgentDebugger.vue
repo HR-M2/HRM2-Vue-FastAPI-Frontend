@@ -86,11 +86,17 @@
             <!-- 展开的详情 -->
             <div v-if="expandedEvents.has(event.id)" class="trace-detail">
               <div class="detail-section">
-                <div class="detail-label">Prompt:</div>
+                <div class="detail-label">
+                  Prompt:
+                  <el-button :icon="CopyDocument" size="small" text @click.stop="copyContent(event.prompt_preview || event.prompt_full || '', 'Prompt')" title="复制 Prompt" />
+                </div>
                 <pre class="detail-content">{{ event.prompt_preview || event.prompt_full || '(空)' }}</pre>
               </div>
               <div class="detail-section">
-                <div class="detail-label">Response:</div>
+                <div class="detail-label">
+                  Response:
+                  <el-button :icon="CopyDocument" size="small" text @click.stop="copyContent(event.response || '', 'Response')" title="复制 Response" />
+                </div>
                 <pre class="detail-content" :class="{ streaming: event.status === 'streaming' }">
                   {{ event.response || (event.status === 'streaming' ? '正在生成...' : '(空)') }}
                   <span v-if="event.status === 'streaming'" class="cursor-blink">▌</span>
@@ -99,6 +105,12 @@
               <div v-if="event.error" class="detail-section error">
                 <div class="detail-label">Error:</div>
                 <pre class="detail-content">{{ event.error }}</pre>
+              </div>
+              <div class="detail-actions">
+                <el-button size="small" @click.stop="copyFullTrace(event)">
+                  <el-icon><CopyDocument /></el-icon>
+                  复制完整调用信息
+                </el-button>
               </div>
             </div>
           </div>
@@ -120,7 +132,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { Monitor, Delete, Minus, DocumentCopy } from '@element-plus/icons-vue'
+import { Monitor, Delete, Minus, DocumentCopy, CopyDocument } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { useDebuggerStore } from '@/stores/debugger'
 
 interface TraceEvent {
@@ -212,10 +225,10 @@ function connectSSE() {
 
   eventSource.onerror = () => {
     connectionStatus.value = 'disconnected'
-    // 5秒后重连
+    // 1秒后重连
     setTimeout(() => {
       if (isDev) connectSSE()
-    }, 5000)
+    }, 1000)
   }
 }
 
@@ -303,6 +316,41 @@ function formatTime(timestamp: string): string {
     })
   } catch {
     return ''
+  }
+}
+
+// 复制内容到剪贴板
+async function copyContent(content: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(content)
+    ElMessage.success(`${label} 已复制到剪贴板`)
+  } catch (err) {
+    console.error('[AgentDebugger] Copy error:', err)
+    ElMessage.error('复制失败')
+  }
+}
+
+// 复制完整调用信息
+async function copyFullTrace(event: TraceEvent) {
+  const fullContent = `=== Agent 调用信息 ===
+时间: ${event.timestamp}
+Agent: ${event.agent_name}
+方法: ${event.method}
+状态: ${event.status}
+耗时: ${event.duration_ms || 0}ms
+${event.error ? `错误: ${event.error}\n` : ''}
+=== Prompt ===
+${event.prompt_preview || event.prompt_full || '(空)'}
+
+=== Response ===
+${event.response || '(空)'}`
+
+  try {
+    await navigator.clipboard.writeText(fullContent)
+    ElMessage.success('完整调用信息已复制到剪贴板')
+  } catch (err) {
+    console.error('[AgentDebugger] Copy error:', err)
+    ElMessage.error('复制失败')
   }
 }
 
@@ -584,10 +632,32 @@ onUnmounted(() => {
 }
 
 .detail-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   color: #409eff;
   font-size: 11px;
   margin-bottom: 4px;
   font-weight: 500;
+}
+
+.detail-label .el-button {
+  padding: 2px 4px;
+  color: #909399;
+}
+
+.detail-label .el-button:hover {
+  color: #409eff;
+}
+
+.detail-actions {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e4e7ed;
+}
+
+.detail-actions .el-button {
+  font-size: 11px;
 }
 
 .detail-content {
