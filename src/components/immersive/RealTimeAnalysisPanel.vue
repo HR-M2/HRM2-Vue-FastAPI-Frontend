@@ -162,16 +162,30 @@
               size="small"
               :loading="isGeneratingAiAnswer"
               @click="handleAiAnswer"
-              @command="handleSelectCandidateType"
+              @command="handleDropdownCommand"
             >
               <el-icon><MagicStick /></el-icon>
-              AI回答
+              {{ modeLabel }}:{{ selectedCandidateLabel }}
               <template #dropdown>
                 <el-dropdown-menu>
+                  <el-dropdown-item class="dropdown-section-title" disabled>模式</el-dropdown-item>
+                  <el-dropdown-item 
+                    command="mode:auto"
+                    :class="{ active: aiAnswerMode === 'auto' }"
+                  >
+                    <el-icon><VideoPlay /></el-icon> 自动
+                  </el-dropdown-item>
+                  <el-dropdown-item 
+                    command="mode:manual"
+                    :class="{ active: aiAnswerMode === 'manual' }"
+                  >
+                    <el-icon><VideoPause /></el-icon> 手动
+                  </el-dropdown-item>
+                  <el-dropdown-item divided class="dropdown-section-title" disabled>AI类型</el-dropdown-item>
                   <el-dropdown-item 
                     v-for="type in candidateTypes" 
                     :key="type.value"
-                    :command="type.value"
+                    :command="'type:' + type.value"
                     :class="{ active: selectedCandidateType === type.value }"
                   >
                     {{ type.label }}
@@ -234,7 +248,9 @@ import {
   ArrowDown,
   ArrowUp,
   Promotion,
-  MagicStick
+  MagicStick,
+  VideoPlay,
+  VideoPause
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { ResumeDetailDialog } from '@/components/common'
@@ -294,12 +310,22 @@ const chatContainerRef = ref<HTMLElement | null>(null)
 // AI 受试者回答状态
 const isGeneratingAiAnswer = ref(false)
 const selectedCandidateType = ref<string>('ideal')
+const aiAnswerMode = ref<'auto' | 'manual'>('manual')
 const candidateTypes = [
-  { value: 'ideal', label: '🌟 理想候选人' },
-  { value: 'junior', label: '🌱 初级候选人' },
-  { value: 'nervous', label: '😰 紧张型' },
-  { value: 'overconfident', label: '😎 过度自信型' }
+  { value: 'ideal', label: '理想AI' },
+  { value: 'junior', label: '初级AI' },
+  { value: 'nervous', label: '紧张AI' },
+  { value: 'overconfident', label: '自信AI' }
 ]
+
+// 获取当前选中的 AI 类型标签
+const selectedCandidateLabel = computed(() => {
+  const found = candidateTypes.find(t => t.value === selectedCandidateType.value)
+  return found ? found.label : '理想AI'
+})
+
+// 获取模式显示文本
+const modeLabel = computed(() => aiAnswerMode.value === 'auto' ? '自动' : '手动')
 
 // 查看简历
 const handleViewResume = async () => {
@@ -371,9 +397,13 @@ const handleSendAsCandidate = () => {
   questionInputLocal.value = ''
 }
 
-// 选择 AI 候选人类型
-const handleSelectCandidateType = (type: string) => {
-  selectedCandidateType.value = type
+// 处理下拉菜单命令
+const handleDropdownCommand = (command: string) => {
+  if (command.startsWith('mode:')) {
+    aiAnswerMode.value = command.replace('mode:', '') as 'auto' | 'manual'
+  } else if (command.startsWith('type:')) {
+    selectedCandidateType.value = command.replace('type:', '')
+  }
 }
 
 // AI 生成受试者回答
@@ -442,8 +472,24 @@ const scrollToBottom = () => {
   })
 }
 
-// 监听消息变化
-watch(() => props.messages.length, scrollToBottom)
+// 监听消息变化，自动模式下触发 AI 回答
+watch(
+  () => props.messages.length,
+  (newLen, oldLen) => {
+    scrollToBottom()
+    
+    // 自动模式：当面试官发送新消息后自动触发 AI 回答
+    if (newLen > oldLen && aiAnswerMode.value === 'auto') {
+      const lastMsg = props.messages[props.messages.length - 1]
+      if (lastMsg?.role === 'interviewer' && !isGeneratingAiAnswer.value) {
+        // 延迟一下，确保 UI 更新完成
+        setTimeout(() => {
+          handleAiAnswer()
+        }, 300)
+      }
+    }
+  }
+)
 
 // 格式化消息时间
 const formatMessageTime = (timestamp?: string) => {
@@ -966,8 +1012,8 @@ const formatTime = (seconds: number): string => {
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      gap: 8px;
-      margin-top: 8px;
+      gap: 4px;
+      margin-top: 6px;
 
       .input-hint {
         font-size: 11px;
@@ -975,12 +1021,18 @@ const formatTime = (seconds: number): string => {
       }
 
       .el-button {
-        padding: 8px 16px;
+        padding: 6px 10px;
+        font-size: 12px;
       }
       
       .ai-answer-group {
         :deep(.el-dropdown) {
           .el-button-group {
+            .el-button {
+              padding: 6px 8px;
+              font-size: 12px;
+            }
+            
             .el-button--warning {
               background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
               border-color: #f59e0b;
@@ -997,6 +1049,14 @@ const formatTime = (seconds: number): string => {
             background: #fef3c7;
             color: #92400e;
             font-weight: 600;
+          }
+          
+          &.dropdown-section-title {
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 600;
+            cursor: default;
+            padding: 4px 12px;
           }
         }
       }
