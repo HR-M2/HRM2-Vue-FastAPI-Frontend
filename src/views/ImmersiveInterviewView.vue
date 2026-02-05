@@ -640,15 +640,12 @@ const handleRefreshSituationSuggestions = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId.value,
-        current_question: lastQuestion,
         current_answer: lastAnswer,
         conversation_history: conversationHistory,
         followup_count: config.followupCount,
-        alternative_count: config.alternativeCount,
-        current_stage_index: currentStage.value,
+        normal_count: config.alternativeCount,
         current_stage_name: currentStageConfig.value?.name || '开场寒暄',
-        current_stage_description: currentStageConfig.value?.description || '',
-        total_stages: stages.value.length || 4
+        current_stage_description: currentStageConfig.value?.description || ''
       })
     })
     

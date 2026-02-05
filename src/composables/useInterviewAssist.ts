@@ -552,11 +552,10 @@ export function useInterviewAssist() {
       const result = await aiGenerateAdaptiveQuestions({
         body: {
           session_id: sessionId.value || undefined,
-          current_question: question,
           current_answer: answer,
           conversation_history: getConversationHistory(),
           followup_count: config.followupCount,
-          alternative_count: config.alternativeCount
+          normal_count: config.alternativeCount
         }
       })
 
