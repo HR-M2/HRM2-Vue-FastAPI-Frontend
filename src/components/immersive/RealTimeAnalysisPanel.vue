@@ -96,7 +96,7 @@
           <span>开始语音转写后，对话将显示在这里</span>
         </div>
         <div v-else class="messages-list">
-          <div v-for="msg in messages" :key="msg.seq" class="message-item" :class="`message-${msg.role}`">
+          <div v-for="msg in messages" :key="msg.seq" class="message-item" :class="[`message-${msg.role}`, { 'typing': typingMessageSeq === msg.seq }]">
             <div class="message-avatar">{{ msg.role === 'interviewer' ? '👔' : '👤' }}</div>
             <div class="message-body">
               <div class="message-meta">
@@ -111,9 +111,24 @@
                 </div>
                 <span class="timestamp">{{ formatMessageTime(msg.timestamp) }}</span>
               </div>
-              <div class="message-content">{{ msg.content }}</div>
+              <div class="message-content">
+                {{ getDisplayContent(msg) }}
+                <span v-if="typingMessageSeq === msg.seq" class="typing-cursor">|</span>
+              </div>
             </div>
           </div>
+          <!-- AI 正在生成回答指示器 -->
+          <transition name="fade">
+            <div v-if="isGeneratingAiAnswer" class="typing-indicator">
+              <div class="typing-avatar">👤</div>
+              <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span class="typing-text">{{ selectedCandidateLabel }} 正在思考回答...</span>
+            </div>
+          </transition>
         </div>
       </div>
       
@@ -309,6 +324,10 @@ const chatContainerRef = ref<HTMLElement | null>(null)
 
 // AI 受试者回答状态
 const isGeneratingAiAnswer = ref(false)
+
+// 打字机效果状态
+const typingMessageSeq = ref<number | null>(null)
+const displayedContents = ref<Map<number, string>>(new Map())
 const selectedCandidateType = ref<string>('ideal')
 const aiAnswerMode = ref<'auto' | 'manual'>('manual')
 const candidateTypes = [
@@ -326,6 +345,30 @@ const selectedCandidateLabel = computed(() => {
 
 // 获取模式显示文本
 const modeLabel = computed(() => aiAnswerMode.value === 'auto' ? '自动' : '手动')
+
+// 获取显示内容（支持打字机效果）
+const getDisplayContent = (msg: QAMessage): string => {
+  if (typingMessageSeq.value === msg.seq) {
+    return displayedContents.value.get(msg.seq) || ''
+  }
+  return msg.content
+}
+
+// 打字机效果（5倍速，4-10ms/字符）
+const typewriterEffect = async (msg: QAMessage) => {
+  const content = msg.content
+  typingMessageSeq.value = msg.seq
+  displayedContents.value.set(msg.seq, '')
+  
+  for (let i = 0; i < content.length; i++) {
+    displayedContents.value.set(msg.seq, content.slice(0, i + 1))
+    await new Promise(resolve => setTimeout(resolve, 4 + Math.random() * 6))
+  }
+  
+  typingMessageSeq.value = null
+  displayedContents.value.delete(msg.seq)
+  scrollToBottom()
+}
 
 // 查看简历
 const handleViewResume = async () => {
@@ -472,20 +515,24 @@ const scrollToBottom = () => {
   })
 }
 
-// 监听消息变化，自动模式下触发 AI 回答
+// 监听消息变化，触发打字机效果和自动模式
 watch(
   () => props.messages.length,
   (newLen, oldLen) => {
     scrollToBottom()
     
-    // 自动模式：当面试官发送新消息后自动触发 AI 回答
-    if (newLen > oldLen && aiAnswerMode.value === 'auto') {
+    if (newLen > oldLen) {
       const lastMsg = props.messages[props.messages.length - 1]
-      if (lastMsg?.role === 'interviewer' && !isGeneratingAiAnswer.value) {
-        // 延迟一下，确保 UI 更新完成
-        setTimeout(() => {
-          handleAiAnswer()
-        }, 300)
+      if (lastMsg) {
+        // 对新消息触发打字机效果
+        typewriterEffect(lastMsg)
+        
+        // 自动模式：当面试官发送新消息后自动触发 AI 回答
+        if (aiAnswerMode.value === 'auto' && lastMsg.role === 'interviewer' && !isGeneratingAiAnswer.value) {
+          setTimeout(() => {
+            handleAiAnswer()
+          }, 300)
+        }
       }
     }
   }
@@ -845,6 +892,7 @@ const formatTime = (seconds: number): string => {
     overflow-y: auto;
     padding: 12px;
     min-height: 100px;
+    max-height: calc(100vh - 480px);
   }
 
   .chat-empty {
@@ -942,6 +990,77 @@ const formatTime = (seconds: number): string => {
     &.message-candidate .message-avatar {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     }
+
+    // 打字机效果样式
+    &.typing .message-content {
+      .typing-cursor {
+        display: inline;
+        animation: blink 0.8s infinite;
+        color: #667eea;
+        font-weight: bold;
+      }
+    }
+  }
+
+  // 打字光标闪烁动画
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  // AI 正在生成回答指示器
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: white;
+    border-radius: 10px;
+    width: fit-content;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-top: 10px;
+
+    .typing-avatar {
+      font-size: 18px;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 3px;
+
+      span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: bounce 1.4s infinite ease-in-out;
+
+        &:nth-child(1) { animation-delay: 0s; }
+        &:nth-child(2) { animation-delay: 0.2s; }
+        &:nth-child(3) { animation-delay: 0.4s; }
+      }
+    }
+
+    .typing-text {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+  }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+  }
+
+  // 淡入淡出动画
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.3s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
   }
 
   .speech-status {
@@ -1043,21 +1162,21 @@ const formatTime = (seconds: number): string => {
             }
           }
         }
+      }
         
-        :deep(.el-dropdown-menu__item) {
-          &.active {
-            background: #fef3c7;
-            color: #92400e;
-            font-weight: 600;
-          }
-          
-          &.dropdown-section-title {
-            font-size: 11px;
-            color: #9ca3af;
-            font-weight: 600;
-            cursor: default;
-            padding: 4px 12px;
-          }
+      :deep(.el-dropdown-menu__item) {
+        &.active {
+          background: #fef3c7;
+          color: #92400e;
+          font-weight: 600;
+        }
+        
+        &.dropdown-section-title {
+          font-size: 11px;
+          color: #9ca3af;
+          font-weight: 600;
+          cursor: default;
+          padding: 4px 12px;
         }
       }
     }
