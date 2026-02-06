@@ -228,7 +228,7 @@ function connectSSE() {
     // 1秒后重连
     setTimeout(() => {
       if (isDev) connectSSE()
-    }, 1000)
+    }, 5000)
   }
 }
 
