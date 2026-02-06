@@ -33,22 +33,33 @@
 
         <!-- 面试类型 -->
         <el-form-item label="面试类型">
-          <el-radio-group 
-            :model-value="config.interviewType" 
-            @update:model-value="updateConfig('interviewType', $event)" 
-            class="interview-type-group"
-          >
-            <el-radio value="technical">
-              <span class="type-label">💻 技术面试</span>
-            </el-radio>
-            <el-radio value="hr">
-              <span class="type-label">👤 HR面试</span>
-            </el-radio>
-            <el-radio value="comprehensive">
-              <span class="type-label">🎯 综合面试</span>
-            </el-radio>
-          </el-radio-group>
-          <div class="form-tip">不同面试类型包含不同的环节配置，影响 AI 问题生成策略</div>
+          <div class="interview-type-cards">
+            <div 
+              v-for="(typeConfig, typeKey) in stageConfig" 
+              :key="typeKey"
+              class="type-card"
+              :class="{ active: config.interviewType === typeKey }"
+              @click="updateConfig('interviewType', typeKey)"
+            >
+              <div class="type-card-header">
+                <span class="type-icon">{{ getTypeIcon(typeKey as string) }}</span>
+                <span class="type-name">{{ typeConfig.name }}</span>
+              </div>
+              <div class="type-card-stages">
+                <div 
+                  v-for="(stage, idx) in typeConfig.stages" 
+                  :key="idx" 
+                  class="stage-item"
+                >
+                  <span class="stage-number">{{ idx + 1 }}</span>
+                  <div class="stage-info">
+                    <span class="stage-name">{{ stage.name }}</span>
+                    <span class="stage-desc">{{ stage.description }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </el-form-item>
 
         <!-- 摄像头模式 -->
@@ -192,7 +203,21 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { Setting, VideoCamera, Link, QuestionFilled, Grid, Star } from '@element-plus/icons-vue'
+
+// 环节配置类型
+interface StageItem {
+  name: string
+  description: string
+}
+
+interface InterviewTypeConfig {
+  name: string
+  stages: StageItem[]
+}
+
+type StageConfigMap = Record<string, InterviewTypeConfig>
 
 export interface SetupConfig {
   cameraMode: 'local' | 'stream' | 'dual'
@@ -234,6 +259,36 @@ const emit = defineEmits<{
 const updateConfig = (key: keyof SetupConfig, value: any) => {
   emit('update:config', key, value)
 }
+
+// 环节配置
+const stageConfig = ref<StageConfigMap>({})
+
+// 获取面试类型图标
+const getTypeIcon = (type: string): string => {
+  const icons: Record<string, string> = {
+    technical: '💻',
+    hr: '👤',
+    comprehensive: '🎯'
+  }
+  return icons[type] || '📋'
+}
+
+// 获取所有面试类型配置
+const fetchStageConfig = async () => {
+  try {
+    const response = await fetch('/api/v1/ai/interview/stage-config/all')
+    const result = await response.json()
+    if (result.success && result.data) {
+      stageConfig.value = result.data
+    }
+  } catch (error) {
+    console.error('获取环节配置失败:', error)
+  }
+}
+
+onMounted(() => {
+  fetchStageConfig()
+})
 </script>
 
 <style scoped lang="scss">
@@ -248,7 +303,7 @@ const updateConfig = (key: keyof SetupConfig, value: any) => {
   border-radius: 24px;
   padding: 40px;
   width: 100%;
-  max-width: 600px;
+  max-width: 1000px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
 
   .setup-header {
@@ -316,12 +371,105 @@ const updateConfig = (key: keyof SetupConfig, value: any) => {
   gap: 8px;
 }
 
-.interview-type-group {
-  display: flex;
+.interview-type-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+  width: 100%;
+}
 
-  .type-label {
-    font-size: 14px;
+.type-card {
+  background: #f8fafc;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #c7d2fe;
+    background: #f5f3ff;
+  }
+
+  &.active {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+
+    .type-card-header {
+      .type-name {
+        color: #667eea;
+      }
+    }
+  }
+
+  .type-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+
+    .type-icon {
+      font-size: 20px;
+    }
+
+    .type-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+  }
+
+  .type-card-stages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stage-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    .stage-number {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .stage-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+
+      .stage-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: #374151;
+      }
+
+      .stage-desc {
+        font-size: 11px;
+        color: #9ca3af;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    }
   }
 }
 
