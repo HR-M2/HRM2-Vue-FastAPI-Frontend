@@ -1,5 +1,5 @@
 <template>
-  <div class="immersive-interview-view">
+  <div class="immersive-interview-view" ref="fullscreenRef" :class="{ 'fullscreen-mode': isFullscreen }">
 
     <!-- 设置面板（未开始时显示） -->
     <transition name="fade">
@@ -20,30 +20,42 @@
     <transition name="slide-up">
       <div v-if="isSessionActive" class="main-interview-area">
         <!-- 控制栏 -->
-        <InterviewControlBar
-          :session="session"
-          :is-recording="isRecording"
-          :is-speech-listening="isSpeechListening"
-          :is-speech-configured="isSpeechConfigured"
-          :speech-supported="speechSupported"
-          :stages="stages"
-          :current-stage="currentStage"
-          v-model:auto-stage-switch="autoStageSwitch"
-          @start-interview="handleStartInterview"
-          @stop-interview="handleStopInterview"
-          @toggle-speech="handleToggleSpeech"
-          @stop-speech="handleStopSpeech"
-          @open-speech-config="showAliyunConfigDialog = true"
-          @end-session="handleEndSession"
-          @set-stage="setStage"
-        />
+        <div class="control-bar-wrapper" v-show="!isFullscreen || fsShowControlBar">
+          <InterviewControlBar
+            :session="session"
+            :is-recording="isRecording"
+            :is-speech-listening="isSpeechListening"
+            :is-speech-configured="isSpeechConfigured"
+            :speech-supported="speechSupported"
+            :stages="stages"
+            :current-stage="currentStage"
+            v-model:auto-stage-switch="autoStageSwitch"
+            @start-interview="handleStartInterview"
+            @stop-interview="handleStopInterview"
+            @toggle-speech="handleToggleSpeech"
+            @stop-speech="handleStopSpeech"
+            @open-speech-config="showAliyunConfigDialog = true"
+            @end-session="handleEndSession"
+            @set-stage="setStage"
+          />
+          <!-- 全屏进入按钮 -->
+          <button
+            v-if="!isFullscreen"
+            class="fullscreen-enter-btn"
+            @click="enterFullscreen"
+            title="进入全屏沉浸模式"
+          >
+            <el-icon :size="16"><FullScreen /></el-icon>
+          </button>
+        </div>
+
 
         <!-- 主内容区 -->
         <div class="content-grid" :style="{ gridTemplateColumns: contentGridColumns }">
           <!-- 左侧：态势感知面板 -->
-          <div class="situation-section">
+          <div class="situation-section" v-show="!isFullscreen || fsShowSituationPanel">
             <SituationAwarenessPanel
-              :is-expanded="isLeftPanelExpanded"
+              :is-expanded="isFullscreen || isLeftPanelExpanded"
               :assessment="situationAssessment"
               :suggestions="situationSuggestions"
               :interest-points="interestPoints"
@@ -52,7 +64,7 @@
               :is-loading-interest-points="isLoadingInterestPoints"
               :can-refresh="isRecording"
               v-model:auto-refresh="autoRefreshEnabled"
-              @toggle="toggleLeftPanel"
+              @toggle="isFullscreen ? (fsShowSituationPanel = false) : toggleLeftPanel()"
               @refresh-assessment="handleRefreshAssessment"
               @refresh-suggestions="handleRefreshSituationSuggestions"
               @use-suggestion="handleUseSituationSuggestion"
@@ -64,7 +76,7 @@
 
           <!-- 左侧拖拽分隔条（仅展开时显示） -->
           <div 
-            v-if="isLeftPanelExpanded"
+            v-if="isLeftPanelExpanded && !isFullscreen"
             class="resize-bar left-resize"
             :class="{ dragging: leftResizeBarDragging }"
             @mousedown="startLeftResize"
@@ -89,6 +101,7 @@
 
           <!-- 右侧拖拽分隔条 -->
           <div 
+            v-if="!isFullscreen"
             class="resize-bar"
             :class="{ dragging: resizeBarDragging }"
             @mousedown="startResize"
@@ -97,7 +110,7 @@
           </div>
 
           <!-- 右侧：实时分析面板 -->
-          <div class="analysis-section">
+          <div class="analysis-section" v-show="!isFullscreen || fsShowAnalysisPanel">
             <RealTimeAnalysisPanel
               ref="analysisPanelRef"
               :is-connected="isWsConnected"
@@ -116,6 +129,46 @@
             />
           </div>
         </div>
+
+        <!-- 全屏底部控制台 -->
+        <transition name="dock-slide">
+          <div v-if="isFullscreen" class="fullscreen-dock">
+            <div class="dock-container">
+              <button
+                class="dock-btn dock-blue"
+                :class="{ active: fsShowControlBar }"
+                @click="fsShowControlBar = !fsShowControlBar"
+                title="控制栏"
+              >
+                <el-icon :size="22"><Monitor /></el-icon>
+              </button>
+              <button
+                class="dock-btn dock-purple"
+                :class="{ active: fsShowSituationPanel }"
+                @click="toggleFsSituationPanel"
+                title="态势感知"
+              >
+                <el-icon :size="22"><DataAnalysis /></el-icon>
+              </button>
+              <button
+                class="dock-btn dock-green"
+                :class="{ active: fsShowAnalysisPanel }"
+                @click="fsShowAnalysisPanel = !fsShowAnalysisPanel"
+                title="对话分析"
+              >
+                <el-icon :size="22"><ChatLineRound /></el-icon>
+              </button>
+              <div class="dock-divider"></div>
+              <button
+                class="dock-btn dock-red"
+                @click="exitFullscreen"
+                title="退出全屏"
+              >
+                <el-icon :size="22"><ScaleToOriginal /></el-icon>
+              </button>
+            </div>
+          </div>
+        </transition>
       </div>
     </transition>
 
@@ -130,7 +183,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Setting,
@@ -142,7 +195,12 @@ import {
   Microphone,
   Switch,
   Promotion,
-  Link
+  Link,
+  FullScreen,
+  Monitor,
+  DataAnalysis,
+  ChatLineRound,
+  ScaleToOriginal
 } from '@element-plus/icons-vue'
 import RealTimeAnalysisPanel from '@/components/immersive/RealTimeAnalysisPanel.vue'
 import SituationAwarenessPanel from '@/components/immersive/SituationAwarenessPanel.vue'
@@ -253,6 +311,33 @@ watch(
 const pipSwapped = ref(false)
 const togglePipSwap = () => {
   pipSwapped.value = !pipSwapped.value
+}
+
+// ==================== 全屏模式 ====================
+const fullscreenRef = ref<HTMLElement | null>(null)
+const isFullscreen = ref(false)
+const fsShowControlBar = ref(true)
+const fsShowSituationPanel = ref(false)
+const fsShowAnalysisPanel = ref(true)
+
+const enterFullscreen = () => {
+  isFullscreen.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+const exitFullscreen = () => {
+  isFullscreen.value = false
+  document.body.style.overflow = ''
+}
+
+const toggleFsSituationPanel = () => {
+  fsShowSituationPanel.value = !fsShowSituationPanel.value
+}
+
+const onEscKey = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && isFullscreen.value) {
+    exitFullscreen()
+  }
 }
 
 // 阿里云配置
@@ -375,6 +460,9 @@ const toggleLeftPanel = () => {
 
 // 计算内容区域网格列
 const contentGridColumns = computed(() => {
+  if (isFullscreen.value) {
+    return '1fr'
+  }
   if (isLeftPanelExpanded.value) {
     return `${leftPanelWidth.value}px 6px 1fr 6px ${analysisPanelWidth.value}px`
   }
@@ -572,7 +660,7 @@ const parseAssessmentResponse = (rawAssessment: string): { displayText: string; 
 
 // 刷新局面评估（仅在面板展开时调用，支持无对话时基于简历评估）
 const handleRefreshAssessment = async () => {
-  if (!isLeftPanelExpanded.value || !sessionId.value) return
+  if ((!isLeftPanelExpanded.value && !isFullscreen.value) || !sessionId.value) return
   
   isLoadingAssessment.value = true
   try {
@@ -616,12 +704,12 @@ const handleRefreshAssessment = async () => {
 
 // 刷新提问建议（仅在面板展开时调用，支持无对话时生成开场建议）
 const handleRefreshSituationSuggestions = async () => {
-  if (!isLeftPanelExpanded.value || !sessionId.value) return
+  if ((!isLeftPanelExpanded.value && !isFullscreen.value) || !sessionId.value) return
   
   isLoadingSuggestions.value = true
   try {
     // 获取最近的候选人回答（无对话时为空字符串）
-    const lastAnswer = messages.value.findLast(m => m.role === 'candidate')?.content || ''
+    const lastAnswer = [...messages.value].reverse().find((m: { role: string }) => m.role === 'candidate')?.content || ''
     
     const conversationHistory = messages.value.map(m => ({
       role: m.role,
@@ -844,6 +932,12 @@ watch(
 onMounted(() => {
   fetchApplications()
   loadAliyunConfig()
+  document.addEventListener('keydown', onEscKey)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onEscKey)
+  document.body.style.overflow = ''
 })
 </script>
 
@@ -861,6 +955,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  position: relative;
 }
 
 .content-grid {
@@ -957,5 +1052,473 @@ onMounted(() => {
   .resize-bar {
     display: none;
   }
+}
+
+// 控制栏包裹器
+.control-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+
+  :deep(.control-bar) {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// ==================== 全屏进入按钮（控制栏内） ====================
+.fullscreen-enter-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  color: #4b5563;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  margin-left: 8px;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(102, 126, 234, 0.15);
+    border-color: rgba(102, 126, 234, 0.3);
+    color: #667eea;
+    transform: scale(1.05);
+  }
+}
+
+// ==================== 全屏模式 ====================
+.fullscreen-mode {
+  position: fixed !important;
+  inset: 0;
+  z-index: 999;
+  background: #000;
+  min-height: auto !important;
+  gap: 0 !important;
+  overflow: hidden;
+
+  .main-interview-area {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    gap: 0 !important;
+  }
+
+  // 控制栏浮层
+  .control-bar-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+    :deep(.control-bar) {
+      background: rgba(15, 23, 42, 0.55) !important;
+      backdrop-filter: blur(28px) saturate(1.3);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0 !important;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+      color: white;
+
+      .control-left {
+        .stage-item {
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.8);
+
+          &.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
+            color: white;
+          }
+
+          &.completed {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: rgba(16, 185, 129, 0.5);
+          }
+
+          .stage-number {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.9);
+          }
+
+          .stage-name {
+            color: rgba(255, 255, 255, 0.85);
+          }
+        }
+      }
+    }
+  }
+
+  // 全屏进入按钮隐藏
+  .fullscreen-enter-btn {
+    display: none;
+  }
+
+  // 内容区变为定位上下文
+  .content-grid {
+    position: absolute !important;
+    inset: 0;
+    display: block !important;
+    min-height: auto !important;
+    overflow: visible;
+  }
+
+  // 视频占满背景
+  :deep(.video-section) {
+    position: absolute !important;
+    inset: 0;
+    z-index: 0;
+    border-radius: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  // 左侧态势面板浮层
+  .situation-section {
+    position: absolute !important;
+    left: 20px;
+    top: 76px;
+    bottom: 100px;
+    width: 360px;
+    z-index: 10;
+    background: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(28px) saturate(1.3);
+    border-radius: 20px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    :deep(.situation-panel) {
+      background: transparent !important;
+      border-radius: 0 !important;
+      height: 100%;
+      max-height: 100%;
+      overflow-y: auto;
+
+      .panel-content {
+        background: transparent !important;
+        overflow-y: auto;
+      }
+
+      .collapsed-bar {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        color: rgba(255, 255, 255, 0.7);
+        .expand-trigger { color: rgba(255, 255, 255, 0.7); }
+        &:hover {
+          background: rgba(255, 255, 255, 0.12) !important;
+        }
+      }
+
+      .panel-header {
+        .header-title {
+          color: rgba(255, 255, 255, 0.95);
+          .el-icon { color: #818cf8; }
+        }
+        .mode-label {
+          color: rgba(255, 255, 255, 0.5);
+          &.active { color: rgba(255, 255, 255, 0.9); }
+        }
+        .el-button {
+          color: rgba(255, 255, 255, 0.7) !important;
+          background: rgba(255, 255, 255, 0.08) !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+          &:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+          }
+        }
+      }
+
+      .section-title { color: rgba(255, 255, 255, 0.9); }
+      .section-header .el-button { color: rgba(255, 255, 255, 0.7); }
+
+      .assessment-content {
+        background: rgba(255, 255, 255, 0.06) !important;
+        .assessment-text p { color: rgba(255, 255, 255, 0.8); }
+      }
+
+      .empty-state, .loading-state { color: rgba(255, 255, 255, 0.5); }
+
+      .suggestion-card {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: rgba(255, 255, 255, 0.08);
+        .card-question { color: rgba(255, 255, 255, 0.8); }
+        .card-tag { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.7); }
+        .card-tag.interests-tag { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        &:hover {
+          background: rgba(255, 255, 255, 0.12);
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      .group-header:hover { background: rgba(255, 255, 255, 0.06); }
+      .group-label { color: rgba(255, 255, 255, 0.6); }
+      .collapse-arrow { color: rgba(255, 255, 255, 0.4); }
+
+      .el-divider { border-color: rgba(255, 255, 255, 0.08); }
+
+      .suggestions-content {
+        max-height: none;
+      }
+    }
+  }
+
+  // 右侧分析面板浮层
+  .analysis-section {
+    position: absolute !important;
+    right: 20px;
+    top: 76px;
+    bottom: 100px;
+    width: 420px;
+    z-index: 10;
+    background: rgba(15, 23, 42, 0.5) !important;
+    backdrop-filter: blur(28px) saturate(1.3);
+    border-radius: 20px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    :deep(.analysis-panel) {
+      background: transparent !important;
+      border-radius: 0 !important;
+      height: 100%;
+      color: rgba(255, 255, 255, 0.85);
+
+      .candidate-info-card {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3)) !important;
+        .candidate-name { color: rgba(255, 255, 255, 0.95); }
+        .candidate-position { color: rgba(255, 255, 255, 0.7); }
+        .candidate-avatar { background: rgba(255, 255, 255, 0.15); }
+        .candidate-quick-actions .el-button {
+          background: rgba(255, 255, 255, 0.15) !important;
+          border: none !important;
+          color: white !important;
+          &:hover { background: rgba(255, 255, 255, 0.25) !important; }
+        }
+      }
+
+      .behavior-card {
+        background: rgba(255, 255, 255, 0.06) !important;
+        color: rgba(255, 255, 255, 0.8);
+        .behavior-header { color: rgba(255, 255, 255, 0.85); }
+        .behavior-header:hover { background: rgba(255, 255, 255, 0.06) !important; }
+        .summary-label, .summary-value { color: rgba(255, 255, 255, 0.8); }
+        .summary-divider { color: rgba(255, 255, 255, 0.3); }
+        .collapse-icon { color: rgba(255, 255, 255, 0.5); }
+        .emotion-label { color: rgba(255, 255, 255, 0.7); }
+        .emotion-value { color: rgba(255, 255, 255, 0.7); }
+        .emotion-bar-container { background: rgba(255, 255, 255, 0.1); }
+        .meter-bar-container { background: rgba(255, 255, 255, 0.1); }
+        .gaze-stats-inline { color: rgba(255, 255, 255, 0.6); }
+      }
+
+      .chat-section {
+        background: rgba(255, 255, 255, 0.04) !important;
+        overflow: hidden;
+      }
+
+      .chat-header {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        .chat-title { color: rgba(255, 255, 255, 0.9); }
+        .message-count { color: rgba(255, 255, 255, 0.5); }
+      }
+
+      .chat-container {
+        background: transparent !important;
+      }
+
+      .chat-empty {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      .message-item {
+        .message-body {
+          background: rgba(255, 255, 255, 0.08) !important;
+          .role-name { color: rgba(255, 255, 255, 0.7); }
+          .timestamp { color: rgba(255, 255, 255, 0.4); }
+          .message-content { color: rgba(255, 255, 255, 0.9); }
+        }
+        &.message-interviewer .message-body {
+          background: rgba(102, 126, 234, 0.2) !important;
+        }
+        &.message-candidate .message-body {
+          background: rgba(16, 185, 129, 0.15) !important;
+        }
+        .behavior-tag {
+          &.gaze { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+          &.emotion { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
+        }
+      }
+
+      .typing-indicator {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(255, 255, 255, 0.7);
+        .typing-text { color: rgba(255, 255, 255, 0.6); }
+      }
+
+      .chat-input {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+
+        .el-textarea .el-textarea__inner {
+          background: rgba(255, 255, 255, 0.06) !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+          color: rgba(255, 255, 255, 0.9) !important;
+          &::placeholder { color: rgba(255, 255, 255, 0.35) !important; }
+          &:focus {
+            border-color: rgba(102, 126, 234, 0.5) !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15) !important;
+          }
+        }
+
+        .input-hint { color: rgba(255, 255, 255, 0.4); }
+      }
+
+      .speech-status {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        .speaker-indicator { color: rgba(255, 255, 255, 0.8); }
+        .live-text { color: rgba(255, 255, 255, 0.5); }
+      }
+
+      .suggestions-bar {
+        background: rgba(255, 255, 255, 0.06);
+        .suggestions-label { color: rgba(255, 255, 255, 0.6); }
+        .suggestion-chip {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.8);
+          &:hover {
+            border-color: #818cf8;
+            color: #a5b4fc;
+          }
+        }
+      }
+
+      .stats-footer {
+        border-color: rgba(255, 255, 255, 0.08);
+        .stat-item { color: rgba(255, 255, 255, 0.5); }
+      }
+    }
+  }
+
+  // 隐藏拖拽条
+  .resize-bar {
+    display: none !important;
+  }
+}
+
+// ==================== 全屏底部控制台 ====================
+.fullscreen-dock {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+
+  .dock-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(32px) saturate(1.4);
+    border-radius: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .dock-divider {
+    width: 1px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 0 4px;
+  }
+
+  .dock-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: rgba(255, 255, 255, 0.85);
+    position: relative;
+    outline: none;
+
+    &:hover {
+      transform: translateY(-4px) scale(1.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    &:active {
+      transform: translateY(-2px) scale(1.05);
+    }
+
+    // 蓝色 - 控制栏
+    &.dock-blue {
+      background: rgba(59, 130, 246, 0.3);
+      &.active {
+        background: rgba(59, 130, 246, 0.6);
+        border-color: rgba(59, 130, 246, 0.4);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+      }
+      &:hover { background: rgba(59, 130, 246, 0.45); }
+    }
+
+    // 紫色 - 态势感知
+    &.dock-purple {
+      background: rgba(139, 92, 246, 0.3);
+      &.active {
+        background: rgba(139, 92, 246, 0.6);
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+      }
+      &:hover { background: rgba(139, 92, 246, 0.45); }
+    }
+
+    // 绿色 - 对话分析
+    &.dock-green {
+      background: rgba(16, 185, 129, 0.3);
+      &.active {
+        background: rgba(16, 185, 129, 0.6);
+        border-color: rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+      }
+      &:hover { background: rgba(16, 185, 129, 0.45); }
+    }
+
+    // 红色 - 退出全屏
+    &.dock-red {
+      background: rgba(239, 68, 68, 0.3);
+      &:hover {
+        background: rgba(239, 68, 68, 0.5);
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+      }
+    }
+  }
+}
+
+// 控制台滑入动画
+.dock-slide-enter-active,
+.dock-slide-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dock-slide-enter-from,
+.dock-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
 }
 </style>
