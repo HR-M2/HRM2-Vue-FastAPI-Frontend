@@ -620,9 +620,8 @@ const handleRefreshSituationSuggestions = async () => {
   
   isLoadingSuggestions.value = true
   try {
-    // 获取最近的问答（无对话时为空字符串）
-    const recentMessages = messages.value.slice(-4)
-    const lastAnswer = recentMessages.find(m => m.role === 'candidate')?.content || ''
+    // 获取最近的候选人回答（无对话时为空字符串）
+    const lastAnswer = messages.value.findLast(m => m.role === 'candidate')?.content || ''
     
     const conversationHistory = messages.value.map(m => ({
       role: m.role,
