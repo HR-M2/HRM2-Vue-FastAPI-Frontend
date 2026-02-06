@@ -320,24 +320,38 @@ const fsShowControlBar = ref(true)
 const fsShowSituationPanel = ref(false)
 const fsShowAnalysisPanel = ref(true)
 
-const enterFullscreen = () => {
-  isFullscreen.value = true
-  document.body.style.overflow = 'hidden'
+const enterFullscreen = async () => {
+  try {
+    await document.documentElement.requestFullscreen()
+  } catch (e) {
+    // 回退到CSS全屏
+    isFullscreen.value = true
+    document.body.style.overflow = 'hidden'
+  }
 }
 
-const exitFullscreen = () => {
-  isFullscreen.value = false
-  document.body.style.overflow = ''
+const exitFullscreen = async () => {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen()
+    } else {
+      isFullscreen.value = false
+      document.body.style.overflow = ''
+    }
+  } catch (e) {
+    isFullscreen.value = false
+    document.body.style.overflow = ''
+  }
 }
 
 const toggleFsSituationPanel = () => {
   fsShowSituationPanel.value = !fsShowSituationPanel.value
 }
 
-const onEscKey = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && isFullscreen.value) {
-    exitFullscreen()
-  }
+const onFullscreenChange = () => {
+  const isFull = !!document.fullscreenElement
+  isFullscreen.value = isFull
+  document.body.style.overflow = isFull ? 'hidden' : ''
 }
 
 // 阿里云配置
@@ -932,11 +946,11 @@ watch(
 onMounted(() => {
   fetchApplications()
   loadAliyunConfig()
-  document.addEventListener('keydown', onEscKey)
+  document.addEventListener('fullscreenchange', onFullscreenChange)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', onEscKey)
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
   document.body.style.overflow = ''
 })
 </script>
@@ -1182,7 +1196,8 @@ onUnmounted(() => {
     position: absolute !important;
     left: 20px;
     top: 76px;
-    bottom: 100px;
+    bottom: 10px;
+    height: auto !important;
     width: 360px;
     z-index: 10;
     background: rgba(15, 23, 42, 0.5) !important;
@@ -1273,7 +1288,8 @@ onUnmounted(() => {
     position: absolute !important;
     right: 20px;
     top: 76px;
-    bottom: 100px;
+    bottom: 10px;
+    height: auto !important;
     width: 420px;
     z-index: 10;
     background: rgba(15, 23, 42, 0.5) !important;
@@ -1281,7 +1297,6 @@ onUnmounted(() => {
     border-radius: 20px !important;
     border: 1px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
-    overflow-y: auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -1289,6 +1304,8 @@ onUnmounted(() => {
       background: transparent !important;
       border-radius: 0 !important;
       height: 100%;
+      max-height: 100%;
+      overflow-y: auto;
       color: rgba(255, 255, 255, 0.85);
 
       .candidate-info-card {

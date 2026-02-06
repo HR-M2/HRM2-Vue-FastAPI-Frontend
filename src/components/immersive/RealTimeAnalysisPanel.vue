@@ -226,7 +226,7 @@
     </div>
 
     <!-- 弹窗 -->
-    <el-dialog v-model="showBasicInfoDialog" title="候选人基本信息" width="500px">
+    <el-dialog v-model="showBasicInfoDialog" title="候选人基本信息" width="500px" append-to-body>
       <div class="basic-info-content">
         <div class="info-row">
           <span class="info-label">姓名：</span>

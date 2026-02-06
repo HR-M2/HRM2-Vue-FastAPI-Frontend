@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="简历详情" width="70%">
+  <el-dialog v-model="visible" title="简历详情" width="70%" append-to-body>
     <div v-if="resume" class="resume-detail-dialog">
       <!-- 基本信息 -->
       <div class="detail-section">
