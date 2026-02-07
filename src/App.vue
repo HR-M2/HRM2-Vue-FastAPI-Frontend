@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { AgentDebugger } from '@/components/dev-tools'
+import AgentDebugger from '@/views/dev-tools/components/AgentDebugger.vue'
 </script>
 
 <style>
