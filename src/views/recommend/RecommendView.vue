@@ -562,9 +562,10 @@ const viewFinalReport = async (app: ApplicationDetailResponse) => {
 
 // ========== 生命周期 ==========
 onMounted(async () => {
-  await loadPositionsList()
-  await loadStatsOverview()
-  // 加载第一个岗位的申请详情
+  const [positionsLoaded] = await Promise.all([
+    loadPositionsList(),
+    loadStatsOverview()
+  ])
   if (selectedPositionId.value) {
     await loadApplicationsForPosition(selectedPositionId.value)
   }

@@ -89,4 +89,25 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
+router.isReady().then(() => {
+  const prefetch = () => {
+    import('@/views/dashboard/DashboardView.vue')
+    import('@/views/positions/PositionsView.vue')
+    import('@/views/resume-library/ResumeLibraryView.vue')
+    import('@/views/screening/ScreeningView.vue')
+    import('@/views/video/VideoView.vue')
+    import('@/views/interview/InterviewView.vue')
+    import('@/views/immersive-interview/ImmersiveInterviewView.vue')
+    import('@/views/recommend/RecommendView.vue')
+    import('@/views/dev-tools/DevToolsView.vue')
+    import('@/views/settings/SettingsView.vue')
+  }
+
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(prefetch)
+  } else {
+    setTimeout(prefetch, 1000)
+  }
+})
+
 export default router
