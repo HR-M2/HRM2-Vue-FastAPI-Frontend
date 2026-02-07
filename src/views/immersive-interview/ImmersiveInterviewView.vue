@@ -575,7 +575,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '@/styles/immersive-fullscreen.scss';
+@use './styles/immersive-fullscreen.scss';
 
 .immersive-interview-view {
   display: flex;

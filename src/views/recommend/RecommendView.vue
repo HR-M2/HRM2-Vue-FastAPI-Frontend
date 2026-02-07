@@ -144,9 +144,9 @@ import { TrophyBase } from '@element-plus/icons-vue'
 
 // 组件导入
 import CandidateAnalysisCard from './components/CandidateAnalysisCard.vue'
-import InterviewRecordsDialog from './components/dialogs/InterviewRecordsDialog.vue'
-import InterviewReportDialog from './components/dialogs/InterviewReportDialog.vue'
-import ComprehensiveAnalysisDialog from './components/dialogs/ComprehensiveAnalysisDialog.vue'
+import InterviewRecordsDialog from './components/InterviewRecordsDialog.vue'
+import InterviewReportDialog from './components/InterviewReportDialog.vue'
+import ComprehensiveAnalysisDialog from './components/ComprehensiveAnalysisDialog.vue'
 import PositionList from '@/components/common/PositionList.vue'
 import ResumeDetailDialog from '@/components/common/ResumeDetailDialog.vue'
 import { ReportEditDialog } from '@/components/common'

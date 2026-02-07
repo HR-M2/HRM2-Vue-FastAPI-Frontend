@@ -104,9 +104,9 @@ import { PositionList, ResumeDetailDialog } from '@/components/common'
 import ResumeUpload from './components/ResumeUpload.vue'
 import ProcessingQueue from './components/ProcessingQueue.vue'
 import TaskHistory from './components/TaskHistory.vue'
-import AssignResumeDialog from './components/dialogs/AssignResumeDialog.vue'
-import AddToGroupDialog from './components/dialogs/AddToGroupDialog.vue'
-import PreviewDialog from './components/dialogs/PreviewDialog.vue'
+import AssignResumeDialog from './components/AssignResumeDialog.vue'
+import AddToGroupDialog from './components/AddToGroupDialog.vue'
+import PreviewDialog from './components/PreviewDialog.vue'
 
 // Composables 导入
 import { usePositionManagement } from '@/composables/usePositionManagement'
