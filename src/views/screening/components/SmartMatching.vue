@@ -151,9 +151,12 @@
 
     <!-- 简历库选择对话框 -->
     <el-dialog v-model="libraryDialogVisible" title="从简历库选择简历" width="800px" :close-on-click-modal="false">
+      <div class="library-filter">
+        <el-checkbox v-model="filterAssigned">忽略已在招聘岗位中的简历</el-checkbox>
+      </div>
       <el-table
         v-loading="libraryLoading"
-        :data="libraryList"
+        :data="filteredLibraryList"
         style="width: 100%"
         max-height="400"
         @selection-change="handleLibrarySelectionChange"
@@ -186,7 +189,7 @@ import { ref, computed } from 'vue'
 import { Upload, Document, FolderOpened, Plus, MagicStick, Loading } from '@element-plus/icons-vue'
 import { useFileParser } from '@/composables/useFileParser'
 import { useScreeningUtils } from '@/composables/useScreeningUtils'
-import { getResumes } from '@/api/sdk.gen'
+import { getResumes, getApplications } from '@/api/sdk.gen'
 import type { ResumeListResponse } from '@/api/types.gen'
 import type { ResumeFile } from '@/types'
 import { ElMessage } from 'element-plus'
@@ -219,6 +222,14 @@ const libraryLoading = ref(false)
 const libraryList = ref<ResumeListResponse[]>([])
 const librarySelectedFiles = ref<ResumeListResponse[]>([])
 const libraryTempSelected = ref<ResumeListResponse[]>([])
+const filterAssigned = ref(true)
+const assignedResumeIds = ref<Set<string>>(new Set())
+
+// 过滤后的简历库列表
+const filteredLibraryList = computed(() => {
+  if (!filterAssigned.value) return libraryList.value
+  return libraryList.value.filter(r => !assignedResumeIds.value.has(r.id))
+})
 
 // 计算属性
 const hasFiles = computed(() => selectedFiles.value.length > 0 || librarySelectedFiles.value.length > 0)
@@ -298,8 +309,18 @@ const showLibraryDialog = async () => {
   libraryDialogVisible.value = true
   libraryLoading.value = true
   try {
-    const response = await getResumes({ query: { page_size: 100 } })
-    libraryList.value = response.data?.data?.items || []
+    // 并行加载简历库和已分配的简历ID
+    const [resumeRes, appRes] = await Promise.all([
+      getResumes({ query: { page_size: 100 } }),
+      getApplications({ query: { page_size: 500 } })
+    ])
+    libraryList.value = resumeRes.data?.data?.items || []
+    const apps = appRes.data?.data?.items || []
+    assignedResumeIds.value = new Set(
+      (apps as Array<{ resume_id?: string }>)
+        .map(a => a.resume_id)
+        .filter((id): id is string => !!id)
+    )
   } catch {
     ElMessage.error('加载简历库失败')
   } finally {
@@ -615,5 +636,9 @@ defineExpose({ clearAllData, removeByFileId, removeByResumeId })
 
 .library-empty {
   padding: 20px 0;
+}
+
+.library-filter {
+  margin-bottom: 12px;
 }
 </style>

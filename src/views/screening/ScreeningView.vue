@@ -289,7 +289,7 @@ const handleDownloadReport = (candidate: CandidateItem) => {
 }
 
 const handleGoInterview = (candidate: CandidateItem) => {
-  router.push(`/interview?application_id=${candidate.id}`)
+  router.push(`/immersive?application_id=${candidate.id}`)
 }
 
 const handleRetryCandidate = (candidate: CandidateItem) => {

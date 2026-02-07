@@ -54,7 +54,7 @@
               <el-icon><Download /></el-icon>
               下载报告
             </el-button>
-            <el-button v-if="selectedCandidate.hasInterview" type="success" @click="$emit('goInterview', selectedCandidate)">
+            <el-button type="success" @click="$emit('goInterview', selectedCandidate)">
               <el-icon><ChatLineSquare /></el-icon>
               进入面试
             </el-button>
@@ -339,6 +339,11 @@ const getScoreType = (score: number) => {
     flex-direction: column;
     gap: 8px;
     border-bottom: none;
+
+    :deep(.el-button) {
+      width: 100%;
+      margin-left: 0;
+    }
   }
 
   .section-title {
