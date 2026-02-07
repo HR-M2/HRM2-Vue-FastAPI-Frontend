@@ -173,6 +173,12 @@ export type ApplicationResponse = {
  */
 export type ApplicationUpdate = {
     /**
+     * Position Id
+     *
+     * 岗位ID（用于调岗）
+     */
+    position_id?: string | null;
+    /**
      * Notes
      */
     notes?: string | null;
@@ -1705,6 +1711,20 @@ export type PositionListResponse = {
      * Application Count
      */
     application_count?: number;
+};
+
+/**
+ * PositionMatchRequest
+ *
+ * 智能岗位匹配请求
+ */
+export type PositionMatchRequest = {
+    /**
+     * Resume Ids
+     *
+     * 待匹配的简历ID列表
+     */
+    resume_ids: Array<string>;
 };
 
 /**
@@ -3379,6 +3399,36 @@ export type GetStatsOverviewResponses = {
 
 export type GetStatsOverviewResponse = GetStatsOverviewResponses[keyof GetStatsOverviewResponses];
 
+export type GetPositionStatsData = {
+    body?: never;
+    path: {
+        /**
+         * Position Id
+         */
+        position_id: string;
+    };
+    query?: never;
+    url: '/api/v1/applications/stats/position/{position_id}';
+};
+
+export type GetPositionStatsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPositionStatsError = GetPositionStatsErrors[keyof GetPositionStatsErrors];
+
+export type GetPositionStatsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type GetPositionStatsResponse = GetPositionStatsResponses[keyof GetPositionStatsResponses];
+
 export type DeleteApplicationData = {
     body?: never;
     path: {
@@ -4559,6 +4609,31 @@ export type GenerateRandomResumeResponses = {
 };
 
 export type GenerateRandomResumeResponse = GenerateRandomResumeResponses[keyof GenerateRandomResumeResponses];
+
+export type StartAiMatchingData = {
+    body: PositionMatchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/matching/start';
+};
+
+export type StartAiMatchingErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StartAiMatchingError = StartAiMatchingErrors[keyof StartAiMatchingErrors];
+
+export type StartAiMatchingResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type StartAiMatchingResponse = StartAiMatchingResponses[keyof StartAiMatchingResponses];
 
 export type SubmitFeedbackData = {
     body: FeedbackRequest;

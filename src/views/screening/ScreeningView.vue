@@ -1,255 +1,338 @@
 <template>
   <div class="screening-view">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <div class="header-left">
-        <h1 class="page-title">简历初筛系统</h1>
-        <p class="page-desc">上传候选人简历，系统将自动进行初步筛选和匹配度分析</p>
-      </div>
-    </div>
-
-    <!-- 主内容区域 -->
-    <div class="content-grid">
-      <!-- 左侧面板 -->
-      <div class="left-panel">
-        <PositionList
+    <!-- 三列布局 -->
+    <div class="three-column-layout">
+      <!-- 左侧：岗位面板 -->
+      <div class="col-left">
+        <PositionSidebar
           :positions="positionsList"
           :selected-position-id="selectedPositionId"
-          @select="selectPosition"
-          @assign="showAssignDialog"
-          @remove-resume="removeResumeFromPosition"
+          :drag-over-position-id="dragOverPositionId"
+          :dragging-candidate="draggingCandidate"
+          :dragging-resume-name="draggingResumeName"
+          :candidate-stats="{}"
+          @select="handleSelectPosition"
+          @drag-over="handleDragOverPosition"
+          @drag-leave="handleDragLeavePosition"
+          @drop="handleDropOnPosition"
         />
       </div>
 
-      <!-- 右侧面板 -->
-      <div class="right-panel">
-        <!-- 文件上传区域 -->
-        <ResumeUpload
-          ref="resumeUploadRef"
-          :is-submitting="isSubmitting"
-          :position-name="positionData.title"
-          @submit="submitFiles"
-          @preview="previewFile"
-          @files-changed="handleFilesChanged"
-          @library-files-changed="handleLibraryFilesChanged"
-        />
+      <!-- 中间：标签页内容区 -->
+      <div class="col-center">
+        <div class="center-header">
+          <div class="center-header-left">
+            <h2 class="position-title">{{ currentPositionTitle }}</h2>
+            <div class="stats-row">
+              <span class="stat-item">共 <b>{{ positionStats.total }}</b></span>
+              <span class="stat-item completed">✓{{ positionStats.completed }}</span>
+              <span v-if="positionStats.processing > 0" class="stat-item processing">
+                ⟳{{ positionStats.processing }}
+              </span>
+            </div>
+          </div>
+          <div class="center-header-right">
+            <el-radio-group v-model="activeTab" size="default">
+              <el-radio-button value="candidates">候选列表</el-radio-button>
+              <el-radio-button value="matching">智能匹配</el-radio-button>
+            </el-radio-group>
+          </div>
+        </div>
 
-        <!-- 处理队列 -->
-        <ProcessingQueue
-          :queue="processingQueue"
-          @show-detail="showQueueItemDetail"
-          @download-report="downloadReport"
-          @add-to-group="showAddToGroupDialog"
-        />
+        <div class="center-content">
+          <!-- 候选列表标签页 -->
+          <CandidateList
+            v-if="activeTab === 'candidates'"
+            :candidates="filteredCandidates"
+            :selected-candidate-id="selectedCandidate?.id || null"
+            :dragging-id="draggingCandidate?.id || null"
+            :can-batch-screen="canBatchScreen"
+            :batch-screening="batchScreening"
+            :batch-progress="batchProgress"
+            :status-filter="statusFilter"
+            :sort-by="sortBy"
+            @select-candidate="handleSelectCandidate"
+            @view-detail="handleViewDetail"
+            @retry="handleRetryCandidate"
+            @delete="handleDeleteCandidate"
+            @batch-screen="startBatchScreening"
+            @drag-start="handleDragStart"
+            @drag-end="handleDragEnd"
+            @switch-to-matching="activeTab = 'matching'"
+            @update:status-filter="statusFilter = $event"
+            @update:sort-by="sortBy = $event"
+          />
 
-        <!-- 历史任务 -->
-        <TaskHistory
-          :tasks="historyTasks"
-          :total="historyTotal"
-          :loading="historyLoading"
-          :current-status="historyParams.status"
-          v-model:current-page="historyParams.page"
-          v-model:page-size="historyParams.page_size"
-          @refresh="loadHistoryTasks"
-          @filter-by-status="filterByStatus"
-          @show-detail="showHistoryTaskDetail"
-          @download-report="downloadReport"
-          @add-to-group="showAddToGroupDialogFromHistory"
-          @retry-task="handleRetryTask"
-          @delete="deleteHistoryTask"
-          @page-change="loadHistoryTasks"
+          <!-- 智能匹配标签页 -->
+          <SmartMatching
+            v-else
+            ref="smartMatchingRef"
+            :is-matching="isMatching"
+            :match-progress="matchProgress"
+            @start-match="handleStartMatch"
+            @resume-drag-start="handleResumeDragStart"
+            @resume-drag-end="handleResumeDragEnd"
+          />
+        </div>
+      </div>
+
+      <!-- 右侧：信息面板 -->
+      <div class="col-right">
+        <DetailPanel
+          :active-tab="activeTab"
+          :selected-candidate="selectedCandidate"
+          :position-title="currentPositionTitle"
+          :position-stats="positionStats"
+          :top-candidates="topCandidates"
+          :match-results="matchResults"
+          :matched-count="matchedCount"
+          :is-confirming="isConfirming"
+          :positions="positionsList"
+          @close-detail="selectedCandidate = null"
+          @view-report="handleViewReport"
+          @download-report="handleDownloadReport"
+          @go-interview="handleGoInterview"
+          @retry-screening="handleRetryCandidate"
+          @select-candidate="handleSelectCandidate"
+          @update-match-position="updateMatchPosition"
+          @remove-match-result="removeResult"
+          @confirm-matches="handleConfirmMatches"
+          @clear-match-results="clearResults"
         />
       </div>
     </div>
-
-    <!-- 添加简历到岗位对话框 -->
-    <AssignResumeDialog
-      v-model="createGroupDialogVisible"
-      :selected-position-id="selectedPositionId"
-      :position-name="positionData.title"
-      :available-resumes="availableResumes"
-      :assigned-resume-ids="assignedResumeIds"
-      :loading="resumesLoading"
-      :submitting="creatingGroup"
-      @assign="assignResumesToPosition"
-      @close="handleCreateDialogClose"
-    />
-
-    <!-- 添加到岗位对话框 -->
-    <AddToGroupDialog
-      v-model="addToGroupDialogVisible"
-      :positions="positionsList"
-      @confirm="addToGroup"
-    />
-
-    <!-- 简历预览对话框 -->
-    <PreviewDialog
-      v-model="previewDialogVisible"
-      :file="previewFileData"
-    />
 
     <!-- 简历详情对话框 -->
     <ResumeDetailDialog
       v-model="resumeDetailVisible"
       :resume="selectedResumeDetail"
     />
+
+    <!-- 拖抽提示遮罩 -->
+    <div v-if="draggingCandidate || draggingResumeName" class="drag-overlay">
+      <div class="drag-sidebar-highlight">
+        <span class="drag-msg">← 拖至目标岗位</span>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 // 组件导入
-import { PositionList, ResumeDetailDialog } from '@/components/common'
-import ResumeUpload from './components/ResumeUpload.vue'
-import ProcessingQueue from './components/ProcessingQueue.vue'
-import TaskHistory from './components/TaskHistory.vue'
-import AssignResumeDialog from './components/AssignResumeDialog.vue'
-import AddToGroupDialog from './components/AddToGroupDialog.vue'
-import PreviewDialog from './components/PreviewDialog.vue'
+import { ResumeDetailDialog } from '@/components/common'
+import PositionSidebar from './components/PositionSidebar.vue'
+import CandidateList from './components/CandidateList.vue'
+import SmartMatching from './components/SmartMatching.vue'
+import DetailPanel from './components/DetailPanel.vue'
 
 // Composables 导入
 import { usePositionManagement } from '@/composables/usePositionManagement'
-import { useTaskPolling } from './composables/useTaskPolling'
-import { useHistoryTasks } from './composables/useHistoryTasks'
-import { useResumeUpload } from './composables/useResumeUpload'
-import { useResumeAssignment } from './composables/useResumeAssignment'
+import { useCandidateList } from './composables/useCandidateList'
+import { useBatchScreening } from './composables/useBatchScreening'
+import { useSmartMatching } from './composables/useSmartMatching'
+import { useDragDrop } from './composables/useDragDrop'
 import { useResumeDetail } from './composables/useResumeDetail'
 
-// API 导入
-import { createScreeningTask } from '@/api/sdk.gen'
-import { ElMessage } from 'element-plus'
-
 // 类型导入
-import type { PositionData } from '@/types'
-import type { ScreeningTaskResponse } from '@/api/types.gen'
+import type { PositionData, ResumeFile } from '@/types'
+import type { ResumeListResponse } from '@/api/types.gen'
+import type { CandidateItem } from './composables/useCandidateList'
 
-// ==================== Composables 初始化 ====================
+const router = useRouter()
 
-// 岗位管理
+// ==================== 标签页状态 ====================
+const activeTab = ref('candidates')
+const selectedCandidate = ref<CandidateItem | null>(null)
+
+// ==================== 岗位管理 ====================
 const {
   positionData,
   positionsList,
   selectedPositionId,
   loadPositionsList,
-  selectPosition,
-  removeResumeFromPosition
+  selectPosition
 } = usePositionManagement()
 
-// 历史任务（需要先初始化，供其他 composable 引用）
-const {
-  historyTasks,
-  historyParams,
-  historyTotal,
-  historyLoading,
-  loadHistoryTasks,
-  filterByStatus,
-  deleteHistoryTask
-} = useHistoryTasks()
+const currentPositionTitle = computed(() => positionData.value.title || '请选择岗位')
 
-// 任务轮询（完成时刷新历史任务和岗位列表）
+// ==================== 候选列表 ====================
 const {
-  processingQueue,
-  addToQueue
-} = useTaskPolling(() => {
-  loadHistoryTasks()
+  candidates,
+  filteredCandidates,
+  positionStats,
+  canBatchScreen,
+  loading: candidatesLoading,
+  statusFilter,
+  sortBy,
+  loadCandidates,
+  retryScreening,
+  deleteCandidate,
+  startPolling,
+  stopPolling
+} = useCandidateList(selectedPositionId)
+
+// 综合分数排名 Top N
+const topCandidates = computed(() => {
+  return candidates.value
+    .filter(c => c.positionId === selectedPositionId.value && c.screeningScore !== null)
+    .sort((a, b) => (b.screeningScore || 0) - (a.screeningScore || 0))
+    .slice(0, 5)
+})
+
+// ==================== 批量初筛 ====================
+const {
+  batchScreening,
+  batchProgress,
+  startBatchScreening
+} = useBatchScreening(candidates, selectedPositionId, startPolling)
+
+// ==================== 智能匹配 ====================
+const smartMatchingRef = ref<InstanceType<typeof SmartMatching>>()
+
+const {
+  matchResults,
+  isMatching,
+  matchProgress,
+  isConfirming,
+  matchedCount,
+  uploadAndMatch,
+  updateMatchPosition,
+  confirmMatches,
+  clearResults,
+  removeResult
+} = useSmartMatching(positionsList, () => {
+  // 匹配确认后刷新数据
   loadPositionsList()
+  loadCandidates()
+  smartMatchingRef.value?.clearAllData()
 })
 
-// 简历上传组件引用
-const resumeUploadRef = ref<InstanceType<typeof ResumeUpload>>()
-
-// 简历上传（提交成功时添加到队列）
+// ==================== 拖拽 ====================
 const {
-  isSubmitting,
-  handleFilesChanged,
-  handleLibraryFilesChanged,
-  submitFiles: doSubmitFiles
-} = useResumeUpload(positionData, addToQueue)
+  draggingCandidate,
+  draggingResumeName,
+  dragOverPositionId,
+  handleDragStart,
+  handleResumeDragStart,
+  handleResumeDragEnd,
+  handleDragOverPosition,
+  handleDragLeavePosition,
+  handleDropOnPosition,
+  handleDragEnd
+} = useDragDrop(
+  () => {
+    // 移动/分配成功后刷新数据
+    loadPositionsList()
+    loadCandidates()
+    selectedCandidate.value = null
+  },
+  (data) => {
+    // 简历拖拽分配成功后，从 SmartMatching 中移除已分配的简历
+    if (data.source === 'file' && data.fileId) {
+      smartMatchingRef.value?.removeByFileId(data.fileId)
+    } else if (data.source === 'library' && data.resumeId) {
+      smartMatchingRef.value?.removeByResumeId(data.resumeId)
+    }
+  }
+)
 
-// 包装 submitFiles 以便传入清除回调
-const submitFiles = () => doSubmitFiles(() => {
-  resumeUploadRef.value?.clearAll()
-  resumeUploadRef.value?.clearLibrarySelection()
-})
-
-// 简历详情和预览
+// ==================== 简历详情 ====================
 const {
-  previewDialogVisible,
   resumeDetailVisible,
-  previewFileData,
   selectedResumeDetail,
-  previewFile,
   showQueueItemDetail,
-  showHistoryTaskDetail,
   downloadReport
 } = useResumeDetail()
 
-// 简历添加（添加成功时刷新岗位列表）
-const {
-  createGroupDialogVisible,
-  addToGroupDialogVisible,
-  availableResumes,
-  assignedResumeIds,
-  resumesLoading,
-  creatingGroup,
-  showCreateGroupDialog,
-  handleCreateDialogClose,
-  assignResumesToPosition,
-  showAddToGroupDialog,
-  showAddToGroupDialogFromHistory,
-  addToGroup
-} = useResumeAssignment(selectedPositionId, positionsList, loadPositionsList)
-
 // ==================== 事件处理 ====================
 
-// 处理重新检测任务
-const handleRetryTask = async (task: ScreeningTaskResponse) => {
-  try {
-    if (!task.application_id) {
-      ElMessage.warning('无法获取申请信息')
-      return
-    }
-    
-    // 创建新的筛选任务
-    const response = await createScreeningTask({
-      body: {
-        application_id: task.application_id
-      }
-    })
-    
-    if (response.data?.data?.id) {
-      // 添加到处理队列
-      addToQueue({
-        name: task.candidate_name || '重新检测',
-        task_id: response.data.data.id,
-        application_id: task.application_id,
-        status: 'pending',
-        progress: 0,
-        created_at: new Date().toISOString(),
-        applied_position: task.position_title || undefined
-      })
-      
-      ElMessage.success('已重新提交筛选任务')
-      await loadHistoryTasks()
-    }
-  } catch (error) {
-    console.error('重新检测任务失败:', error)
-    ElMessage.error('重新检测失败')
+const handleSelectPosition = (pos: PositionData) => {
+  selectPosition(pos)
+  selectedCandidate.value = null
+}
+
+const handleSelectCandidate = (candidate: CandidateItem) => {
+  selectedCandidate.value = candidate
+}
+
+const handleViewDetail = async (candidate: CandidateItem) => {
+  // 使用 showQueueItemDetail 复用现有详情查看逻辑
+  await showQueueItemDetail({
+    name: candidate.candidateName,
+    task_id: candidate.screeningTaskId,
+    application_id: candidate.id,
+    status: candidate.screeningStatus as 'completed',
+    progress: candidate.screeningProgress,
+    created_at: candidate.createdAt,
+    applied_position: candidate.positionTitle,
+    score: candidate.screeningScore,
+    dimension_scores: {
+      hr_score: candidate.hrScore,
+      technical_score: candidate.techScore,
+      manager_score: candidate.mgrScore
+    },
+    summary: candidate.screeningSummary
+  })
+}
+
+const handleViewReport = (candidate: CandidateItem) => {
+  handleViewDetail(candidate)
+}
+
+const handleDownloadReport = (candidate: CandidateItem) => {
+  if (candidate.screeningTaskId) {
+    downloadReport(candidate.screeningTaskId)
   }
 }
 
-// 显示添加对话框（从岗位列表触发）
-const showAssignDialog = (pos: PositionData) => {
-  selectPosition(pos)
-  showCreateGroupDialog()
+const handleGoInterview = (candidate: CandidateItem) => {
+  router.push(`/interview?application_id=${candidate.id}`)
 }
 
-// ==================== 生命周期 ====================
+const handleRetryCandidate = (candidate: CandidateItem) => {
+  retryScreening(candidate)
+}
 
-onMounted(() => {
-  loadPositionsList()
-  loadHistoryTasks()
+const handleDeleteCandidate = (candidate: CandidateItem) => {
+  if (selectedCandidate.value?.id === candidate.id) {
+    selectedCandidate.value = null
+  }
+  deleteCandidate(candidate)
+}
+
+const handleStartMatch = async (files: ResumeFile[], libraryFiles: ResumeListResponse[]) => {
+  const calculateHash = async (content: string): Promise<string> => {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(content)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+
+  await uploadAndMatch(files, libraryFiles, calculateHash)
+}
+
+const handleConfirmMatches = () => {
+  confirmMatches(false)
+}
+
+// ==================== 监听岗位切换 ====================
+watch(selectedPositionId, () => {
+  selectedCandidate.value = null
+  loadCandidates()
+})
+
+// ==================== 生命周期 ====================
+onMounted(async () => {
+  await loadPositionsList()
+  loadCandidates()
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
 
@@ -257,58 +340,139 @@ onMounted(() => {
 .screening-view {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  height: calc(100% - 10px);
+  margin-bottom: 10px;
 }
 
-.page-header {
-  .page-title {
-    margin: 0 0 8px 0;
-    font-size: 24px;
-    font-weight: 600;
-    color: #303133;
-  }
-
-  .page-desc {
-    margin: 0;
-    font-size: 14px;
-    color: #909399;
-  }
-}
-
-.content-grid {
+.three-column-layout {
+  flex: 1;
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
-  align-items: start;
+  grid-template-columns: 220px 1fr 300px;
+  gap: 0;
+  min-height: 0;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
 }
 
-.left-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.col-left {
+  min-height: 0;
+  overflow: hidden;
 }
 
-.right-panel {
+.col-center {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid #e4e7ed;
+  border-right: 1px solid #e4e7ed;
+}
+
+.col-right {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.center-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #ebeef5;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .center-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .position-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 10px;
+      font-size: 12px;
+
+      .stat-item {
+        color: #909399;
+
+        &.completed { color: #67c23a; }
+        &.processing { color: #409eff; }
+
+        b { font-weight: 600; }
+      }
+    }
+  }
+}
+
+.center-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// 拖拽遮罩
+.drag-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.drag-sidebar-highlight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 280px;
+  height: 100%;
+  background: rgba(64, 158, 255, 0.03);
+  border-right: 2px solid rgba(64, 158, 255, 0.3);
+}
+
+.drag-msg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 13px;
+  color: #409eff;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px 16px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 1200px) {
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .left-panel {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+  .three-column-layout {
+    grid-template-columns: 200px 1fr 260px;
   }
 }
 
-@media (max-width: 768px) {
-  .left-panel {
+@media (max-width: 900px) {
+  .three-column-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .col-center {
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid #e4e7ed;
+    border-bottom: 1px solid #e4e7ed;
   }
 }
 </style>

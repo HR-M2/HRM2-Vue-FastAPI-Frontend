@@ -59,7 +59,7 @@ const pageTitle = computed(() => {
 
 .main-container {
   margin-left: 240px;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   transition: margin-left 0.3s ease;
