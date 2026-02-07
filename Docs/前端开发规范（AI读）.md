@@ -9,16 +9,26 @@
 - Vue 3.5+ / TypeScript 5.9+ / Vite 7.1+ / Element Plus 2.11+
 - API 客户端自动生成：`@hey-api/openapi-ts`
 
-## 项目结构
+## 项目结构（Co-location 架构）
 
 ```
 src/
-├── api/           → 自动生成的 API SDK（禁止手动修改）
-├── components/    → 按业务模块组织的组件
-├── composables/   → 组合式函数（use*.ts）
-├── views/         → 页面视图
-├── types/         → 前端扩展类型
-└── router/        → 路由配置
+├── api/              → 自动生成的 API SDK（禁止手动修改）
+├── components/       → 跨视图共享组件
+│   ├── charts/       → 图表组件
+│   ├── common/       → 通用业务组件
+│   └── layout/       → 布局组件
+├── composables/      → 跨视图共享的组合式函数
+├── services/         → 服务层（WebSocket 等）
+├── stores/           → 状态管理
+├── types/            → 前端扩展类型
+├── router/           → 路由配置
+└── views/            → 页面视图（视图级就近归置）
+    └── {view}/
+        ├── {View}View.vue
+        ├── components/   → 视图专属组件
+        ├── composables/  → 视图专属 composables
+        └── styles/       → 视图专属样式（如需要）
 ```
 
 ## 命名规范
@@ -72,9 +82,10 @@ export function use{Feature}() {
 
 ## 组件目录规范
 
-- 按模块分目录：`components/{module}/`
-- 每个目录有 `index.ts` 统一导出
-- 导入时从模块导入：`import { Component } from '@/components/{module}'`
+- **视图专属组件**：放在 `views/{view}/components/`，扁平结构，直接导入文件
+- **共享组件**：放在 `components/` 下（charts / common / layout），通过 `index.ts` 桶文件导出
+- 视图专属组件用相对路径导入：`import XxxDialog from './components/XxxDialog.vue'`
+- 共享组件用别名导入：`import { ResumeDetailDialog } from '@/components/common'`
 
 ## API 调用规范
 
@@ -95,16 +106,20 @@ const items = response.data?.data?.items || []
 
 ## 路由规范
 
-- 懒加载：`component: () => import('@/views/XxxView.vue')`
+- 懒加载：`component: () => import('@/views/{view}/{View}View.vue')`
 - 设置 `meta.title` 用于页面标题
+- 路由切换使用淡入淡出过渡动画
 
 ## 新功能开发流程
 
-1. `src/types/{module}.ts` - 定义前端类型（如需要）
-2. `src/composables/use{Module}.ts` - 创建业务逻辑
-3. `src/components/{module}/` - 创建组件 + index.ts
-4. `src/views/{Module}View.vue` - 创建页面
-5. `src/router/index.ts` - 添加路由
+1. `src/views/{view}/` - 创建视图目录
+2. `src/views/{view}/{View}View.vue` - 创建页面
+3. `src/views/{view}/components/` - 创建视图专属组件（扁平结构，无需 index.ts）
+4. `src/views/{view}/composables/` - 创建视图专属 composables（如需要）
+5. `src/types/{module}.ts` - 定义前端扩展类型（如需要）
+6. `src/router/index.ts` - 添加路由
+
+> 跨视图复用的组件放 `src/components/`，跨视图复用的 composables 放 `src/composables/`
 
 ## 禁止事项
 
