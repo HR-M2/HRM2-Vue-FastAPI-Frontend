@@ -146,6 +146,11 @@
 
         <!-- 操作 -->
         <div class="col-actions">
+          <el-tooltip content="启动初筛" placement="top" v-if="candidate.screeningStatus === 'none'">
+            <el-button size="small" type="success" link @click.stop="$emit('retry', candidate)">
+              <el-icon><VideoPlay /></el-icon>
+            </el-button>
+          </el-tooltip>
           <el-tooltip content="查看详情" placement="top" v-if="candidate.screeningStatus === 'completed'">
             <el-button size="small" type="primary" link @click.stop="$emit('viewDetail', candidate)">
               <el-icon><View /></el-icon>
@@ -178,7 +183,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Rank, View, RefreshRight, Delete, Loading } from '@element-plus/icons-vue'
+import { Rank, View, RefreshRight, Delete, Loading, VideoPlay } from '@element-plus/icons-vue'
 import { useScreeningUtils } from '@/composables/useScreeningUtils'
 import type { CandidateItem } from '../composables/useCandidateList'
 import type { BatchProgress } from '../composables/useBatchScreening'

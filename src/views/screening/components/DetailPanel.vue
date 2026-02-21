@@ -93,6 +93,10 @@
           <el-icon :size="48" color="#909399"><Clock /></el-icon>
           <div class="empty-title" style="color: #909399">等待初筛</div>
           <p class="empty-desc">使用"一键初筛"或单独对此候选人启动初筛</p>
+          <el-button type="primary" size="small" @click="$emit('retryScreening', selectedCandidate)">
+            <el-icon><VideoPlay /></el-icon>
+            启动初筛
+          </el-button>
         </div>
       </div>
     </template>
@@ -228,7 +232,7 @@
 <script setup lang="ts">
 import {
   Close, View, Download, ChatLineSquare, Loading,
-  CircleCloseFilled, Clock, RefreshRight, Delete, InfoFilled
+  CircleCloseFilled, Clock, RefreshRight, Delete, InfoFilled, VideoPlay
 } from '@element-plus/icons-vue'
 import { useScreeningUtils } from '@/composables/useScreeningUtils'
 import type { CandidateItem } from '../composables/useCandidateList'
