@@ -108,12 +108,6 @@
       :resume="selectedResumeDetail"
     />
 
-    <!-- 拖抽提示遮罩 -->
-    <div v-if="draggingCandidate || draggingResumeName" class="drag-overlay">
-      <div class="drag-sidebar-highlight">
-        <span class="drag-msg">← 拖至目标岗位</span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -419,41 +413,6 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-}
-
-// 拖拽遮罩
-.drag-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.drag-sidebar-highlight {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 280px;
-  height: 100%;
-  background: rgba(64, 158, 255, 0.03);
-  border-right: 2px solid rgba(64, 158, 255, 0.3);
-}
-
-.drag-msg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 13px;
-  color: #409eff;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 8px 16px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 1200px) {

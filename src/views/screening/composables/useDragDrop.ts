@@ -30,7 +30,7 @@ export function useDragDrop(
     draggingCandidate.value = candidate
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', candidate.id)
+      e.dataTransfer.setData('application/x-candidate-id', candidate.id)
     }
   }
 
@@ -53,8 +53,11 @@ export function useDragDrop(
     dragOverPositionId.value = positionId
   }
 
-  // 拖拽离开岗位
-  const handleDragLeavePosition = (positionId: string) => {
+  // 拖拽离开岗位（仅当真正离开整个元素时才清除，避免子元素切换导致闪烁）
+  const handleDragLeavePosition = (e: DragEvent, positionId: string) => {
+    const target = e.currentTarget as HTMLElement
+    const related = e.relatedTarget as Node | null
+    if (related && target.contains(related)) return
     if (dragOverPositionId.value === positionId) {
       dragOverPositionId.value = null
     }

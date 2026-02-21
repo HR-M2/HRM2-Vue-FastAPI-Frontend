@@ -19,7 +19,7 @@
         }"
         @click="$emit('select', pos)"
         @dragover.prevent="$emit('dragOver', $event, pos.id)"
-        @dragleave="$emit('dragLeave', pos.id)"
+        @dragleave="$emit('dragLeave', $event, pos.id)"
         @drop="$emit('drop', $event, pos.id)"
       >
         <div class="pos-header">
@@ -76,7 +76,7 @@ defineProps<{
 defineEmits<{
   select: [pos: PositionData]
   dragOver: [e: DragEvent, posId: string]
-  dragLeave: [posId: string]
+  dragLeave: [e: DragEvent, posId: string]
   drop: [e: DragEvent, posId: string]
 }>()
 
