@@ -1,5 +1,5 @@
 <template>
-  <header class="app-header">
+  <header class="app-header" :class="{ collapsed: isCollapsed }">
     <div class="header-left">
       <h1 class="page-title">{{ title }}</h1>
     </div>
@@ -64,10 +64,12 @@ import {
 
 interface Props {
   title?: string
+  isCollapsed?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: '仪表盘'
+  title: '仪表盘',
+  isCollapsed: false
 })
 
 const router = useRouter()
@@ -115,6 +117,15 @@ const handleUserCommand = (command: string) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  transition: all 0.3s ease;
+  overflow: hidden;
+
+  &.collapsed {
+    height: 0;
+    padding: 0;
+    border-bottom: none;
+    opacity: 0;
+  }
 }
 
 .header-left {

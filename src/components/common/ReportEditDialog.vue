@@ -3,6 +3,7 @@
     v-model="visible" 
     :title="dialogTitle" 
     width="700px"
+    append-to-body
     destroy-on-close
   >
     <el-form 

@@ -173,6 +173,12 @@ export type ApplicationResponse = {
  */
 export type ApplicationUpdate = {
     /**
+     * Position Id
+     *
+     * 岗位ID（用于调岗）
+     */
+    position_id?: string | null;
+    /**
      * Notes
      */
     notes?: string | null;
@@ -259,6 +265,24 @@ export type BatchHashCheckData = {
 };
 
 /**
+ * BehaviorData
+ *
+ * 行为分析数据
+ */
+export type BehaviorData = {
+    /**
+     * Emotions
+     *
+     * Top3情绪及比例
+     */
+    emotions?: Array<EmotionItem>;
+    /**
+     * 眼神数据
+     */
+    gaze?: GazeData | null;
+};
+
+/**
  * BigFiveScores
  *
  * 大五人格评分
@@ -307,17 +331,11 @@ export type CandidateQuestionsRequest = {
      */
     session_id?: string | null;
     /**
-     * Current Question
-     *
-     * 当前问题
-     */
-    current_question: string;
-    /**
      * Current Answer
      *
-     * 当前回答
+     * 当前回答，无对话时可留空
      */
-    current_answer: string;
+    current_answer?: string;
     /**
      * Conversation History
      *
@@ -339,11 +357,23 @@ export type CandidateQuestionsRequest = {
      */
     followup_count?: number;
     /**
-     * Alternative Count
+     * Normal Count
      *
-     * 候选问题数量
+     * 常规候选数量
      */
-    alternative_count?: number;
+    normal_count?: number;
+    /**
+     * Current Stage Name
+     *
+     * 当前环节名称
+     */
+    current_stage_name?: string;
+    /**
+     * Current Stage Description
+     *
+     * 当前环节说明
+     */
+    current_stage_description?: string;
 };
 
 /**
@@ -467,6 +497,12 @@ export type ComprehensiveAnalysisResponse = {
         [key: string]: unknown;
     };
     /**
+     * Big Five Personality
+     */
+    big_five_personality?: {
+        [key: string]: unknown;
+    } | null;
+    /**
      * Applied Experience Ids
      */
     applied_experience_ids?: Array<string> | null;
@@ -534,6 +570,14 @@ export type ComprehensiveAnalysisUpdate = {
      * 输入数据快照
      */
     input_snapshot?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Big Five Personality
+     *
+     * 大五人格评估
+     */
+    big_five_personality?: {
         [key: string]: unknown;
     } | null;
     /**
@@ -620,6 +664,26 @@ export type DimensionScoreItem = {
      * 详细分析说明
      */
     analysis?: string | null;
+};
+
+/**
+ * EmotionItem
+ *
+ * 情绪项
+ */
+export type EmotionItem = {
+    /**
+     * Emotion
+     *
+     * 情绪类型
+     */
+    emotion: string;
+    /**
+     * Ratio
+     *
+     * 占比(0-1)
+     */
+    ratio: number;
 };
 
 /**
@@ -715,6 +779,26 @@ export type FinalReportRequest = {
 };
 
 /**
+ * GazeData
+ *
+ * 眼神数据
+ */
+export type GazeData = {
+    /**
+     * Ratio
+     *
+     * 保持注视的时间比例(0-1)
+     */
+    ratio: number;
+    /**
+     * Warnings
+     *
+     * 眼神游离警告次数
+     */
+    warnings?: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -739,7 +823,7 @@ export type HashCheckData = {
 /**
  * InterviewQuestionsRequest
  *
- * 面试问题生成请求
+ * 面试兴趣点生成请求
  */
 export type InterviewQuestionsRequest = {
     /**
@@ -754,12 +838,6 @@ export type InterviewQuestionsRequest = {
      * 简历内容
      */
     resume_content?: string | null;
-    /**
-     * Count
-     *
-     * 问题数量
-     */
-    count?: number;
     /**
      * Interest Point Count
      *
@@ -837,7 +915,7 @@ export type InterviewSessionCreate = {
  *
  * 面试会话响应
  */
-export type InterviewSessionResponse = {
+export type InterviewSessionResponseInput = {
     /**
      * Id
      */
@@ -867,11 +945,87 @@ export type InterviewSessionResponse = {
     /**
      * Messages
      */
-    messages: Array<QaMessage>;
+    messages: Array<QaMessageInput>;
     /**
-     * Question Pool
+     * Is Completed
      */
-    question_pool: Array<string>;
+    is_completed: boolean;
+    /**
+     * Final Score
+     */
+    final_score: number | null;
+    /**
+     * Report
+     */
+    report: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Report Markdown
+     */
+    report_markdown: string | null;
+    /**
+     * Applied Experience Ids
+     */
+    applied_experience_ids?: Array<string> | null;
+    /**
+     * Message Count
+     */
+    message_count?: number;
+    /**
+     * Has Report
+     */
+    has_report?: boolean;
+    /**
+     * Candidate Name
+     */
+    candidate_name?: string | null;
+    /**
+     * Position Title
+     */
+    position_title?: string | null;
+    /**
+     * Applied Experiences
+     */
+    applied_experiences?: Array<AppliedExperienceItem> | null;
+};
+
+/**
+ * InterviewSessionResponse
+ *
+ * 面试会话响应
+ */
+export type InterviewSessionResponseOutput = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Application Id
+     */
+    application_id: string;
+    /**
+     * Interview Type
+     */
+    interview_type: string;
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Messages
+     */
+    messages: Array<QaMessageOutput>;
     /**
      * Is Completed
      */
@@ -933,10 +1087,6 @@ export type InterviewSessionUpdate = {
         [key: string]: unknown;
     } | null;
     /**
-     * Question Pool
-     */
-    question_pool?: Array<string> | null;
-    /**
      * Is Completed
      */
     is_completed?: boolean | null;
@@ -995,7 +1145,7 @@ export type MessagesSyncRequest = {
      *
      * 完整对话记录
      */
-    messages: Array<QaMessageCreate>;
+    messages: Array<QaMessageSync>;
 };
 
 /**
@@ -1109,7 +1259,7 @@ export type PagedDataInterviewSessionResponseInput = {
     /**
      * Items
      */
-    items: Array<InterviewSessionResponse>;
+    items: Array<InterviewSessionResponseInput>;
     /**
      * Total
      */
@@ -1135,7 +1285,7 @@ export type PagedDataInterviewSessionResponseOutput = {
     /**
      * Items
      */
-    items: Array<InterviewSessionResponse>;
+    items: Array<InterviewSessionResponseOutput>;
     /**
      * Total
      */
@@ -1564,6 +1714,20 @@ export type PositionListResponse = {
 };
 
 /**
+ * PositionMatchRequest
+ *
+ * 智能岗位匹配请求
+ */
+export type PositionMatchRequest = {
+    /**
+     * Resume Ids
+     *
+     * 待匹配的简历ID列表
+     */
+    resume_ids: Array<string>;
+};
+
+/**
  * PositionResponse
  *
  * 岗位详情响应
@@ -1682,7 +1846,7 @@ export type PositionUpdate = {
  *
  * 问答消息
  */
-export type QaMessage = {
+export type QaMessageInput = {
     /**
      * Seq
      *
@@ -1706,15 +1870,25 @@ export type QaMessage = {
      *
      * 时间戳
      */
-    timestamp: string;
+    timestamp?: string | null;
+    /**
+     * 行为分析数据(仅candidate有)
+     */
+    behavior?: BehaviorData | null;
 };
 
 /**
- * QAMessageCreate
+ * QAMessage
  *
- * 创建问答消息
+ * 问答消息
  */
-export type QaMessageCreate = {
+export type QaMessageOutput = {
+    /**
+     * Seq
+     *
+     * 消息序号
+     */
+    seq: number;
     /**
      * Role
      *
@@ -1727,6 +1901,40 @@ export type QaMessageCreate = {
      * 内容
      */
     content: string;
+    /**
+     * Timestamp
+     *
+     * 时间戳
+     */
+    timestamp?: string | null;
+    /**
+     * 行为分析数据(仅candidate有)
+     */
+    behavior?: BehaviorData | null;
+};
+
+/**
+ * QAMessageSync
+ *
+ * 同步消息项（支持可选行为数据）
+ */
+export type QaMessageSync = {
+    /**
+     * Role
+     *
+     * 角色
+     */
+    role: 'interviewer' | 'candidate';
+    /**
+     * Content
+     *
+     * 内容
+     */
+    content: string;
+    /**
+     * 行为分析数据(仅candidate)
+     */
+    behavior?: BehaviorData | null;
 };
 
 /**
@@ -1917,7 +2125,7 @@ export type ResponseModelInterviewSessionResponse = {
      * Message
      */
     message?: string;
-    data?: InterviewSessionResponse | null;
+    data?: InterviewSessionResponseOutput | null;
 };
 
 /**
@@ -2432,6 +2640,54 @@ export type SimulateCandidateAnswerRequest = {
      */
     conversation_history?: Array<{
         [key: string]: unknown;
+    }> | null;
+};
+
+/**
+ * SituationAssessmentRequest
+ *
+ * 面试局面评估请求
+ */
+export type SituationAssessmentRequest = {
+    /**
+     * Session Id
+     *
+     * 面试会话ID
+     */
+    session_id?: string | null;
+    /**
+     * Conversation History
+     *
+     * 对话历史
+     */
+    conversation_history: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Current Stage Index
+     *
+     * 当前环节索引(1-based)
+     */
+    current_stage_index?: number;
+    /**
+     * Current Stage Name
+     *
+     * 当前环节名称
+     */
+    current_stage_name?: string;
+    /**
+     * Total Stages
+     *
+     * 总环节数
+     */
+    total_stages?: number;
+    /**
+     * All Stages
+     *
+     * 所有环节列表[{name, description}]
+     */
+    all_stages?: Array<{
+        [key: string]: string;
     }> | null;
 };
 
@@ -3142,6 +3398,36 @@ export type GetStatsOverviewResponses = {
 };
 
 export type GetStatsOverviewResponse = GetStatsOverviewResponses[keyof GetStatsOverviewResponses];
+
+export type GetPositionStatsData = {
+    body?: never;
+    path: {
+        /**
+         * Position Id
+         */
+        position_id: string;
+    };
+    query?: never;
+    url: '/api/v1/applications/stats/position/{position_id}';
+};
+
+export type GetPositionStatsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPositionStatsError = GetPositionStatsErrors[keyof GetPositionStatsErrors];
+
+export type GetPositionStatsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type GetPositionStatsResponse = GetPositionStatsResponses[keyof GetPositionStatsResponses];
 
 export type DeleteApplicationData = {
     body?: never;
@@ -4101,6 +4387,54 @@ export type StartAiScreeningResponses = {
 
 export type StartAiScreeningResponse = StartAiScreeningResponses[keyof StartAiScreeningResponses];
 
+export type GetInterviewStageConfigData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Interview Type
+         *
+         * 面试类型: technical/hr/comprehensive
+         */
+        interview_type?: string;
+    };
+    url: '/api/v1/ai/interview/stage-config';
+};
+
+export type GetInterviewStageConfigErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetInterviewStageConfigError = GetInterviewStageConfigErrors[keyof GetInterviewStageConfigErrors];
+
+export type GetInterviewStageConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type GetInterviewStageConfigResponse = GetInterviewStageConfigResponses[keyof GetInterviewStageConfigResponses];
+
+export type GetAllInterviewStageConfigData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/interview/stage-config/all';
+};
+
+export type GetAllInterviewStageConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type GetAllInterviewStageConfigResponse = GetAllInterviewStageConfigResponses[keyof GetAllInterviewStageConfigResponses];
+
 export type AiGenerateInitialQuestionsData = {
     body: InterviewQuestionsRequest;
     path?: never;
@@ -4150,6 +4484,31 @@ export type AiGenerateAdaptiveQuestionsResponses = {
 };
 
 export type AiGenerateAdaptiveQuestionsResponse = AiGenerateAdaptiveQuestionsResponses[keyof AiGenerateAdaptiveQuestionsResponses];
+
+export type AiSituationAssessmentData = {
+    body: SituationAssessmentRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/interview/situation-assessment';
+};
+
+export type AiSituationAssessmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AiSituationAssessmentError = AiSituationAssessmentErrors[keyof AiSituationAssessmentErrors];
+
+export type AiSituationAssessmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type AiSituationAssessmentResponse = AiSituationAssessmentResponses[keyof AiSituationAssessmentResponses];
 
 export type AiSimulateCandidateAnswerData = {
     body: SimulateCandidateAnswerRequest;
@@ -4250,6 +4609,31 @@ export type GenerateRandomResumeResponses = {
 };
 
 export type GenerateRandomResumeResponse = GenerateRandomResumeResponses[keyof GenerateRandomResumeResponses];
+
+export type StartAiMatchingData = {
+    body: PositionMatchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai/matching/start';
+};
+
+export type StartAiMatchingErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StartAiMatchingError = StartAiMatchingErrors[keyof StartAiMatchingErrors];
+
+export type StartAiMatchingResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type StartAiMatchingResponse = StartAiMatchingResponses[keyof StartAiMatchingResponses];
 
 export type SubmitFeedbackData = {
     body: FeedbackRequest;
@@ -4444,6 +4828,100 @@ export type BackfillEmbeddingsResponses = {
      */
     200: unknown;
 };
+
+export type AgentTraceStreamData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/debug/agent-trace/stream';
+};
+
+export type AgentTraceStreamResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetTraceHistoryData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         *
+         * 返回条数
+         */
+        limit?: number;
+    };
+    url: '/api/v1/debug/agent-trace/history';
+};
+
+export type GetTraceHistoryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetTraceHistoryError = GetTraceHistoryErrors[keyof GetTraceHistoryErrors];
+
+export type GetTraceHistoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type GetTraceHistoryResponse = GetTraceHistoryResponses[keyof GetTraceHistoryResponses];
+
+export type ToggleTraceData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Enabled
+         *
+         * 是否启用追踪
+         */
+        enabled: boolean;
+    };
+    url: '/api/v1/debug/agent-trace/toggle';
+};
+
+export type ToggleTraceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ToggleTraceError = ToggleTraceErrors[keyof ToggleTraceErrors];
+
+export type ToggleTraceResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type ToggleTraceResponse = ToggleTraceResponses[keyof ToggleTraceResponses];
+
+export type ClearTraceHistoryData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/debug/agent-trace/clear';
+};
+
+export type ClearTraceHistoryResponses = {
+    /**
+     * Successful Response
+     */
+    200: DictResponse;
+};
+
+export type ClearTraceHistoryResponse = ClearTraceHistoryResponses[keyof ClearTraceHistoryResponses];
 
 export type HealthCheckData = {
     body?: never;

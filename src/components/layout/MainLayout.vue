@@ -6,11 +6,15 @@
     <!-- 主内容区域 -->
     <div class="main-container" :class="{ 'sidebar-collapsed': isCollapsed }">
       <!-- 顶部标题栏 -->
-      <AppHeader :title="pageTitle" />
+      <AppHeader :title="pageTitle" :is-collapsed="isCollapsed" />
 
       <!-- 页面内容 -->
       <main class="main-content">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <Transition name="page-fade" mode="out-in">
+            <component :is="Component" :key="$route.path" />
+          </Transition>
+        </router-view>
       </main>
     </div>
   </div>
@@ -55,7 +59,7 @@ const pageTitle = computed(() => {
 
 .main-container {
   margin-left: 240px;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   transition: margin-left 0.3s ease;
@@ -69,5 +73,14 @@ const pageTitle = computed(() => {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+}
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
 }
 </style>

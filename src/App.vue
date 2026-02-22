@@ -1,8 +1,11 @@
 <template>
   <router-view />
+  <!-- 开发调试工具：Agent 调用追踪器 -->
+  <AgentDebugger />
 </template>
 
 <script setup lang="ts">
+import AgentDebugger from '@/views/dev-tools/components/AgentDebugger.vue'
 </script>
 
 <style>
