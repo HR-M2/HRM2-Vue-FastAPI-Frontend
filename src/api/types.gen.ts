@@ -2465,21 +2465,33 @@ export type ScreeningScore = {
      */
     comprehensive_score?: number | null;
     /**
-     * Hr Score
-     *
-     * HR评分
-     */
-    hr_score?: number | null;
-    /**
      * Technical Score
      *
      * 技术评分
      */
     technical_score?: number | null;
     /**
+     * Project Score
+     *
+     * 项目评分
+     */
+    project_score?: number | null;
+    /**
+     * Career Score
+     *
+     * 职业轨迹评分
+     */
+    career_score?: number | null;
+    /**
+     * Hr Score
+     *
+     * HR评分（历史字段）
+     */
+    hr_score?: number | null;
+    /**
      * Manager Score
      *
-     * 管理评分
+     * 管理评分（历史字段）
      */
     manager_score?: number | null;
 };

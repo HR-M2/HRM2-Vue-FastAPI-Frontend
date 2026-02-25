@@ -123,9 +123,30 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
     toolCallCount: 0
   })
 
+  const getDimensionScore = (
+    scores: Record<string, unknown> | null | undefined,
+    key: string,
+    fallbackKey?: string
+  ): number | null => {
+    const direct = scores?.[key]
+    if (typeof direct === 'number') return direct
+    if (fallbackKey) {
+      const fallback = scores?.[fallbackKey]
+      if (typeof fallback === 'number') return fallback
+    }
+    return null
+  }
+
+  const applyDimensionScores = (item: CandidateItem, scores: Record<string, unknown> | null | undefined) => {
+    item.technicalScore = getDimensionScore(scores, 'technical_score')
+    item.projectScore = getDimensionScore(scores, 'project_score', 'hr_score')
+    item.careerScore = getDimensionScore(scores, 'career_score', 'manager_score')
+  }
+
   // 从 ApplicationDetailResponse 转换为 CandidateItem
   const mapAppToCandidate = (app: ApplicationDetailResponse): CandidateItem => {
     const task = app.screening_task
+    const taskScores = (task as { dimension_scores?: Record<string, unknown> | null } | null)?.dimension_scores
     return {
       id: app.id,
       resumeId: app.resume_id,
@@ -135,9 +156,9 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
       screeningTaskId: task?.id || null,
       screeningStatus: task?.status || 'none',
       screeningScore: task?.score ?? null,
-      technicalScore: null,
-      projectScore: null,
-      careerScore: null,
+      technicalScore: getDimensionScore(taskScores, 'technical_score'),
+      projectScore: getDimensionScore(taskScores, 'project_score', 'hr_score'),
+      careerScore: getDimensionScore(taskScores, 'career_score', 'manager_score'),
       screeningSummary: null,
       screeningProgress: task?.status === 'completed' ? 100 : 0,
       currentSpeaker: '',
@@ -160,12 +181,7 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
       })
       if (response.data?.data) {
         const detail = response.data.data
-        const dimScores = detail.dimension_scores as Record<string, number> | null
-        if (dimScores) {
-          item.technicalScore = dimScores.technical_score ?? null
-          item.projectScore = dimScores.project_score ?? null
-          item.careerScore = dimScores.career_score ?? null
-        }
+        applyDimensionScores(item, detail.dimension_scores as Record<string, unknown> | null)
         item.screeningSummary = detail.summary || null
       }
     } catch (err) {
@@ -237,34 +253,43 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
           const data = response.data.data as Record<string, unknown>
           
           // 基础状态更新
-          item.screeningStatus = (data.status as string) || item.screeningStatus
-          item.screeningProgress = (data.progress as number) || item.screeningProgress
-          item.currentSpeaker = (data.current_speaker as string) || ''
-          item.errorMessage = (data.error_message as string) || null
+          item.screeningStatus = (data.status as string | undefined) ?? item.screeningStatus
+          item.screeningProgress = (data.progress as number | undefined) ?? item.screeningProgress
+          item.currentSpeaker = (data.current_speaker as string | undefined) ?? ''
+          item.errorMessage = (data.error_message as string | undefined) ?? null
 
           // 更新 Agentic 状态（链式调用过程）
           if (data.nodes !== undefined) {
+            const incomingNodes = Array.isArray(data.nodes) ? (data.nodes as LoopNode[]) : []
+            const incomingFinalReport = (data.final_report as string | undefined) ?? ''
+            const incomingCurrentLoop = data.current_loop as number | undefined
+            const incomingMaxLoops = data.max_loops as number | undefined
+            const incomingTotalLoops = data.total_loops as number | undefined
+            const incomingToolCalls = data.tool_call_count as number | undefined
             item.agenticState = {
-              currentLoop: (data.current_loop as number) || 0,
-              maxLoops: (data.max_loops as number) || 12,
-              nodes: (data.nodes as LoopNode[]) || [],
-              finalReport: (data.final_report as string) || '',
-              isFinalStreaming: (data.is_final_streaming as boolean) || false,
-              totalLoops: (data.total_loops as number) || 0,
-              toolCallCount: (data.tool_call_count as number) || 0
+              currentLoop: incomingCurrentLoop && incomingCurrentLoop > 0
+                ? incomingCurrentLoop
+                : item.agenticState.currentLoop,
+              maxLoops: incomingMaxLoops && incomingMaxLoops > 0
+                ? incomingMaxLoops
+                : item.agenticState.maxLoops || 12,
+              nodes: incomingNodes.length > 0 ? incomingNodes : item.agenticState.nodes,
+              finalReport: incomingFinalReport || item.agenticState.finalReport,
+              isFinalStreaming: (data.is_final_streaming as boolean | undefined) ?? item.agenticState.isFinalStreaming,
+              totalLoops: incomingTotalLoops && incomingTotalLoops > 0
+                ? incomingTotalLoops
+                : item.agenticState.totalLoops,
+              toolCallCount: incomingToolCalls && incomingToolCalls > 0
+                ? incomingToolCalls
+                : item.agenticState.toolCallCount
             }
           }
 
           if (data.status === 'completed') {
             item.screeningScore = (data.score as number) ?? null
-            item.recommendation = (data.recommendation as string) || null
-            const dimScores = data.dimension_scores as Record<string, number> | null
-            if (dimScores) {
-              item.technicalScore = dimScores.technical_score ?? null
-              item.projectScore = dimScores.project_score ?? null
-              item.careerScore = dimScores.career_score ?? null
-            }
-            item.screeningSummary = (data.summary as string) || null
+            item.recommendation = (data.recommendation as string | undefined) ?? null
+            applyDimensionScores(item, data.dimension_scores as Record<string, unknown> | null)
+            item.screeningSummary = (data.summary as string | undefined) ?? null
             // 最终报告也保存到 agenticState
             if (data.final_report) {
               item.agenticState.finalReport = data.final_report as string
@@ -307,6 +332,12 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
         candidate.screeningStatus = 'running'
         candidate.screeningProgress = 0
         candidate.screeningScore = null
+        candidate.technicalScore = null
+        candidate.projectScore = null
+        candidate.careerScore = null
+        candidate.screeningSummary = null
+        candidate.recommendation = null
+        candidate.agenticState = createEmptyAgenticState()
         candidate.errorMessage = null
         ElMessage.success('已重新提交初筛任务')
         startPolling()

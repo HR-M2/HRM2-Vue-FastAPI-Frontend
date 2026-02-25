@@ -272,7 +272,12 @@ export const updateScreeningResult = <ThrowOnError extends boolean = false>(opti
  * 获取筛选任务状态
  *
  * 获取筛选任务状态（轮询用）
- * 进度从内存缓存读取，其他信息从数据库读取
+ *
+ * 返回完整的 agentic 状态，包括：
+ * - 基础状态：status, progress, current_speaker
+ * - 链式调用过程：nodes（每轮的 think_text 和 tool_calls）
+ * - 最终报告：final_report, is_final_streaming
+ * - 统计信息：current_loop, max_loops, total_loops, tool_call_count
  */
 export const getScreeningStatus = <ThrowOnError extends boolean = false>(options: Options<GetScreeningStatusData, ThrowOnError>) => (options.client ?? client).get<GetScreeningStatusResponses, GetScreeningStatusErrors, ThrowOnError>({ url: '/api/v1/screening/{task_id}/status', ...options });
 
@@ -499,11 +504,10 @@ export const aiGeneratePosition = <ThrowOnError extends boolean = false>(options
  *
  * 启动AI简历筛选任务（后台运行）
  *
- * 使用多Agent协作进行简历评审：
- * - HR专家：评估综合素质
- * - 技术专家：评估技术能力
- * - 项目经理：评估管理能力
- * - 综合评审：汇总给出最终建议
+ * 使用 Director + ReAct + Function Calling 进行动态决策：
+ * - 按需调用评估工具与网络搜索
+ * - 基于工具结果决定下一步
+ * - 最终输出统一评估报告
  */
 export const startAiScreening = <ThrowOnError extends boolean = false>(options: Options<StartAiScreeningData, ThrowOnError>) => (options.client ?? client).post<StartAiScreeningResponses, StartAiScreeningErrors, ThrowOnError>({
     url: '/api/v1/ai/screening/start',

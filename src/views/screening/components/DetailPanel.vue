@@ -80,7 +80,7 @@
           </div>
 
           <!-- 链式调用时间线 -->
-          <div class="agentic-timeline" v-if="selectedCandidate.agenticState.nodes.length > 0">
+          <div ref="agenticTimelineRef" class="agentic-timeline" v-if="selectedCandidate.agenticState.nodes.length > 0">
             <TransitionGroup name="chain-slide">
               <div
                 v-for="(node, nodeIdx) in selectedCandidate.agenticState.nodes"
@@ -122,16 +122,31 @@
                 <!-- 工具调用列表 -->
                 <div v-if="node.tool_calls.length > 0" class="node-tools">
                   <div v-for="(tc, idx) in node.tool_calls" :key="idx" class="tool-item" :class="{ pending: !tc.result }">
-                    <div class="tool-header">
+                    <button
+                      class="tool-header collapse-trigger"
+                      @click="toggleToolExpanded(node.loop, idx, isToolExpanded(node.loop, idx, tc.result, node.loop, selectedCandidate.agenticState.currentLoop))"
+                    >
                       <span class="tool-icon">{{ getToolIcon(tc.tool) }}</span>
                       <span class="tool-name">{{ getToolLabel(tc.tool) }}</span>
                       <span v-if="!tc.result" class="tool-badge pending">···</span>
                       <span v-else class="tool-badge done">✓</span>
+                      <el-icon class="collapse-arrow" :class="{ expanded: isToolExpanded(node.loop, idx, tc.result, node.loop, selectedCandidate.agenticState.currentLoop) }">
+                        <ArrowDown />
+                      </el-icon>
+                    </button>
+                    <div
+                      v-show="isToolExpanded(node.loop, idx, tc.result, node.loop, selectedCandidate.agenticState.currentLoop)"
+                      class="tool-body"
+                    >
+                      <p v-if="tc.args?.query" class="tool-query">🔎 {{ tc.args.query }}</p>
+                      <p v-if="tc.args?.reason" class="tool-reason">{{ tc.args.reason }}</p>
+                      <div
+                        v-if="tc.result"
+                        class="tool-result markdown-content"
+                        v-html="renderMarkdown(tc.result)"
+                      />
+                      <div v-else class="tool-pending">执行中...</div>
                     </div>
-                    <div v-if="tc.result" class="tool-result">
-                      {{ truncateText(tc.result, 120) }}
-                    </div>
-                    <div v-else class="tool-pending">执行中...</div>
                   </div>
                 </div>
               </div>
@@ -146,13 +161,19 @@
 
           <!-- 最终报告流式输出 -->
           <div v-if="selectedCandidate.agenticState.isFinalStreaming || selectedCandidate.agenticState.finalReport" class="agentic-final">
-            <div class="final-header">
+            <button class="final-header collapse-trigger" @click="toggleFinalExpanded">
               <el-icon color="#67c23a"><DocumentChecked /></el-icon>
               <span>最终评估报告</span>
               <el-icon v-if="selectedCandidate.agenticState.isFinalStreaming" class="is-loading" :size="14"><Loading /></el-icon>
-            </div>
-            <div class="final-content">
-              {{ truncateText(selectedCandidate.agenticState.finalReport, 400) }}
+              <el-icon class="collapse-arrow" :class="{ expanded: isFinalExpanded }">
+                <ArrowDown />
+              </el-icon>
+            </button>
+            <div v-show="isFinalExpanded" class="final-content markdown-content">
+              <div
+                v-if="selectedCandidate.agenticState.finalReport"
+                v-html="renderMarkdown(selectedCandidate.agenticState.finalReport)"
+              />
               <span v-if="selectedCandidate.agenticState.isFinalStreaming" class="typing-cursor">|</span>
             </div>
           </div>
@@ -317,10 +338,11 @@
 </template>
 
 <script setup lang="ts">
+import { nextTick, ref, watch } from 'vue'
 import {
   Close, View, Download, ChatLineSquare, Loading,
   CircleCloseFilled, Clock, RefreshRight, Delete, InfoFilled, VideoPlay,
-  CircleCheck, Timer, DocumentChecked
+  Timer, DocumentChecked, ArrowDown
 } from '@element-plus/icons-vue'
 import { useScreeningUtils } from '@/composables/useScreeningUtils'
 import type { CandidateItem } from '../composables/useCandidateList'
@@ -330,7 +352,7 @@ import type { PositionData } from '@/types'
 // Box 图标
 const Box = { template: '<svg viewBox="0 0 1024 1024"><path d="M868 160H156c-17.7 0-32 14.3-32 32v96h776v-96c0-17.7-14.3-32-32-32zM124 832c0 17.7 14.3 32 32 32h712c17.7 0 32-14.3 32-32V352H124v480z" fill="currentColor"/></svg>' }
 
-defineProps<{
+const props = defineProps<{
   activeTab: string
   selectedCandidate: CandidateItem | null
   positionTitle: string
@@ -355,7 +377,11 @@ defineEmits<{
   clearMatchResults: []
 }>()
 
-const { getStatusType, getStatusText, getSpeakerText } = useScreeningUtils()
+const { getStatusType, getStatusText, renderMarkdown } = useScreeningUtils()
+
+const agenticTimelineRef = ref<HTMLElement | null>(null)
+const toolExpandedMap = ref<Record<string, boolean>>({})
+const isFinalExpanded = ref(true)
 
 const getScoreColor = (score: number) => {
   if (score >= 85) return '#67c23a'
@@ -397,10 +423,30 @@ const getToolLabel = (tool: string): string => {
   return labels[tool] || tool
 }
 
-// 文本截断
-const truncateText = (text: string, maxLen: number): string => {
-  if (!text) return ''
-  return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
+const getToolKey = (loop: number, idx: number): string => `${loop}-${idx}`
+
+const toggleToolExpanded = (loop: number, idx: number, currentExpanded: boolean) => {
+  const key = getToolKey(loop, idx)
+  toolExpandedMap.value[key] = !currentExpanded
+}
+
+const isToolExpanded = (
+  loop: number,
+  idx: number,
+  result: string | null,
+  nodeLoop: number,
+  currentLoop: number
+): boolean => {
+  const key = getToolKey(loop, idx)
+  if (toolExpandedMap.value[key] !== undefined) {
+    return toolExpandedMap.value[key]
+  }
+  if (!result) return true
+  return nodeLoop === currentLoop
+}
+
+const toggleFinalExpanded = () => {
+  isFinalExpanded.value = !isFinalExpanded.value
 }
 
 // 判断节点是否处于活跃状态
@@ -420,6 +466,38 @@ const getNodeHeaderText = (node: { loop: number; think_text: string; is_thinking
   if (!text) return `第 ${node.loop} 轮决策`
   return text.trim()
 }
+
+watch(
+  () => props.selectedCandidate?.id,
+  () => {
+    toolExpandedMap.value = {}
+    isFinalExpanded.value = true
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.selectedCandidate?.agenticState.isFinalStreaming,
+  (isStreaming) => {
+    if (isStreaming) {
+      isFinalExpanded.value = true
+    }
+  }
+)
+
+watch(
+  () => [
+    props.selectedCandidate?.agenticState.nodes.length ?? 0,
+    props.selectedCandidate?.agenticState.finalReport.length ?? 0,
+    props.selectedCandidate?.agenticState.currentLoop ?? 0
+  ],
+  async () => {
+    await nextTick()
+    if (agenticTimelineRef.value) {
+      agenticTimelineRef.value.scrollTop = agenticTimelineRef.value.scrollHeight
+    }
+  }
+)
 </script>
 
 <style scoped lang="scss">
@@ -695,6 +773,27 @@ const getNodeHeaderText = (node: { loop: number; think_text: string; is_thinking
     flex: 1;
     overflow-y: auto;
     padding: 12px 16px;
+    scroll-behavior: smooth;
+  }
+
+  .collapse-trigger {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .collapse-arrow {
+    margin-left: auto;
+    color: #c0c4cc;
+    transition: transform 0.2s ease, color 0.2s ease;
+
+    &.expanded {
+      transform: rotate(180deg);
+      color: #409eff;
+    }
   }
 
   // 链式节点
@@ -861,14 +960,40 @@ const getNodeHeaderText = (node: { loop: number; think_text: string; is_thinking
         }
       }
 
-      .tool-result {
-        font-size: 11px;
-        color: #606266;
+      .tool-body {
         margin-top: 4px;
         padding-top: 4px;
         border-top: 1px dashed #e4e7ed;
+
+        .tool-query {
+          font-size: 11px;
+          color: #409eff;
+          margin: 0 0 2px;
+        }
+
+        .tool-reason {
+          font-size: 10px;
+          color: #909399;
+          margin: 0 0 4px;
+        }
+      }
+
+      .tool-result {
+        font-size: 11px;
+        color: #606266;
         line-height: 1.4;
         word-break: break-word;
+        max-height: 220px;
+        overflow-y: auto;
+
+        :deep(p) {
+          margin: 0 0 4px;
+          &:last-child { margin-bottom: 0; }
+        }
+        :deep(ul), :deep(ol) {
+          margin: 2px 0;
+          padding-left: 16px;
+        }
       }
 
       .tool-pending {
@@ -896,8 +1021,6 @@ const getNodeHeaderText = (node: { loop: number; think_text: string; is_thinking
     border-top: 1px solid #e4e7ed;
     background: #f0f9eb;
     flex-shrink: 0;
-    max-height: 200px;
-    overflow-y: auto;
 
     .final-header {
       display: flex;
@@ -906,7 +1029,6 @@ const getNodeHeaderText = (node: { loop: number; think_text: string; is_thinking
       font-size: 13px;
       font-weight: 600;
       color: #67c23a;
-      margin-bottom: 8px;
     }
 
     .final-content {
@@ -914,6 +1036,25 @@ const getNodeHeaderText = (node: { loop: number; think_text: string; is_thinking
       color: #606266;
       line-height: 1.6;
       word-break: break-word;
+      margin-top: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+
+      :deep(p) {
+        margin: 0 0 8px;
+        &:last-child { margin-bottom: 0; }
+      }
+      :deep(ul), :deep(ol) {
+        margin: 4px 0;
+        padding-left: 18px;
+      }
+      :deep(li) {
+        margin: 2px 0;
+      }
+      :deep(h1), :deep(h2), :deep(h3), :deep(h4) {
+        margin: 8px 0 6px;
+        font-weight: 600;
+      }
 
       .typing-cursor {
         display: inline-block;

@@ -264,9 +264,9 @@ const handleViewDetail = async (candidate: CandidateItem) => {
     applied_position: candidate.positionTitle,
     score: candidate.screeningScore,
     dimension_scores: {
-      hr_score: candidate.hrScore,
-      technical_score: candidate.techScore,
-      manager_score: candidate.mgrScore
+      technical_score: candidate.technicalScore,
+      project_score: candidate.projectScore,
+      career_score: candidate.careerScore
     },
     summary: candidate.screeningSummary
   })

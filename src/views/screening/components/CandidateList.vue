@@ -106,9 +106,9 @@
               {{ candidate.screeningScore }}
             </el-tag>
             <span class="score-detail">
-              HR:{{ candidate.hrScore || '-' }}
-              技:{{ candidate.techScore || '-' }}
-              管:{{ candidate.mgrScore || '-' }}
+              技:{{ candidate.technicalScore || '-' }}
+              项:{{ candidate.projectScore || '-' }}
+              职:{{ candidate.careerScore || '-' }}
             </span>
           </template>
           <template v-else-if="candidate.screeningStatus === 'running' || candidate.screeningStatus === 'pending'">

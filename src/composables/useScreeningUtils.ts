@@ -84,10 +84,27 @@ export function useScreeningUtils() {
     }
     
     const stepIndex = AGENT_ORDER.indexOf(speaker)
-    const stepNum = stepIndex >= 0 ? stepIndex + 1 : '?'
+    if (stepIndex < 0) {
+      return speaker
+    }
+    const stepNum = stepIndex + 1
     const displayName = speakerNames[speaker] || speaker
     
     return `${displayName} (${stepNum}/${TOTAL_AGENTS})`
+  }
+
+  const getDimensionScore = (
+    dimensionScores: Record<string, unknown>,
+    key: string,
+    fallbackKey?: string
+  ): number | undefined => {
+    const direct = dimensionScores[key]
+    if (typeof direct === 'number') return direct
+    if (fallbackKey) {
+      const fallback = dimensionScores[fallbackKey]
+      if (typeof fallback === 'number') return fallback
+    }
+    return undefined
   }
 
   // 获取处理任务的评分
@@ -96,9 +113,9 @@ export function useScreeningUtils() {
       const dimensionScores = item.dimension_scores || {}
       return {
         comprehensive_score: item.score,
-        hr_score: dimensionScores['hr_score'] as number | undefined,
-        technical_score: dimensionScores['technical_score'] as number | undefined,
-        manager_score: dimensionScores['manager_score'] as number | undefined
+        technical_score: getDimensionScore(dimensionScores, 'technical_score'),
+        project_score: getDimensionScore(dimensionScores, 'project_score', 'hr_score'),
+        career_score: getDimensionScore(dimensionScores, 'career_score', 'manager_score')
       }
     }
     return null
@@ -124,9 +141,9 @@ export function useScreeningUtils() {
       const dimensionScores = task.dimension_scores || {}
       return {
         comprehensive_score: task.score,
-        hr_score: dimensionScores['hr_score'] as number | undefined,
-        technical_score: dimensionScores['technical_score'] as number | undefined,
-        manager_score: dimensionScores['manager_score'] as number | undefined
+        technical_score: getDimensionScore(dimensionScores as Record<string, unknown>, 'technical_score'),
+        project_score: getDimensionScore(dimensionScores as Record<string, unknown>, 'project_score', 'hr_score'),
+        career_score: getDimensionScore(dimensionScores as Record<string, unknown>, 'career_score', 'manager_score')
       }
     }
     return null

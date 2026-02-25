@@ -25,16 +25,16 @@
             <span class="score-value primary">{{ resume.screening_score.comprehensive_score }}</span>
           </div>
           <div class="score-item">
-            <span class="score-label">HR评分</span>
-            <span class="score-value">{{ resume.screening_score.hr_score || '-' }}</span>
+            <span class="score-label">项目评分</span>
+            <span class="score-value">{{ resume.screening_score.project_score ?? resume.screening_score.hr_score ?? '-' }}</span>
           </div>
           <div class="score-item">
             <span class="score-label">技术评分</span>
             <span class="score-value">{{ resume.screening_score.technical_score || '-' }}</span>
           </div>
           <div class="score-item">
-            <span class="score-label">管理评分</span>
-            <span class="score-value">{{ resume.screening_score.manager_score || '-' }}</span>
+            <span class="score-label">职业评分</span>
+            <span class="score-value">{{ resume.screening_score.career_score ?? resume.screening_score.manager_score ?? '-' }}</span>
           </div>
         </div>
       </div>

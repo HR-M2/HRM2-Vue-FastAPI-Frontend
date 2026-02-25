@@ -15,6 +15,26 @@ import { useScreeningUtils } from '@/composables/useScreeningUtils'
 export function useResumeDetail() {
   const { getHistoryTaskName } = useScreeningUtils()
 
+  const toNumberOrUndefined = (value: unknown): number | undefined => {
+    return typeof value === 'number' ? value : undefined
+  }
+
+  const getDimensionScores = (scores: Record<string, unknown> | null | undefined) => {
+    return {
+      technical_score: toNumberOrUndefined(scores?.technical_score),
+      project_score: toNumberOrUndefined(scores?.project_score ?? scores?.hr_score),
+      career_score: toNumberOrUndefined(scores?.career_score ?? scores?.manager_score)
+    }
+  }
+
+  const buildScreeningScore = (score: number | null | undefined, scores: Record<string, unknown> | null | undefined) => {
+    if (score === null || score === undefined) return undefined
+    return {
+      comprehensive_score: score,
+      ...getDimensionScores(scores)
+    }
+  }
+
   // 对话框状态
   const previewDialogVisible = ref(false)
   const resumeDetailVisible = ref(false)
@@ -41,12 +61,7 @@ export function useResumeDetail() {
       id: item.task_id || '',
       candidate_name: item.name,
       position_title: item.applied_position || '',
-      screening_score: item.score !== null && item.score !== undefined ? {
-        comprehensive_score: item.score,
-        hr_score: (item.dimension_scores?.hr_score as number) || undefined,
-        technical_score: (item.dimension_scores?.technical_score as number) || undefined,
-        manager_score: (item.dimension_scores?.manager_score as number) || undefined
-      } : undefined,
+      screening_score: buildScreeningScore(item.score, item.dimension_scores as Record<string, unknown> | null | undefined),
       screening_summary: item.summary || undefined,
       created_at: item.created_at
     }
@@ -62,14 +77,10 @@ export function useResumeDetail() {
           const detail = response.data.data
           resumeData.screening_summary = detail.summary || resumeData.screening_summary
           resumeData.resume_content = detail.resume_content || undefined
-          if (detail.score !== null) {
-            resumeData.screening_score = {
-              comprehensive_score: detail.score,
-              hr_score: (detail.dimension_scores?.hr_score as number) || undefined,
-              technical_score: (detail.dimension_scores?.technical_score as number) || undefined,
-              manager_score: (detail.dimension_scores?.manager_score as number) || undefined
-            }
-          }
+          resumeData.screening_score = buildScreeningScore(
+            detail.score,
+            detail.dimension_scores as Record<string, unknown> | null | undefined
+          )
           // 提取引用的经验
           if (detail.applied_experiences && detail.applied_experiences.length > 0) {
             resumeData.applied_experiences = detail.applied_experiences
@@ -90,12 +101,10 @@ export function useResumeDetail() {
       id: task.id,
       candidate_name: task.candidate_name || getHistoryTaskName(task),
       position_title: task.position_title || '',
-      screening_score: task.score !== null ? {
-        comprehensive_score: task.score,
-        hr_score: (task.dimension_scores?.hr_score as number) || undefined,
-        technical_score: (task.dimension_scores?.technical_score as number) || undefined,
-        manager_score: (task.dimension_scores?.manager_score as number) || undefined
-      } : undefined,
+      screening_score: buildScreeningScore(
+        task.score,
+        task.dimension_scores as unknown as Record<string, unknown> | null | undefined
+      ),
       screening_summary: task.summary || undefined,
       created_at: task.created_at
     }
@@ -120,14 +129,10 @@ export function useResumeDetail() {
         resumeData.resume_content = detail.resume_content || undefined
         // 更新评分（如果API返回更完整的数据）
         resumeData.screening_summary = detail.summary || resumeData.screening_summary
-        if (detail.score !== null) {
-          resumeData.screening_score = {
-            comprehensive_score: detail.score,
-            hr_score: (detail.dimension_scores?.hr_score as number) || undefined,
-            technical_score: (detail.dimension_scores?.technical_score as number) || undefined,
-            manager_score: (detail.dimension_scores?.manager_score as number) || undefined
-          }
-        }
+        resumeData.screening_score = buildScreeningScore(
+          detail.score,
+          detail.dimension_scores as Record<string, unknown> | null | undefined
+        )
         // 提取引用的经验
         if (detail.applied_experiences && detail.applied_experiences.length > 0) {
           resumeData.applied_experiences = detail.applied_experiences
