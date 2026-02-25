@@ -31,16 +31,16 @@
             </div>
             <div class="score-grid">
               <div class="score-item">
-                <div class="si-val" style="color: #409eff">{{ selectedCandidate.hrScore || '-' }}</div>
-                <div class="si-label">HR</div>
-              </div>
-              <div class="score-item">
-                <div class="si-val" style="color: #e6a23c">{{ selectedCandidate.techScore || '-' }}</div>
+                <div class="si-val" style="color: #409eff">{{ selectedCandidate.technicalScore || '-' }}</div>
                 <div class="si-label">技术</div>
               </div>
               <div class="score-item">
-                <div class="si-val" style="color: #909399">{{ selectedCandidate.mgrScore || '-' }}</div>
-                <div class="si-label">管理</div>
+                <div class="si-val" style="color: #e6a23c">{{ selectedCandidate.projectScore || '-' }}</div>
+                <div class="si-label">项目</div>
+              </div>
+              <div class="score-item">
+                <div class="si-val" style="color: #67c23a">{{ selectedCandidate.careerScore || '-' }}</div>
+                <div class="si-label">职业</div>
               </div>
             </div>
           </div>
@@ -61,19 +61,106 @@
           </div>
         </div>
 
-        <!-- 处理中状态 -->
-        <div v-else-if="['running', 'pending'].includes(selectedCandidate.screeningStatus)" class="empty-panel">
-          <el-icon :size="48" color="#409eff" class="is-loading"><Loading /></el-icon>
-          <div class="empty-title">
-            {{ selectedCandidate.screeningStatus === 'running' ? '初筛分析中' : '等待处理' }}...
+        <!-- 处理中状态：链式调用过程可视化（还原实验性 webapp 效果） -->
+        <div v-else-if="['running', 'pending'].includes(selectedCandidate.screeningStatus)" class="agentic-panel">
+          <!-- 顶部进度条 -->
+          <div class="agentic-header">
+            <div class="header-title">
+              <el-icon class="is-loading" color="#409eff"><Loading /></el-icon>
+              <span>{{ selectedCandidate.screeningStatus === 'running' ? 'AI 分析中' : '等待处理' }}</span>
+            </div>
+            <div class="header-progress">
+              <el-progress
+                :percentage="selectedCandidate.screeningProgress || 0"
+                :stroke-width="6"
+                :show-text="false"
+              />
+              <span class="progress-text">{{ selectedCandidate.screeningProgress || 0 }}%</span>
+            </div>
           </div>
-          <el-progress
-            :percentage="selectedCandidate.screeningProgress || 0"
-            :stroke-width="8"
-            style="width: 100%"
-          />
-          <div v-if="selectedCandidate.currentSpeaker" class="speaker-info">
-            {{ getSpeakerText(selectedCandidate.currentSpeaker) }}
+
+          <!-- 链式调用时间线 -->
+          <div class="agentic-timeline" v-if="selectedCandidate.agenticState.nodes.length > 0">
+            <TransitionGroup name="chain-slide">
+              <div
+                v-for="(node, nodeIdx) in selectedCandidate.agenticState.nodes"
+                :key="node.loop"
+                class="chain-node"
+              >
+                <!-- 竖线连接器 -->
+                <div
+                  class="connector"
+                  :class="{
+                    active: isNodeActive(node, selectedCandidate.agenticState),
+                    last: nodeIdx === selectedCandidate.agenticState.nodes.length - 1
+                  }"
+                />
+                
+                <!-- 状态圆点 -->
+                <div class="dot-wrap">
+                  <template v-if="isNodeActive(node, selectedCandidate.agenticState)">
+                    <span class="ping" />
+                    <span class="dot dot-active" />
+                  </template>
+                  <template v-else-if="isNodeDone(node)">
+                    <span class="dot dot-done">✓</span>
+                  </template>
+                  <template v-else>
+                    <span class="dot dot-idle" />
+                  </template>
+                </div>
+
+                <!-- 节点头部：思考内容作为标题 -->
+                <div class="node-header">
+                  <span class="loop-label" :class="{ active: isNodeActive(node, selectedCandidate.agenticState) }">
+                    {{ getNodeHeaderText(node) }}
+                  </span>
+                  <span v-if="isNodeActive(node, selectedCandidate.agenticState)" class="spinner" />
+                  <span class="loop-num">{{ node.loop }}/{{ selectedCandidate.agenticState.maxLoops }}</span>
+                </div>
+
+                <!-- 工具调用列表 -->
+                <div v-if="node.tool_calls.length > 0" class="node-tools">
+                  <div v-for="(tc, idx) in node.tool_calls" :key="idx" class="tool-item" :class="{ pending: !tc.result }">
+                    <div class="tool-header">
+                      <span class="tool-icon">{{ getToolIcon(tc.tool) }}</span>
+                      <span class="tool-name">{{ getToolLabel(tc.tool) }}</span>
+                      <span v-if="!tc.result" class="tool-badge pending">···</span>
+                      <span v-else class="tool-badge done">✓</span>
+                    </div>
+                    <div v-if="tc.result" class="tool-result">
+                      {{ truncateText(tc.result, 120) }}
+                    </div>
+                    <div v-else class="tool-pending">执行中...</div>
+                  </div>
+                </div>
+              </div>
+            </TransitionGroup>
+          </div>
+
+          <!-- 等待状态 -->
+          <div v-else class="agentic-waiting">
+            <el-icon :size="32" color="#c0c4cc"><Timer /></el-icon>
+            <span>{{ selectedCandidate.currentSpeaker || '正在初始化...' }}</span>
+          </div>
+
+          <!-- 最终报告流式输出 -->
+          <div v-if="selectedCandidate.agenticState.isFinalStreaming || selectedCandidate.agenticState.finalReport" class="agentic-final">
+            <div class="final-header">
+              <el-icon color="#67c23a"><DocumentChecked /></el-icon>
+              <span>最终评估报告</span>
+              <el-icon v-if="selectedCandidate.agenticState.isFinalStreaming" class="is-loading" :size="14"><Loading /></el-icon>
+            </div>
+            <div class="final-content">
+              {{ truncateText(selectedCandidate.agenticState.finalReport, 400) }}
+              <span v-if="selectedCandidate.agenticState.isFinalStreaming" class="typing-cursor">|</span>
+            </div>
+          </div>
+
+          <!-- 底部统计 -->
+          <div class="agentic-footer">
+            <span>轮次: {{ selectedCandidate.agenticState.currentLoop }}/{{ selectedCandidate.agenticState.maxLoops }}</span>
+            <span>工具调用: {{ selectedCandidate.agenticState.toolCallCount }}</span>
           </div>
         </div>
 
@@ -232,7 +319,8 @@
 <script setup lang="ts">
 import {
   Close, View, Download, ChatLineSquare, Loading,
-  CircleCloseFilled, Clock, RefreshRight, Delete, InfoFilled, VideoPlay
+  CircleCloseFilled, Clock, RefreshRight, Delete, InfoFilled, VideoPlay,
+  CircleCheck, Timer, DocumentChecked
 } from '@element-plus/icons-vue'
 import { useScreeningUtils } from '@/composables/useScreeningUtils'
 import type { CandidateItem } from '../composables/useCandidateList'
@@ -279,6 +367,58 @@ const getScoreType = (score: number) => {
   if (score >= 85) return 'success'
   if (score >= 70) return 'warning'
   return 'danger'
+}
+
+// 工具图标映射
+const getToolIcon = (tool: string): string => {
+  const icons: Record<string, string> = {
+    check_basic_qualifications: '📋',
+    evaluate_technical_fit: '💻',
+    evaluate_project_depth: '📊',
+    evaluate_career_trajectory: '📈',
+    identify_red_flags: '🚩',
+    estimate_salary_match: '💰',
+    web_search: '🔍'
+  }
+  return icons[tool] || '🔧'
+}
+
+// 工具标签映射
+const getToolLabel = (tool: string): string => {
+  const labels: Record<string, string> = {
+    check_basic_qualifications: '基础条件核查',
+    evaluate_technical_fit: '技术能力评估',
+    evaluate_project_depth: '项目经验分析',
+    evaluate_career_trajectory: '职业轨迹分析',
+    identify_red_flags: '红旗识别',
+    estimate_salary_match: '薪资匹配评估',
+    web_search: '网络搜索'
+  }
+  return labels[tool] || tool
+}
+
+// 文本截断
+const truncateText = (text: string, maxLen: number): string => {
+  if (!text) return ''
+  return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
+}
+
+// 判断节点是否处于活跃状态
+const isNodeActive = (node: { loop: number; is_thinking: boolean }, agenticState: { currentLoop: number }): boolean => {
+  return node.is_thinking || node.loop === agenticState.currentLoop
+}
+
+// 判断节点是否已完成
+const isNodeDone = (node: { is_thinking: boolean; tool_calls: Array<{ result: string | null }> }): boolean => {
+  return !node.is_thinking && node.tool_calls.length > 0 && node.tool_calls.every(tc => tc.result !== null)
+}
+
+// 获取节点标题文本（思考内容或默认标题）
+const getNodeHeaderText = (node: { loop: number; think_text: string; is_thinking: boolean }): string => {
+  const text = node.think_text || ''
+  if (!text && node.is_thinking) return '正在思考...'
+  if (!text) return `第 ${node.loop} 轮决策`
+  return text.trim()
 }
 </script>
 
@@ -509,6 +649,318 @@ const getScoreType = (score: number) => {
     color: #409eff;
     margin-top: 12px;
   }
+}
+
+// Agentic 链式调用面板（还原实验性 webapp 效果）
+.agentic-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  .agentic-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #ebeef5;
+    background: #f5f7fa;
+    flex-shrink: 0;
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #303133;
+      margin-bottom: 8px;
+    }
+
+    .header-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .el-progress {
+        flex: 1;
+      }
+
+      .progress-text {
+        font-size: 12px;
+        color: #909399;
+        min-width: 36px;
+      }
+    }
+  }
+
+  .agentic-timeline {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+  }
+
+  // 链式节点
+  .chain-node {
+    position: relative;
+    padding-left: 22px;
+    margin-bottom: 4px;
+  }
+
+  // 竖线连接器
+  .connector {
+    position: absolute;
+    left: 7px;
+    top: 18px;
+    bottom: 0;
+    width: 1px;
+    background: #e4e7ed;
+
+    &.active {
+      background: linear-gradient(to bottom, #409eff, transparent);
+    }
+
+    &.last {
+      display: none;
+    }
+  }
+
+  // 圆点容器
+  .dot-wrap {
+    position: absolute;
+    left: 0;
+    top: 3px;
+    width: 15px;
+    height: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .dot-active {
+    width: 9px;
+    height: 9px;
+    background: #409eff;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dot-done {
+    width: 15px;
+    height: 15px;
+    background: #f0f9eb;
+    color: #67c23a;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .dot-idle {
+    width: 7px;
+    height: 7px;
+    background: #c0c4cc;
+  }
+
+  .ping {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: rgba(64, 158, 255, 0.25);
+    animation: ping 1.2s ease-out infinite;
+  }
+
+  // 节点头部
+  .node-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+
+  .loop-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #303133;
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.5;
+
+    &.active {
+      color: #409eff;
+    }
+  }
+
+  .loop-num {
+    font-size: 10px;
+    color: #c0c4cc;
+    flex-shrink: 0;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid #ecf5ff;
+    border-top-color: #409eff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  // 工具调用
+  .node-tools {
+    margin-top: 4px;
+
+    .tool-item {
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      background: #f5f7fa;
+      border-radius: 4px;
+      border: 1px solid #e4e7ed;
+
+      &.pending {
+        border-color: #409eff;
+        border-style: dashed;
+      }
+
+      .tool-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+
+        .tool-icon {
+          font-size: 14px;
+        }
+
+        .tool-name {
+          color: #303133;
+          font-weight: 500;
+          flex: 1;
+        }
+
+        .tool-badge {
+          font-size: 10px;
+          padding: 1px 4px;
+          border-radius: 3px;
+
+          &.pending {
+            color: #409eff;
+            background: #ecf5ff;
+          }
+
+          &.done {
+            color: #67c23a;
+            background: #f0f9eb;
+          }
+        }
+      }
+
+      .tool-result {
+        font-size: 11px;
+        color: #606266;
+        margin-top: 4px;
+        padding-top: 4px;
+        border-top: 1px dashed #e4e7ed;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      .tool-pending {
+        font-size: 11px;
+        color: #c0c4cc;
+        font-style: italic;
+        margin-top: 4px;
+      }
+    }
+  }
+
+  .agentic-waiting {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #909399;
+    font-size: 13px;
+  }
+
+  .agentic-final {
+    padding: 12px 16px;
+    border-top: 1px solid #e4e7ed;
+    background: #f0f9eb;
+    flex-shrink: 0;
+    max-height: 200px;
+    overflow-y: auto;
+
+    .final-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #67c23a;
+      margin-bottom: 8px;
+    }
+
+    .final-content {
+      font-size: 12px;
+      color: #606266;
+      line-height: 1.6;
+      word-break: break-word;
+
+      .typing-cursor {
+        display: inline-block;
+        width: 6px;
+        height: 14px;
+        background: #409eff;
+        margin-left: 2px;
+        vertical-align: text-bottom;
+        animation: blink 0.8s infinite;
+      }
+    }
+  }
+
+  .agentic-footer {
+    padding: 8px 16px;
+    border-top: 1px solid #ebeef5;
+    background: #fafafa;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #909399;
+    flex-shrink: 0;
+  }
+}
+
+// 入场动画
+.chain-slide-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.chain-slide-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+@keyframes ping {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .match-result-list {

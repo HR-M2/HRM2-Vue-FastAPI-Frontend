@@ -13,6 +13,32 @@ import {
 } from '@/api/sdk.gen'
 import type { ApplicationDetailResponse } from '@/api/types.gen'
 
+// 工具调用事件
+export interface ToolCallEvent {
+  tool: string
+  args: Record<string, unknown>
+  result: string | null
+}
+
+// 单轮决策节点
+export interface LoopNode {
+  loop: number
+  think_text: string
+  is_thinking: boolean
+  tool_calls: ToolCallEvent[]
+}
+
+// Agentic 筛选状态
+export interface AgenticState {
+  currentLoop: number
+  maxLoops: number
+  nodes: LoopNode[]
+  finalReport: string
+  isFinalStreaming: boolean
+  totalLoops: number
+  toolCallCount: number
+}
+
 export interface CandidateItem {
   id: string // application_id
   resumeId: string
@@ -23,13 +49,17 @@ export interface CandidateItem {
   screeningTaskId: string | null
   screeningStatus: string // pending | running | completed | failed | none
   screeningScore: number | null
-  hrScore: number | null
-  techScore: number | null
-  mgrScore: number | null
+  // Agentic 三维度评分
+  technicalScore: number | null   // 技术能力
+  projectScore: number | null     // 项目经验
+  careerScore: number | null      // 职业轨迹
   screeningSummary: string | null
   screeningProgress: number
   currentSpeaker: string
   errorMessage: string | null
+  recommendation: string | null
+  // Agentic 状态（实时链式调用过程）
+  agenticState: AgenticState
   // 其他状态
   hasInterview: boolean
   interviewCompleted: boolean
@@ -82,6 +112,17 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
     ).length > 0
   })
 
+  // 创建空的 AgenticState
+  const createEmptyAgenticState = (): AgenticState => ({
+    currentLoop: 0,
+    maxLoops: 12,
+    nodes: [],
+    finalReport: '',
+    isFinalStreaming: false,
+    totalLoops: 0,
+    toolCallCount: 0
+  })
+
   // 从 ApplicationDetailResponse 转换为 CandidateItem
   const mapAppToCandidate = (app: ApplicationDetailResponse): CandidateItem => {
     const task = app.screening_task
@@ -94,13 +135,15 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
       screeningTaskId: task?.id || null,
       screeningStatus: task?.status || 'none',
       screeningScore: task?.score ?? null,
-      hrScore: null,
-      techScore: null,
-      mgrScore: null,
+      technicalScore: null,
+      projectScore: null,
+      careerScore: null,
       screeningSummary: null,
       screeningProgress: task?.status === 'completed' ? 100 : 0,
       currentSpeaker: '',
       errorMessage: null,
+      recommendation: null,
+      agenticState: createEmptyAgenticState(),
       hasInterview: !!app.interview_session,
       interviewCompleted: app.interview_session?.is_completed || false,
       hasAnalysis: !!app.comprehensive_analysis,
@@ -119,9 +162,9 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
         const detail = response.data.data
         const dimScores = detail.dimension_scores as Record<string, number> | null
         if (dimScores) {
-          item.hrScore = dimScores.hr_score ?? null
-          item.techScore = dimScores.technical_score ?? null
-          item.mgrScore = dimScores.manager_score ?? null
+          item.technicalScore = dimScores.technical_score ?? null
+          item.projectScore = dimScores.project_score ?? null
+          item.careerScore = dimScores.career_score ?? null
         }
         item.screeningSummary = detail.summary || null
       }
@@ -172,7 +215,7 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
     }
   }
 
-  // 轮询任务状态
+  // 轮询任务状态（支持 agentic 事件流）
   const pollTaskStatus = async () => {
     const pendingItems = candidates.value.filter(
       c => ['running', 'pending'].includes(c.screeningStatus) && c.screeningTaskId
@@ -192,20 +235,40 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
 
         if (response.data?.data) {
           const data = response.data.data as Record<string, unknown>
+          
+          // 基础状态更新
           item.screeningStatus = (data.status as string) || item.screeningStatus
           item.screeningProgress = (data.progress as number) || item.screeningProgress
           item.currentSpeaker = (data.current_speaker as string) || ''
           item.errorMessage = (data.error_message as string) || null
 
+          // 更新 Agentic 状态（链式调用过程）
+          if (data.nodes !== undefined) {
+            item.agenticState = {
+              currentLoop: (data.current_loop as number) || 0,
+              maxLoops: (data.max_loops as number) || 12,
+              nodes: (data.nodes as LoopNode[]) || [],
+              finalReport: (data.final_report as string) || '',
+              isFinalStreaming: (data.is_final_streaming as boolean) || false,
+              totalLoops: (data.total_loops as number) || 0,
+              toolCallCount: (data.tool_call_count as number) || 0
+            }
+          }
+
           if (data.status === 'completed') {
             item.screeningScore = (data.score as number) ?? null
+            item.recommendation = (data.recommendation as string) || null
             const dimScores = data.dimension_scores as Record<string, number> | null
             if (dimScores) {
-              item.hrScore = dimScores.hr_score ?? null
-              item.techScore = dimScores.technical_score ?? null
-              item.mgrScore = dimScores.manager_score ?? null
+              item.technicalScore = dimScores.technical_score ?? null
+              item.projectScore = dimScores.project_score ?? null
+              item.careerScore = dimScores.career_score ?? null
             }
             item.screeningSummary = (data.summary as string) || null
+            // 最终报告也保存到 agenticState
+            if (data.final_report) {
+              item.agenticState.finalReport = data.final_report as string
+            }
             ElMessage.success(`"${item.candidateName}" 初筛完成`)
           } else if (data.status === 'failed') {
             ElMessage.error(`"${item.candidateName}" 初筛失败`)
@@ -217,10 +280,10 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
     }
   }
 
-  // 启动轮询
+  // 启动轮询（1000ms 间隔以支持近实时更新）
   const startPolling = () => {
     if (pollingTimer.value) return
-    pollingTimer.value = window.setInterval(pollTaskStatus, 3000)
+    pollingTimer.value = window.setInterval(pollTaskStatus, 1000)
   }
 
   // 停止轮询
