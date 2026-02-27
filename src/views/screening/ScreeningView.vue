@@ -164,8 +164,8 @@ const {
   loadCandidates,
   retryScreening,
   deleteCandidate,
-  startPolling,
-  stopPolling
+  startStatusSync,
+  stopStatusSync
 } = useCandidateList(selectedPositionId)
 
 // 综合分数排名 Top N
@@ -181,7 +181,7 @@ const {
   batchScreening,
   batchProgress,
   startBatchScreening
-} = useBatchScreening(candidates, selectedPositionId, startPolling)
+} = useBatchScreening(candidates, selectedPositionId, startStatusSync)
 
 // ==================== 智能匹配 ====================
 const smartMatchingRef = ref<InstanceType<typeof SmartMatching>>()
@@ -326,7 +326,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  stopPolling()
+  stopStatusSync()
 })
 </script>
 

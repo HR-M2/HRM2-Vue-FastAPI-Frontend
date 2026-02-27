@@ -3726,6 +3726,34 @@ export type GetScreeningStatusResponses = {
 
 export type GetScreeningStatusResponse = GetScreeningStatusResponses[keyof GetScreeningStatusResponses];
 
+export type StreamScreeningStatusData = {
+    body?: never;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/api/v1/screening/{task_id}/stream';
+};
+
+export type StreamScreeningStatusErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StreamScreeningStatusError = StreamScreeningStatusErrors[keyof StreamScreeningStatusErrors];
+
+export type StreamScreeningStatusResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type DownloadScreeningReportData = {
     body?: never;
     path: {

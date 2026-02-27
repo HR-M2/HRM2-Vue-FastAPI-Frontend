@@ -5,13 +5,18 @@
 import { ref, computed, type Ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
+  createScreeningStatusStream,
+  type ScreeningStatusStreamHandle
+} from '@/services/screening/screeningStatusStream'
+import {
   getApplications,
-  getScreeningStatus,
   getScreeningTask,
   deleteApplication,
   startAiScreening
 } from '@/api/sdk.gen'
 import type { ApplicationDetailResponse } from '@/api/types.gen'
+
+const isPendingStatus = (status: string) => ['running', 'pending'].includes(status)
 
 // 工具调用事件
 export interface ToolCallEvent {
@@ -73,46 +78,11 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
   const loading = ref(false)
   const statusFilter = ref('all')
   const sortBy = ref('score')
-  const pollingTimer = ref<number | null>(null)
 
-  // 根据筛选和排序后的候选人列表
-  const filteredCandidates = computed(() => {
-    let list = candidates.value.filter(c => c.positionId === selectedPositionId.value)
+  const taskStreams = new Map<string, ScreeningStatusStreamHandle>()
+  const taskErrorNotified = new Set<string>()
+  const unsupportedSseWarned = ref(false)
 
-    if (statusFilter.value !== 'all') {
-      list = list.filter(c => c.screeningStatus === statusFilter.value)
-    }
-
-    list.sort((a, b) => {
-      if (sortBy.value === 'score') return (b.screeningScore || 0) - (a.screeningScore || 0)
-      if (sortBy.value === 'time') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      return 0
-    })
-
-    return list
-  })
-
-  // 当前岗位的统计
-  const positionStats = computed(() => {
-    const list = candidates.value.filter(c => c.positionId === selectedPositionId.value)
-    return {
-      total: list.length,
-      completed: list.filter(c => c.screeningStatus === 'completed').length,
-      processing: list.filter(c => ['running', 'pending'].includes(c.screeningStatus)).length,
-      unscreened: list.filter(c => c.screeningStatus === 'none').length,
-      failed: list.filter(c => c.screeningStatus === 'failed').length
-    }
-  })
-
-  // 是否有可批量初筛的候选人
-  const canBatchScreen = computed(() => {
-    return candidates.value.filter(
-      c => c.positionId === selectedPositionId.value &&
-        (c.screeningStatus === 'none' || c.screeningStatus === 'failed')
-    ).length > 0
-  })
-
-  // 创建空的 AgenticState
   const createEmptyAgenticState = (): AgenticState => ({
     currentLoop: 0,
     maxLoops: 12,
@@ -172,6 +142,159 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
     }
   }
 
+  const getPendingTaskIds = (): Set<string> => {
+    const ids = new Set<string>()
+    for (const item of candidates.value) {
+      if (item.screeningTaskId && isPendingStatus(item.screeningStatus)) {
+        ids.add(item.screeningTaskId)
+      }
+    }
+    return ids
+  }
+
+  const getCandidateByTaskId = (taskId: string): CandidateItem | undefined => {
+    return candidates.value.find(c => c.screeningTaskId === taskId)
+  }
+
+  const isTaskPending = (taskId: string): boolean => {
+    const item = getCandidateByTaskId(taskId)
+    return !!item && isPendingStatus(item.screeningStatus)
+  }
+
+  const closeTaskStream = (taskId: string) => {
+    const stream = taskStreams.get(taskId)
+    if (stream) {
+      stream.close()
+      taskStreams.delete(taskId)
+    }
+    taskErrorNotified.delete(taskId)
+  }
+
+  const closeAllTaskStreams = () => {
+    Array.from(taskStreams.keys()).forEach(taskId => closeTaskStream(taskId))
+    taskErrorNotified.clear()
+  }
+
+  const applyTaskStatus = (item: CandidateItem, data: Record<string, unknown>) => {
+    const previousStatus = item.screeningStatus
+    const nextStatus = (data.status as string | undefined) ?? item.screeningStatus
+
+    // 基础状态更新
+    item.screeningStatus = nextStatus
+    item.screeningProgress = (data.progress as number | undefined) ?? item.screeningProgress
+    item.currentSpeaker = (data.current_speaker as string | undefined) ?? ''
+    item.errorMessage = (data.error_message as string | undefined) ?? null
+
+    // 更新 Agentic 状态（链式调用过程）
+    if (data.nodes !== undefined) {
+      const incomingNodes = Array.isArray(data.nodes) ? (data.nodes as LoopNode[]) : []
+      const incomingFinalReport = (data.final_report as string | undefined) ?? ''
+      const incomingCurrentLoop = data.current_loop as number | undefined
+      const incomingMaxLoops = data.max_loops as number | undefined
+      const incomingTotalLoops = data.total_loops as number | undefined
+      const incomingToolCalls = data.tool_call_count as number | undefined
+      item.agenticState = {
+        currentLoop: incomingCurrentLoop && incomingCurrentLoop > 0
+          ? incomingCurrentLoop
+          : item.agenticState.currentLoop,
+        maxLoops: incomingMaxLoops && incomingMaxLoops > 0
+          ? incomingMaxLoops
+          : item.agenticState.maxLoops || 12,
+        nodes: incomingNodes.length > 0 ? incomingNodes : item.agenticState.nodes,
+        finalReport: incomingFinalReport || item.agenticState.finalReport,
+        isFinalStreaming: (data.is_final_streaming as boolean | undefined) ?? item.agenticState.isFinalStreaming,
+        totalLoops: incomingTotalLoops && incomingTotalLoops > 0
+          ? incomingTotalLoops
+          : item.agenticState.totalLoops,
+        toolCallCount: incomingToolCalls && incomingToolCalls > 0
+          ? incomingToolCalls
+          : item.agenticState.toolCallCount
+      }
+    }
+
+    if (nextStatus === 'completed') {
+      item.screeningScore = (data.score as number) ?? null
+      item.recommendation = (data.recommendation as string | undefined) ?? null
+      applyDimensionScores(item, data.dimension_scores as Record<string, unknown> | null)
+      item.screeningSummary = (data.summary as string | undefined) ?? null
+      if (data.final_report) {
+        item.agenticState.finalReport = data.final_report as string
+      }
+    }
+
+    if (nextStatus !== previousStatus) {
+      if (nextStatus === 'completed') {
+        ElMessage.success(`"${item.candidateName}" 初筛完成`)
+      } else if (nextStatus === 'failed') {
+        ElMessage.error(`"${item.candidateName}" 初筛失败`)
+      }
+    }
+
+    if (item.screeningTaskId && !isPendingStatus(nextStatus)) {
+      closeTaskStream(item.screeningTaskId)
+    }
+  }
+
+  const notifyStreamError = (taskId: string, message: string) => {
+    if (message.includes('不支持 SSE')) {
+      if (!unsupportedSseWarned.value) {
+        unsupportedSseWarned.value = true
+        ElMessage.error(message)
+      }
+      return
+    }
+
+    if (!taskErrorNotified.has(taskId)) {
+      taskErrorNotified.add(taskId)
+      ElMessage.warning(message)
+    }
+  }
+
+  const connectTaskStream = (taskId: string) => {
+    if (taskStreams.has(taskId) || !isTaskPending(taskId)) {
+      return
+    }
+
+    const stream = createScreeningStatusStream({
+      taskId,
+      callbacks: {
+        onOpen: () => {
+          taskErrorNotified.delete(taskId)
+        },
+        onStatus: (payload) => {
+          const item = getCandidateByTaskId(taskId)
+          if (!item) {
+            closeTaskStream(taskId)
+            return
+          }
+
+          applyTaskStatus(item, payload)
+        },
+        onError: (message) => {
+          notifyStreamError(taskId, message)
+        }
+      }
+    })
+
+    taskStreams.set(taskId, stream)
+  }
+
+  const syncTaskStreams = () => {
+    const pendingTaskIds = getPendingTaskIds()
+
+    Array.from(taskStreams.keys()).forEach(taskId => {
+      if (!pendingTaskIds.has(taskId)) {
+        closeTaskStream(taskId)
+      }
+    })
+
+    pendingTaskIds.forEach(taskId => {
+      if (!taskStreams.has(taskId)) {
+        connectTaskStream(taskId)
+      }
+    })
+  }
+
   // 获取已完成任务的维度评分（ScreeningTaskBrief 不含 dimension_scores，需单独获取）
   const fetchDimensionScores = async (item: CandidateItem) => {
     if (!item.screeningTaskId) return
@@ -188,6 +311,43 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
       console.warn('获取维度评分失败:', err)
     }
   }
+
+  // 根据筛选和排序后的候选人列表
+  const filteredCandidates = computed(() => {
+    let list = candidates.value.filter(c => c.positionId === selectedPositionId.value)
+
+    if (statusFilter.value !== 'all') {
+      list = list.filter(c => c.screeningStatus === statusFilter.value)
+    }
+
+    list.sort((a, b) => {
+      if (sortBy.value === 'score') return (b.screeningScore || 0) - (a.screeningScore || 0)
+      if (sortBy.value === 'time') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      return 0
+    })
+
+    return list
+  })
+
+  // 当前岗位的统计
+  const positionStats = computed(() => {
+    const list = candidates.value.filter(c => c.positionId === selectedPositionId.value)
+    return {
+      total: list.length,
+      completed: list.filter(c => c.screeningStatus === 'completed').length,
+      processing: list.filter(c => ['running', 'pending'].includes(c.screeningStatus)).length,
+      unscreened: list.filter(c => c.screeningStatus === 'none').length,
+      failed: list.filter(c => c.screeningStatus === 'failed').length
+    }
+  })
+
+  // 是否有可批量初筛的候选人
+  const canBatchScreen = computed(() => {
+    return candidates.value.filter(
+      c => c.positionId === selectedPositionId.value &&
+        (c.screeningStatus === 'none' || c.screeningStatus === 'failed')
+    ).length > 0
+  })
 
   // 加载候选人列表
   const loadCandidates = async () => {
@@ -215,13 +375,8 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
           fetchDimensionScores(item)
         }
 
-        // 如果有正在处理的任务，启动轮询
-        const hasPending = candidates.value.some(
-          c => ['running', 'pending'].includes(c.screeningStatus)
-        )
-        if (hasPending) {
-          startPolling()
-        }
+        // 对运行中的任务建立 SSE 连接
+        startStatusSync()
       }
     } catch (err) {
       console.error('加载候选人列表失败:', err)
@@ -231,92 +386,14 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
     }
   }
 
-  // 轮询任务状态（支持 agentic 事件流）
-  const pollTaskStatus = async () => {
-    const pendingItems = candidates.value.filter(
-      c => ['running', 'pending'].includes(c.screeningStatus) && c.screeningTaskId
-    )
-
-    if (pendingItems.length === 0) {
-      stopPolling()
-      return
-    }
-
-    for (const item of pendingItems) {
-      if (!item.screeningTaskId) continue
-      try {
-        const response = await getScreeningStatus({
-          path: { task_id: item.screeningTaskId }
-        })
-
-        if (response.data?.data) {
-          const data = response.data.data as Record<string, unknown>
-          
-          // 基础状态更新
-          item.screeningStatus = (data.status as string | undefined) ?? item.screeningStatus
-          item.screeningProgress = (data.progress as number | undefined) ?? item.screeningProgress
-          item.currentSpeaker = (data.current_speaker as string | undefined) ?? ''
-          item.errorMessage = (data.error_message as string | undefined) ?? null
-
-          // 更新 Agentic 状态（链式调用过程）
-          if (data.nodes !== undefined) {
-            const incomingNodes = Array.isArray(data.nodes) ? (data.nodes as LoopNode[]) : []
-            const incomingFinalReport = (data.final_report as string | undefined) ?? ''
-            const incomingCurrentLoop = data.current_loop as number | undefined
-            const incomingMaxLoops = data.max_loops as number | undefined
-            const incomingTotalLoops = data.total_loops as number | undefined
-            const incomingToolCalls = data.tool_call_count as number | undefined
-            item.agenticState = {
-              currentLoop: incomingCurrentLoop && incomingCurrentLoop > 0
-                ? incomingCurrentLoop
-                : item.agenticState.currentLoop,
-              maxLoops: incomingMaxLoops && incomingMaxLoops > 0
-                ? incomingMaxLoops
-                : item.agenticState.maxLoops || 12,
-              nodes: incomingNodes.length > 0 ? incomingNodes : item.agenticState.nodes,
-              finalReport: incomingFinalReport || item.agenticState.finalReport,
-              isFinalStreaming: (data.is_final_streaming as boolean | undefined) ?? item.agenticState.isFinalStreaming,
-              totalLoops: incomingTotalLoops && incomingTotalLoops > 0
-                ? incomingTotalLoops
-                : item.agenticState.totalLoops,
-              toolCallCount: incomingToolCalls && incomingToolCalls > 0
-                ? incomingToolCalls
-                : item.agenticState.toolCallCount
-            }
-          }
-
-          if (data.status === 'completed') {
-            item.screeningScore = (data.score as number) ?? null
-            item.recommendation = (data.recommendation as string | undefined) ?? null
-            applyDimensionScores(item, data.dimension_scores as Record<string, unknown> | null)
-            item.screeningSummary = (data.summary as string | undefined) ?? null
-            // 最终报告也保存到 agenticState
-            if (data.final_report) {
-              item.agenticState.finalReport = data.final_report as string
-            }
-            ElMessage.success(`"${item.candidateName}" 初筛完成`)
-          } else if (data.status === 'failed') {
-            ElMessage.error(`"${item.candidateName}" 初筛失败`)
-          }
-        }
-      } catch (err) {
-        console.error('轮询任务状态失败:', err)
-      }
-    }
+  // 启动状态同步
+  const startStatusSync = () => {
+    syncTaskStreams()
   }
 
-  // 启动轮询（1000ms 间隔以支持近实时更新）
-  const startPolling = () => {
-    if (pollingTimer.value) return
-    pollingTimer.value = window.setInterval(pollTaskStatus, 1000)
-  }
-
-  // 停止轮询
-  const stopPolling = () => {
-    if (pollingTimer.value) {
-      clearInterval(pollingTimer.value)
-      pollingTimer.value = null
-    }
+  // 停止状态同步并清理连接
+  const stopStatusSync = () => {
+    closeAllTaskStreams()
   }
 
   // 重新初筛某个候选人
@@ -340,7 +417,7 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
         candidate.agenticState = createEmptyAgenticState()
         candidate.errorMessage = null
         ElMessage.success('已重新提交初筛任务')
-        startPolling()
+        startStatusSync()
       }
     } catch (err) {
       console.error('重新初筛失败:', err)
@@ -359,6 +436,7 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
 
       await deleteApplication({ path: { application_id: candidate.id } })
       candidates.value = candidates.value.filter(c => c.id !== candidate.id)
+      startStatusSync()
       ElMessage.success('已移除候选人')
     } catch (err) {
       if (err !== 'cancel') {
@@ -379,7 +457,7 @@ export function useCandidateList(selectedPositionId: Ref<string | null>) {
     loadCandidates,
     retryScreening,
     deleteCandidate,
-    startPolling,
-    stopPolling
+    startStatusSync,
+    stopStatusSync
   }
 }

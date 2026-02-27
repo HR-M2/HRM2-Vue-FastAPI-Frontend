@@ -16,7 +16,7 @@ export interface BatchProgress {
 export function useBatchScreening(
   candidates: Ref<CandidateItem[]>,
   selectedPositionId: Ref<string | null>,
-  onStartPolling: () => void
+  onStartStatusSync: () => void
 ) {
   const batchScreening = ref(false)
   const batchProgress = ref<BatchProgress>({ current: 0, total: 0, items: [] })
@@ -79,7 +79,7 @@ export function useBatchScreening(
 
     if (successCount > 0) {
       ElMessage.success(`已提交 ${successCount} 份简历进行初筛`)
-      onStartPolling()
+      onStartStatusSync()
     }
 
     // 延迟关闭进度面板
