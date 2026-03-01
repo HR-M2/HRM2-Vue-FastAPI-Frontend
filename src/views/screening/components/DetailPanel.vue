@@ -491,7 +491,7 @@ const getToolLabel = (tool: string): string => {
     evaluate_technical_fit: '技术能力评估',
     evaluate_project_depth: '项目经验分析',
     evaluate_career_trajectory: '职业轨迹分析',
-    identify_red_flags: '红旗识别',
+    identify_red_flags: '风险排查',
     estimate_salary_match: '薪资匹配评估',
     web_search: '网络搜索'
   }
