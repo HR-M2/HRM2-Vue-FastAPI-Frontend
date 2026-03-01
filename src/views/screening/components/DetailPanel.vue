@@ -59,6 +59,68 @@
               进入面试
             </el-button>
           </div>
+
+          <!-- 可折叠的 AI 分析过程（仅当有思维链数据时显示） -->
+          <div v-if="hasAgenticHistory" class="section agentic-history">
+            <button class="history-header collapse-trigger" @click="toggleAgenticHistoryExpanded">
+              <el-icon color="#409eff"><cpu-icon /></el-icon>
+              <span class="history-title">AI 分析过程</span>
+              <span class="history-summary">
+                {{ selectedCandidate.agenticState.totalLoops || selectedCandidate.agenticState.nodes.length }} 轮 · 
+                {{ selectedCandidate.agenticState.toolCallCount }} 次工具调用
+              </span>
+              <el-icon class="collapse-arrow" :class="{ expanded: isAgenticHistoryExpanded }">
+                <ArrowDown />
+              </el-icon>
+            </button>
+            <Transition name="history-expand">
+              <div v-show="isAgenticHistoryExpanded" class="history-content">
+                <div class="agentic-timeline-readonly">
+                  <div
+                    v-for="(node, nodeIdx) in selectedCandidate.agenticState.nodes"
+                    :key="node.loop"
+                    class="chain-node"
+                  >
+                    <div class="connector" :class="{ last: nodeIdx === selectedCandidate.agenticState.nodes.length - 1 }" />
+                    <div class="dot-wrap">
+                      <span class="dot dot-done">✓</span>
+                    </div>
+                    <div class="node-header">
+                      <span class="loop-label">{{ getNodeHeaderText(node) }}</span>
+                      <span class="loop-num">{{ node.loop }}/{{ selectedCandidate.agenticState.maxLoops }}</span>
+                    </div>
+                    <div v-if="node.tool_calls.length > 0" class="node-tools">
+                      <div v-for="(tc, idx) in node.tool_calls" :key="idx" class="tool-item">
+                        <button
+                          class="tool-header collapse-trigger"
+                          @click="toggleToolExpanded(node.loop, idx, isToolExpanded(node.loop, idx, tc.result, node.loop, 0))"
+                        >
+                          <span class="tool-icon">{{ getToolIcon(tc.tool) }}</span>
+                          <span class="tool-name">{{ getToolLabel(tc.tool) }}</span>
+                          <span class="tool-badge done">✓</span>
+                          <el-icon class="collapse-arrow" :class="{ expanded: isToolExpanded(node.loop, idx, tc.result, node.loop, 0) }">
+                            <ArrowDown />
+                          </el-icon>
+                        </button>
+                        <div v-show="isToolExpanded(node.loop, idx, tc.result, node.loop, 0)" class="tool-body">
+                          <p v-if="tc.args?.query" class="tool-query">🔎 {{ tc.args.query }}</p>
+                          <p v-if="tc.args?.reason" class="tool-reason">{{ tc.args.reason }}</p>
+                          <div v-if="tc.result" class="tool-result markdown-content" v-html="renderMarkdown(tc.result)" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="selectedCandidate.agenticState.finalReport" class="history-final">
+                  <div class="final-label">
+                    <el-icon color="#67c23a"><DocumentChecked /></el-icon>
+                    <span>最终评估报告</span>
+                  </div>
+                  <div class="final-content markdown-content" v-html="renderMarkdown(selectedCandidate.agenticState.finalReport)" />
+                </div>
+              </div>
+            </Transition>
+          </div>
         </div>
 
         <!-- 处理中状态：链式调用过程可视化（还原实验性 webapp 效果） -->
@@ -338,7 +400,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, ref, computed, watch } from 'vue'
 import {
   Close, View, Download, ChatLineSquare, Loading,
   CircleCloseFilled, Clock, RefreshRight, Delete, InfoFilled, VideoPlay,
@@ -382,6 +444,19 @@ const { getStatusType, getStatusText, renderMarkdown } = useScreeningUtils()
 const agenticTimelineRef = ref<HTMLElement | null>(null)
 const toolExpandedMap = ref<Record<string, boolean>>({})
 const isFinalExpanded = ref(true)
+const isAgenticHistoryExpanded = ref(false)
+
+const hasAgenticHistory = computed(() => {
+  return (props.selectedCandidate?.agenticState?.nodes?.length ?? 0) > 0
+})
+
+const toggleAgenticHistoryExpanded = () => {
+  isAgenticHistoryExpanded.value = !isAgenticHistoryExpanded.value
+}
+
+const cpuIcon = {
+  template: '<svg viewBox="0 0 1024 1024"><path d="M512 128c-35.3 0-64 28.7-64 64v64h128v-64c0-35.3-28.7-64-64-64zm256 192V192c0-35.3-28.7-64-64-64h-64v128h128zm0 64H256v256h512V384zm0 320H256v128h64c35.3 0 64 28.7 64 64v64h256v-64c0-35.3 28.7-64 64-64h64V704zm64-64v128c0 35.3-28.7 64-64 64v64c0 35.3-28.7 64-64 64H384c-35.3 0-64-28.7-64-64v-64c-35.3 0-64-28.7-64-64V640h-64c-35.3 0-64-28.7-64-64V448c0-35.3 28.7-64 64-64h64V256c0-35.3 28.7-64 64-64V128c0-35.3 28.7-64 64-64h256c35.3 0 64 28.7 64 64v64c35.3 0 64 28.7 64 64v128h64c35.3 0 64 28.7 64 64v128c0 35.3-28.7 64-64 64h-64zM192 384h64v256h-64V384zm576 0h64v256h-64V384z" fill="currentColor"/></svg>'
+}
 
 const getScoreColor = (score: number) => {
   if (score >= 85) return '#67c23a'
@@ -472,6 +547,7 @@ watch(
   () => {
     toolExpandedMap.value = {}
     isFinalExpanded.value = true
+    isAgenticHistoryExpanded.value = false
   },
   { immediate: true }
 )
@@ -1101,6 +1177,273 @@ watch(
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
+}
+
+// 已完成状态下的可折叠思维链历史
+.agentic-history {
+  padding: 12px 16px !important;
+  border-bottom: none !important;
+
+  .history-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #f5f7fa;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: #ecf5ff;
+    }
+
+    .history-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    .history-summary {
+      flex: 1;
+      font-size: 11px;
+      color: #909399;
+      text-align: right;
+      margin-right: 4px;
+    }
+  }
+
+  .history-content {
+    margin-top: 12px;
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 1px solid #ebeef5;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .agentic-timeline-readonly {
+    .chain-node {
+      position: relative;
+      padding-left: 22px;
+      margin-bottom: 8px;
+    }
+
+    .connector {
+      position: absolute;
+      left: 7px;
+      top: 18px;
+      bottom: 0;
+      width: 1px;
+      background: #e4e7ed;
+
+      &.last {
+        display: none;
+      }
+    }
+
+    .dot-wrap {
+      position: absolute;
+      left: 0;
+      top: 3px;
+      width: 15px;
+      height: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .dot-done {
+      width: 15px;
+      height: 15px;
+      background: #f0f9eb;
+      color: #67c23a;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .node-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .loop-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #303133;
+      flex: 1;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    .loop-num {
+      font-size: 10px;
+      color: #c0c4cc;
+      flex-shrink: 0;
+    }
+
+    .node-tools {
+      margin-top: 4px;
+
+      .tool-item {
+        padding: 6px 8px;
+        margin-bottom: 4px;
+        background: #fff;
+        border-radius: 4px;
+        border: 1px solid #e4e7ed;
+
+        .tool-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+
+          .tool-icon {
+            font-size: 14px;
+          }
+
+          .tool-name {
+            color: #303133;
+            font-weight: 500;
+            flex: 1;
+          }
+
+          .tool-badge {
+            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 3px;
+
+            &.done {
+              color: #67c23a;
+              background: #f0f9eb;
+            }
+          }
+        }
+
+        .tool-body {
+          margin-top: 4px;
+          padding-top: 4px;
+          border-top: 1px dashed #e4e7ed;
+
+          .tool-query {
+            font-size: 11px;
+            color: #409eff;
+            margin: 0 0 2px;
+          }
+
+          .tool-reason {
+            font-size: 10px;
+            color: #909399;
+            margin: 0 0 4px;
+          }
+        }
+
+        .tool-result {
+          font-size: 11px;
+          color: #606266;
+          line-height: 1.4;
+          word-break: break-word;
+          max-height: 150px;
+          overflow-y: auto;
+
+          :deep(p) {
+            margin: 0 0 4px;
+            &:last-child { margin-bottom: 0; }
+          }
+          :deep(ul), :deep(ol) {
+            margin: 2px 0;
+            padding-left: 16px;
+          }
+        }
+      }
+    }
+  }
+
+  .history-final {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f0f9eb;
+    border-radius: 6px;
+
+    .final-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #67c23a;
+      margin-bottom: 8px;
+    }
+
+    .final-content {
+      font-size: 12px;
+      color: #606266;
+      line-height: 1.6;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+
+      :deep(p) {
+        margin: 0 0 6px;
+        &:last-child { margin-bottom: 0; }
+      }
+      :deep(ul), :deep(ol) {
+        margin: 4px 0;
+        padding-left: 18px;
+      }
+    }
+  }
+
+  .collapse-trigger {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .collapse-arrow {
+    margin-left: auto;
+    color: #c0c4cc;
+    transition: transform 0.25s ease, color 0.2s ease;
+
+    &.expanded {
+      transform: rotate(180deg);
+      color: #409eff;
+    }
+  }
+}
+
+// 思维链展开/折叠过渡动画
+.history-expand-enter-active,
+.history-expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.history-expand-enter-from,
+.history-expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+  padding: 0 12px;
+}
+
+.history-expand-enter-to,
+.history-expand-leave-from {
+  opacity: 1;
+  max-height: 500px;
 }
 
 .match-result-list {
