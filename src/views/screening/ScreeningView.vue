@@ -1,9 +1,9 @@
 <template>
   <div class="screening-view">
     <!-- 三列布局 -->
-    <div class="three-column-layout">
+    <div ref="layoutRef" class="three-column-layout">
       <!-- 左侧：岗位面板 -->
-      <div class="col-left">
+      <div class="col-left" :style="{ width: leftWidth + 'px' }">
         <PositionSidebar
           :positions="positionsList"
           :selected-position-id="selectedPositionId"
@@ -17,6 +17,12 @@
           @drop="handleDropOnPosition"
         />
       </div>
+
+      <!-- 左侧分隔线 -->
+      <div
+        class="resizer resizer-left"
+        @mousedown="startResizeLeft"
+      />
 
       <!-- 中间：标签页内容区 -->
       <div class="col-center">
@@ -76,8 +82,14 @@
         </div>
       </div>
 
+      <!-- 右侧分隔线 -->
+      <div
+        class="resizer resizer-right"
+        @mousedown="startResizeRight"
+      />
+
       <!-- 右侧：信息面板 -->
-      <div class="col-right">
+      <div class="col-right" :style="{ width: rightWidth + 'px' }">
         <DetailPanel
           :active-tab="activeTab"
           :selected-candidate="selectedCandidate"
@@ -136,6 +148,64 @@ import type { ResumeListResponse } from '@/api/types.gen'
 import type { CandidateItem } from './composables/useCandidateList'
 
 const router = useRouter()
+
+// ==================== 面板宽度调节 ====================
+const MIN_PANEL_WIDTH = 180
+const DEFAULT_LEFT_WIDTH = 220
+const DEFAULT_RIGHT_WIDTH = 300
+
+const layoutRef = ref<HTMLElement | null>(null)
+const leftWidth = ref(DEFAULT_LEFT_WIDTH)
+const rightWidth = ref(DEFAULT_RIGHT_WIDTH)
+const isResizing = ref(false)
+const resizeType = ref<'left' | 'right' | null>(null)
+
+const getMaxPanelWidth = () => {
+  if (!layoutRef.value) return Math.floor(window.innerWidth / 3)
+  return Math.floor(layoutRef.value.offsetWidth / 3)
+}
+
+const startResizeLeft = (e: MouseEvent) => {
+  isResizing.value = true
+  resizeType.value = 'left'
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const startResizeRight = (e: MouseEvent) => {
+  isResizing.value = true
+  resizeType.value = 'right'
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const handleResize = (e: MouseEvent) => {
+  if (!isResizing.value || !layoutRef.value) return
+  
+  const maxWidth = getMaxPanelWidth()
+  const layoutRect = layoutRef.value.getBoundingClientRect()
+  
+  if (resizeType.value === 'left') {
+    const newWidth = Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, e.clientX - layoutRect.left))
+    leftWidth.value = newWidth
+  } else if (resizeType.value === 'right') {
+    const newWidth = Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, layoutRect.right - e.clientX))
+    rightWidth.value = newWidth
+  }
+}
+
+const stopResize = () => {
+  isResizing.value = false
+  resizeType.value = null
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
 
 // ==================== 标签页状态 ====================
 const activeTab = ref('candidates')
@@ -334,39 +404,53 @@ onUnmounted(() => {
 .screening-view {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 10px);
-  margin-bottom: 10px;
+  height: 100%;
 }
 
 .three-column-layout {
   flex: 1;
-  display: grid;
-  grid-template-columns: 220px 1fr 300px;
-  gap: 0;
+  display: flex;
   min-height: 0;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  overflow: hidden;
   background: #fff;
 }
 
 .col-left {
+  flex-shrink: 0;
   min-height: 0;
   overflow: hidden;
+  background: #fff;
 }
 
 .col-center {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  border-left: 1px solid #e4e7ed;
-  border-right: 1px solid #e4e7ed;
+  background: #fff;
 }
 
 .col-right {
+  flex-shrink: 0;
   min-height: 0;
   overflow: hidden;
+  background: #fff;
+}
+
+.resizer {
+  width: 4px;
+  background: #e4e7ed;
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #409eff;
+  }
+
+  &:active {
+    background: #337ecc;
+  }
 }
 
 .center-header {
@@ -413,25 +497,5 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-}
-
-@media (max-width: 1200px) {
-  .three-column-layout {
-    grid-template-columns: 200px 1fr 260px;
-  }
-}
-
-@media (max-width: 900px) {
-  .three-column-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-  }
-
-  .col-center {
-    border-left: none;
-    border-right: none;
-    border-top: 1px solid #e4e7ed;
-    border-bottom: 1px solid #e4e7ed;
-  }
 }
 </style>

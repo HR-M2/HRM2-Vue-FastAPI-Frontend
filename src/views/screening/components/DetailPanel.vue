@@ -504,7 +504,6 @@ watch(
 .detail-panel {
   height: 100%;
   background: #fff;
-  border-left: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
   overflow: hidden;

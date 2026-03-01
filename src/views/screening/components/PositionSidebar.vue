@@ -92,8 +92,6 @@ const getUnscreenedCount = (pos: PositionData) => {
   flex-direction: column;
   height: 100%;
   background: #fff;
-  border-right: 1px solid #e4e7ed;
-  border-radius: 4px;
   overflow: hidden;
 }
 
